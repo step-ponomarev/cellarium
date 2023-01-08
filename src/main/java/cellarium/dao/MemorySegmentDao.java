@@ -9,20 +9,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cellarium.store.FlushData;
-import jdk.incubator.foreign.MemorySegment;
 import cellarium.entry.EntryComparator;
 import cellarium.entry.MemorySegmentEntry;
 import cellarium.iterators.MergeIterator;
 import cellarium.iterators.ReadIterator;
 import cellarium.iterators.TombstoneSkipIterator;
 import cellarium.store.DiskStore;
+import cellarium.store.FlushData;
 import cellarium.store.MemoryStore;
+import jdk.incubator.foreign.MemorySegment;
 
-//TODO: Нужно централизовать свап и флаш чтобы было проще следить за локами
-// Свап должен блокировать путы. 
-// Флаш должен блокировать компакт
-// Флаш и компакт не должны блокировать путы
 public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentEntry> {
     private static final Logger log = LoggerFactory.getLogger(MemorySegmentDao.class);
 
