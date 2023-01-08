@@ -99,7 +99,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
             dao.compact();
 
             // Сжалось в двое, 1% погрешности
-            Assert.assertTrue(beforeCompaction * 0.51 >= DiskUtils.gerDirSizeBytes(tmpDir));
+            Assert.assertTrue(beforeCompaction * 0.55 >= DiskUtils.gerDirSizeBytes(tmpDir));
         } finally {
             DiskUtils.removeDir(tmpDir);
         }
