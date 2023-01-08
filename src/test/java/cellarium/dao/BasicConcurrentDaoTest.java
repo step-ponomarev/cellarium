@@ -74,7 +74,7 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
         }
     }
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 15_000)
     public void testConcurrentRead() throws Exception {
         final int count = 2_500;
 

@@ -13,7 +13,7 @@ import test.entry.Utils;
 
 public class FlushDaoTest extends AConcurrentDaoTest {
     private static final long UNLIMITED_MEMORY_SIZE = Long.MAX_VALUE;
-    private static final String TEST_RESOURCES_DIR = System.getProperty("user.dir") + "/src/test/resources";
+    private static final String TEST_RESOURCES_DIR = Paths.get(".").toAbsolutePath().normalize().toString();
 
     @Test
     public void testReadEachAfterFlush() throws IOException {

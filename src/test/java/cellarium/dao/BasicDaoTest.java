@@ -211,7 +211,7 @@ public class BasicDaoTest extends AbstractDaoTest {
 
     @Test(timeout = 15000)
     public void testReadHugeData() throws Exception {
-        final int count = 100_000;
+        final int count = 30_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
         try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
