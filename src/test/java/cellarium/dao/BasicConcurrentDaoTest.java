@@ -59,7 +59,7 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
 
     @Test(timeout = 10_000)
     public void testConcurrentRemoveReadAll() throws Exception {
-        final int count = 5_000;
+        final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
         try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {

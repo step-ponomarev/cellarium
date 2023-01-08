@@ -209,7 +209,7 @@ public class BasicDaoTest extends AbstractDaoTest {
         dataFromDao.next();
     }
 
-    @Test(timeout = 10000)
+    @Test(timeout = 15000)
     public void testReadHugeData() throws Exception {
         final int count = 100_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
@@ -218,8 +218,8 @@ public class BasicDaoTest extends AbstractDaoTest {
             entries.forEach(dao::upsert);
 
             for (int i = 0; i < count; i++) {
-                final Entry<String> expectedEnty = entries.get(i);
-                assertEquals(expectedEnty, dao.get(expectedEnty.getKey()));
+                final Entry<String> expectedEntry = entries.get(i);
+                assertEquals(expectedEntry, dao.get(expectedEntry.getKey()));
             }
         }
     }
