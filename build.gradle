@@ -1,0 +1,30 @@
+plugins.apply('java')
+plugins.apply('checkstyle')
+repositories.mavenCentral()
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    testImplementation("junit:junit:4.13.2")
+
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+    implementation 'ch.qos.logback:logback-classic:1.2.11'
+
+    checkstyle 'com.puppycrawl.tools:checkstyle:10.6.0'
+}
+
+final args = ["--add-modules", "jdk.incubator.foreign"]
+tasks.withType(JavaCompile) {
+    options.compilerArgs += args
+}
+
+tasks.withType(Test) {
+    jvmArgs += args
+}
+
+checkstyle {
+    configFile = new File('checkstyle.xml')
+}
