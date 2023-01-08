@@ -13,15 +13,15 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
-import jdk.incubator.foreign.MemoryAccess;
-import jdk.incubator.foreign.MemorySegment;
-import jdk.incubator.foreign.ResourceScope;
 import cellarium.disk.DiskUtils;
 import cellarium.disk.reader.MemorySegmentEntryReader;
 import cellarium.disk.reader.Reader;
 import cellarium.disk.writer.MemorySegmentEntryWriter;
 import cellarium.entry.EntryComparator;
 import cellarium.entry.MemorySegmentEntry;
+import jdk.incubator.foreign.MemoryAccess;
+import jdk.incubator.foreign.MemorySegment;
+import jdk.incubator.foreign.ResourceScope;
 
 public final class SSTable implements Closeable {
     public static final long TOMBSTONE_TAG = -1;
@@ -106,18 +106,6 @@ public final class SSTable implements Closeable {
                 mappedSsTable.asReadOnly(),
                 timestamp
         );
-    }
-
-    public static final class DataWithMeta {
-        public final Iterator<MemorySegmentEntry> data;
-        public final long sizeBytes;
-        public final int count;
-
-        public DataWithMeta(Iterator<MemorySegmentEntry> data, long sizeBytes, int count) {
-            this.data = data;
-            this.sizeBytes = sizeBytes;
-            this.count = count;
-        }
     }
 
     public static List<SSTable> wakeUpSSTables(Path path) throws IOException {
