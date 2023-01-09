@@ -48,7 +48,8 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
 
     @Override
     public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) throws IOException {
-        // Сначала с памяти потому что может произойти флаш и чтение с диска, когда данных там еще не было.
+        // Сначала с памяти потому что может произойти флаш и чтение с диска, когда
+        // данных там еще не было.
         // А затем чтение из памяти, когда данные уже флашнули -> теряем данные
         final Iterator<MemorySegmentEntry> fromMemory = memoryStore.get(from, to);
         final Iterator<MemorySegmentEntry> fromDisk = diskStore.get(from, to);
@@ -57,10 +58,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
                 new TombstoneSkipIterator<>(
                         MergeIterator.of(
                                 List.of(fromDisk, fromMemory),
-                                EntryComparator::compareMemorySegmentEntries
-                        )
-                )
-        );
+                                EntryComparator::compareMemorySegmentEntries)));
     }
 
     @Override
@@ -83,8 +81,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
         final long entrySize = entry.getSizeBytes();
         if (entrySize >= sizeLimit) {
             throw new IllegalStateException(
-                    "Entry is too big, limit is " + sizeLimit + "bytes, entry size is: " + entry.getSizeBytes()
-            );
+                    "Entry is too big, limit is " + sizeLimit + "bytes, entry size is: " + entry.getSizeBytes());
         }
 
         if (memoryStore.getSizeBytes() + entrySize >= sizeLimit && !memoryStore.hasFlushData()) {

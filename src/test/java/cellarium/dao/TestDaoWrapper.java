@@ -1,13 +1,12 @@
 package cellarium.dao;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
-import jdk.incubator.foreign.MemorySegment;
+
 import cellarium.entry.AbstractEntry;
 import cellarium.entry.Entry;
 import cellarium.entry.MemorySegmentEntry;
+import jdk.incubator.foreign.MemorySegment;
 import test.entry.Utils;
 
 public class TestDaoWrapper implements Dao<String, Entry<String>> {
@@ -68,14 +67,6 @@ public class TestDaoWrapper implements Dao<String, Entry<String>> {
         }
     }
 
-    private static List<MemorySegmentEntry> convert(List<Entry<String>> entries) {
-        if (entries == null || entries.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        return entries.stream().map(TestDaoWrapper::convert).toList();
-    }
-
     private static MemorySegmentEntry convert(Entry<String> entry) {
         if (entry == null) {
             return null;
@@ -84,8 +75,7 @@ public class TestDaoWrapper implements Dao<String, Entry<String>> {
         return new MemorySegmentEntry(
                 Utils.stringToMemorySegment(entry.getKey()),
                 entry.getValue() == null ? null : Utils.stringToMemorySegment(entry.getValue()),
-                System.currentTimeMillis()
-        );
+                System.currentTimeMillis());
     }
 
     private static Entry<String> convert(MemorySegmentEntry entry) {
@@ -95,8 +85,7 @@ public class TestDaoWrapper implements Dao<String, Entry<String>> {
 
         return new AbstractEntry<>(
                 Utils.memorySegmentToString(entry.getKey()),
-                Utils.memorySegmentToString(entry.getValue())
-        ) {
+                Utils.memorySegmentToString(entry.getValue())) {
         };
     }
 }

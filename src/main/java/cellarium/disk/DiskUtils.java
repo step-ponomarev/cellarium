@@ -10,6 +10,8 @@ import java.util.Iterator;
 import java.util.stream.Stream;
 
 public class DiskUtils {
+    private DiskUtils() {}
+
     public static void removeFiles(Collection<Path> files) throws IOException {
         for (Path file : files) {
             if (Files.isDirectory(file)) {
