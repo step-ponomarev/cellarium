@@ -76,32 +76,25 @@ public final class SSTable implements Closeable {
         }
 
         final long timestamp = System.currentTimeMillis();
-        final Path sstableDir = Files.createDirectory(
+        final Path ssTableDir = Files.createDirectory(
                 path.resolve(SSTABLE_DIR_PREFIX + createHash(timestamp))
         );
 
-        final MemorySegment mappedSsTable = MemorySegment.mapFile(
-                Files.createFile(sstableDir.resolve(SSTABLE_FILE_NAME)),
-                0,
+        final MemorySegment mappedSsTable = mapFile(
+                Files.createFile(ssTableDir.resolve(SSTABLE_FILE_NAME)),
                 // key + value sizes * data count + data sizeBytes
-                (long) Long.BYTES * 2 * count + sizeBytes,
-                FileChannel.MapMode.READ_WRITE,
-                ResourceScope.newSharedScope()
-        );
+                (long) Long.BYTES * 2 * count + sizeBytes);
 
-        final MemorySegment mappedIndex = MemorySegment.mapFile(
-                Files.createFile(sstableDir.resolve(INDEX_FILE_NAME)),
-                0,
+        final MemorySegment mappedIndex = mapFile(
+                Files.createFile(ssTableDir.resolve(INDEX_FILE_NAME)),
                 //data offsets
-                (long) Long.BYTES * count,
-                FileChannel.MapMode.READ_WRITE,
-                ResourceScope.newSharedScope()
+                (long) Long.BYTES * count
         );
 
         flush(data, mappedSsTable, mappedIndex);
 
         return new SSTable(
-                sstableDir,
+                ssTableDir,
                 mappedIndex.asReadOnly(),
                 mappedSsTable.asReadOnly(),
                 timestamp
@@ -236,6 +229,20 @@ public final class SSTable implements Closeable {
         }
 
         DiskUtils.removeDir(this.path);
+    }
+
+    private static MemorySegment mapFile(final Path path, long sizeBytes) throws IOException {
+        if (Files.notExists(path)) {
+            throw new IllegalStateException("File is not exists " + path);
+        }
+
+        return MemorySegment.mapFile(
+                path,
+                0,
+                sizeBytes,
+                FileChannel.MapMode.READ_WRITE,
+                ResourceScope.newSharedScope()
+        );
     }
 
     private static String createHash(long timestamp) {
