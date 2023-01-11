@@ -76,9 +76,7 @@ public final class SSTable implements Closeable {
         }
 
         final long timestamp = System.currentTimeMillis();
-        final Path ssTableDir = Files.createDirectory(
-                path.resolve(SSTABLE_DIR_PREFIX + createHash(timestamp))
-        );
+        final Path ssTableDir = Files.createDirectory(path.resolve(SSTABLE_DIR_PREFIX + createHash(timestamp)));
 
         final MemorySegment mappedSsTable = mapFile(
                 Files.createFile(ssTableDir.resolve(SSTABLE_FILE_NAME)),
@@ -88,8 +86,7 @@ public final class SSTable implements Closeable {
         final MemorySegment mappedIndex = mapFile(
                 Files.createFile(ssTableDir.resolve(INDEX_FILE_NAME)),
                 //data offsets
-                (long) Long.BYTES * count
-        );
+                (long) Long.BYTES * count);
 
         flush(data, mappedSsTable, mappedIndex);
 
