@@ -12,12 +12,12 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import jdk.incubator.foreign.MemorySegment;
 import cellarium.entry.EntryComparator;
 import cellarium.entry.MemorySegmentEntry;
 import cellarium.iterators.MergeIterator;
 import cellarium.iterators.TombstoneSkipIterator;
 import cellarium.sstable.SSTable;
+import jdk.incubator.foreign.MemorySegment;
 
 public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Closeable {
     private final Path path;
@@ -64,7 +64,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         }
 
         ssTables.add(
-                SSTable.createInstance(this.path, flushData.data, flushData.count, flushData.sizeBytes)
+                SSTable.flushAndCreateSSTable(this.path, flushData.data, flushData.count, flushData.sizeBytes)
         );
     }
 
@@ -92,7 +92,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
             return;
         }
 
-        final SSTable ssTable = SSTable.createInstance(
+        final SSTable ssTable = SSTable.flushAndCreateSSTable(
                 this.path,
                 compactedData.data,
                 compactedData.count,

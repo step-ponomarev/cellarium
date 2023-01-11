@@ -13,7 +13,7 @@ public final class ThreadSafeExecutor {
     public synchronized void execute(Runnable task) {
         this.executorService.execute(task);
     }
-    
+
     public synchronized void close(long timeout) {
         executorService.shutdown();
 

@@ -17,7 +17,6 @@ import cellarium.disk.DiskUtils;
 import cellarium.disk.reader.MemorySegmentEntryReader;
 import cellarium.disk.reader.Reader;
 import cellarium.disk.writer.MemorySegmentEntryWriter;
-import cellarium.entry.EntryComparator;
 import cellarium.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
@@ -34,10 +33,9 @@ public final class SSTable implements Closeable {
     private final Path path;
     private final long createdTimeMs;
 
-    private final MemorySegment indexMemorySegment;
+    private final Index index;
     private final MemorySegment tableMemorySegment;
 
-    //TODO: perfomance test
     /**
      * Guarantees state when read: alive / closed
      */
@@ -58,7 +56,7 @@ public final class SSTable implements Closeable {
         }
 
         this.path = path;
-        this.indexMemorySegment = indexMemorySegment;
+        this.index = new Index(tableMemorySegment, indexMemorySegment);
         this.tableMemorySegment = tableMemorySegment;
 
         this.createdTimeMs = createdAt;
@@ -67,12 +65,16 @@ public final class SSTable implements Closeable {
     //TODO: Здесь мы много аллоцируем и перекладываем данные. 
     // Приходится много хранить в памяти. 
     // Можно ли как-то по-другому?
-    public static SSTable createInstance(Path path, Iterator<MemorySegmentEntry> data,
-                                         int count,
-                                         long sizeBytes
+    public static SSTable flushAndCreateSSTable(Path path, Iterator<MemorySegmentEntry> data,
+                                                int count,
+                                                long sizeBytes
     ) throws IOException {
         if (Files.notExists(path)) {
             throw new IllegalArgumentException("Dir is not exists: " + path);
+        }
+
+        if (!data.hasNext()) {
+            throw new IllegalStateException("Data is empty");
         }
 
         final long timestamp = System.currentTimeMillis();
@@ -129,6 +131,63 @@ public final class SSTable implements Closeable {
         }
     }
 
+    @Override
+    public void close() {
+        readCloseLock.writeLock().lock();
+
+        try {
+            tableMemorySegment.unload();
+            tableMemorySegment.force();
+            tableMemorySegment.scope().close();
+
+            index.close();
+        } finally {
+            readCloseLock.writeLock().unlock();
+        }
+    }
+
+    public long getCreatedTime() {
+        return createdTimeMs;
+    }
+
+    public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) {
+        final long sstableSizeBytes = tableMemorySegment.byteSize();
+        if (sstableSizeBytes == 0) {
+            return Collections.emptyIterator();
+        }
+
+        if (from == null && to == null) {
+            return new MappedIterator(
+                    new MemorySegmentEntryReader(
+                            tableMemorySegment,
+                            TOMBSTONE_TAG
+                    )
+            );
+        }
+
+        final int maxIndex = index.getMaxIndex();
+        final int fromIndex = index.getFromIndex(from);
+
+        // В этом сегменте нет нужного ключа
+        if (fromIndex > maxIndex) {
+            return Collections.emptyIterator();
+        }
+
+        final int toIndex = index.getToIndex(to);
+
+        final long fromPosition = index.getEntryPositionByIndex(fromIndex);
+        final long toPosition = toIndex > maxIndex
+                ? sstableSizeBytes
+                : index.getEntryPositionByIndex(toIndex);
+
+        return new MappedIterator(
+                new MemorySegmentEntryReader(
+                        tableMemorySegment.asSlice(fromPosition, toPosition - fromPosition),
+                        TOMBSTONE_TAG
+                )
+        );
+    }
+
     private static SSTable upInstance(Path path) throws IOException {
         if (Files.notExists(path)) {
             throw new IllegalArgumentException("Dir is not exists");
@@ -164,25 +223,6 @@ public final class SSTable implements Closeable {
         );
     }
 
-    //TODO: Сделать форсированное закрытие даже если кто-то читает таблицу
-    @Override
-    public void close() {
-        readCloseLock.writeLock().lock();
-
-        //TODO: Корректно ли тут?
-        try {
-            tableMemorySegment.unload();
-            tableMemorySegment.force();
-            tableMemorySegment.scope().close();
-
-            indexMemorySegment.unload();
-            indexMemorySegment.force();
-            indexMemorySegment.scope().close();
-        } finally {
-            readCloseLock.writeLock().unlock();
-        }
-    }
-
     private static void flush(Iterator<MemorySegmentEntry> data, MemorySegment sstable, MemorySegment index) {
         long indexOffset = 0;
         long sstableOffset = 0;
@@ -196,105 +236,29 @@ public final class SSTable implements Closeable {
     }
 
     public void removeSSTableFromDisk() throws IOException {
-        if (this.tableMemorySegment.scope().isAlive() || this.indexMemorySegment.scope().isAlive()) {
+        if (this.tableMemorySegment.scope().isAlive()) {
             throw new IllegalStateException("Scope should be closed!");
         }
 
         DiskUtils.removeDir(this.path);
     }
 
-    public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) {
-        final long sstableSizeBytes = tableMemorySegment.byteSize();
-        if (sstableSizeBytes == 0) {
-            return Collections.emptyIterator();
-        }
-
-        if (from == null && to == null) {
-            return new MappedIterator(
-                    new MemorySegmentEntryReader(
-                            tableMemorySegment,
-                            TOMBSTONE_TAG
-                    )
-            );
-        }
-
-        final int maxIndex = (int) (indexMemorySegment.byteSize() / Long.BYTES) - 1;
-        final int fromIndex = from == null ? 0 : Math.abs(
-                findIndexOfKey(indexMemorySegment, tableMemorySegment, from)
-        );
-
-        // В этом сегменте нет нужного ключа
-        if (fromIndex > maxIndex) {
-            return Collections.emptyIterator();
-        }
-
-        final int toIndex = to == null ? maxIndex + 1 : Math.abs(
-                findIndexOfKey(indexMemorySegment, tableMemorySegment, to)
-        );
-        final long fromPosition = MemoryAccess.getLongAtIndex(indexMemorySegment, fromIndex);
-        final long toPosition = toIndex > maxIndex ? sstableSizeBytes : MemoryAccess.getLongAtIndex(indexMemorySegment, toIndex);
-
-        return new MappedIterator(
-                new MemorySegmentEntryReader(
-                        tableMemorySegment.asSlice(fromPosition, toPosition - fromPosition),
-                        TOMBSTONE_TAG
-                )
-        );
-    }
-
-    private static int findIndexOfKey(MemorySegment indexMemorySegment, MemorySegment tableMemorySegment, MemorySegment key) {
-        if (indexMemorySegment == null || tableMemorySegment == null || key == null) {
-            throw new NullPointerException("Arguments cannot be null!");
-        }
-
-        int low = 0;
-        int high = (int) (indexMemorySegment.byteSize() / Long.BYTES) - 1;
-
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-
-            final long keyPosition = MemoryAccess.getLongAtIndex(indexMemorySegment, mid);
-
-            /**
-             * Специфика записи данных.
-             * см {@link MemorySegmentEntryWriter} и {@link MemorySegmentEntryReader}
-             */
-            final long keySize = MemoryAccess.getLongAtOffset(tableMemorySegment, keyPosition);
-            final MemorySegment current = tableMemorySegment.asSlice(keyPosition + Long.BYTES, keySize);
-
-            final int compareResult = EntryComparator.compareMemorySegments(current, key);
-            if (compareResult < 0) {
-                low = mid + 1;
-            } else if (compareResult > 0) {
-                high = mid - 1;
-            } else {
-                return mid;
-            }
-        }
-
-        return -low;
-    }
-
     private static String createHash(long timestamp) {
-        final int HASH_SIZE = 40;
+        final int hashSize = 40;
 
-        StringBuilder hash = new StringBuilder(createTimeMark(timestamp))
+        final StringBuilder hash = new StringBuilder(createTimeMark(timestamp))
                 .append("_H_")
                 .append(System.nanoTime());
 
-        while (hash.length() < HASH_SIZE) {
+        while (hash.length() < hashSize) {
             hash.append(0);
         }
 
-        return hash.substring(0, HASH_SIZE);
+        return hash.substring(0, hashSize);
     }
 
     private static String createTimeMark(long timestamp) {
         return TIMESTAMP_DELIM + timestamp;
-    }
-
-    public long getCreatedTime() {
-        return createdTimeMs;
     }
 
     private final class MappedIterator implements Iterator<MemorySegmentEntry> {
