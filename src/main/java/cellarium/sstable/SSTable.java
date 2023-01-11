@@ -62,10 +62,8 @@ public final class SSTable implements Closeable {
         this.createdTimeMs = createdAt;
     }
 
-    //TODO: Здесь мы много аллоцируем и перекладываем данные. 
-    // Приходится много хранить в памяти. 
-    // Можно ли как-то по-другому?
-    public static SSTable flushAndCreateSSTable(Path path, Iterator<MemorySegmentEntry> data,
+    public static SSTable flushAndCreateSSTable(Path path,
+                                                Iterator<MemorySegmentEntry> data,
                                                 int count,
                                                 long sizeBytes
     ) throws IOException {
@@ -151,11 +149,6 @@ public final class SSTable implements Closeable {
     }
 
     public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) {
-        final long sstableSizeBytes = tableMemorySegment.byteSize();
-        if (sstableSizeBytes == 0) {
-            return Collections.emptyIterator();
-        }
-
         if (from == null && to == null) {
             return new MappedIterator(
                     new MemorySegmentEntryReader(
@@ -168,16 +161,14 @@ public final class SSTable implements Closeable {
         final int maxIndex = index.getMaxIndex();
         final int fromIndex = index.getFromIndex(from);
 
-        // В этом сегменте нет нужного ключа
         if (fromIndex > maxIndex) {
             return Collections.emptyIterator();
         }
 
         final int toIndex = index.getToIndex(to);
-
         final long fromPosition = index.getEntryPositionByIndex(fromIndex);
         final long toPosition = toIndex > maxIndex
-                ? sstableSizeBytes
+                ? tableMemorySegment.byteSize()
                 : index.getEntryPositionByIndex(toIndex);
 
         return new MappedIterator(
@@ -224,6 +215,10 @@ public final class SSTable implements Closeable {
     }
 
     private static void flush(Iterator<MemorySegmentEntry> data, MemorySegment sstable, MemorySegment index) {
+        if (!data.hasNext()) {
+            throw new IllegalStateException("Flushing data is empty!");
+        }
+
         long indexOffset = 0;
         long sstableOffset = 0;
 
