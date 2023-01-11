@@ -180,6 +180,23 @@ public class BasicDaoTest extends AbstractDaoTest {
             Assert.assertNull(dao.get(entry.getKey()));
         }
     }
+    
+    @Test
+    public void testRemoveAndReplaceRemoved() throws IOException {
+        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+            final Entry<String> entry = createEntry("KEY", "VALUE");
+            dao.upsert(entry);
+
+            assertEquals(entry, dao.get(entry.getKey()));
+
+            dao.upsert(createEntry(entry.getKey(), null));
+
+            final Entry<String> expected = createEntry(entry.getKey(), "NEW_VALUE");
+            dao.upsert(expected);
+            
+            assertEquals(expected, dao.get(entry.getKey()));
+        }
+    }
 
     @Test
     public void testRemoveAndReadAll() throws IOException {

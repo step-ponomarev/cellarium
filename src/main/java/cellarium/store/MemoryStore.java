@@ -61,7 +61,7 @@ public class MemoryStore implements Store<MemorySegment, MemorySegmentEntry> {
 
             data.add(compositeMemTable.memTable.get(from, to));
 
-            return MergeIterator.of(data, EntryComparator::compareMemorySegmentEntries);
+            return MergeIterator.of(data, EntryComparator::compareMemorySegmentEntryKeys);
         } finally {
             swapLock.readLock().unlock();
         }

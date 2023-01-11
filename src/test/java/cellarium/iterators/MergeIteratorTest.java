@@ -24,7 +24,7 @@ public class MergeIteratorTest {
 
         final Iterator<MemorySegmentEntry> of = MergeIterator.of(
                 emptyIterators,
-                EntryComparator::compareMemorySegmentEntries
+                EntryComparator::compareMemorySegmentEntryKeys
         );
 
         Assert.assertFalse(of.hasNext());

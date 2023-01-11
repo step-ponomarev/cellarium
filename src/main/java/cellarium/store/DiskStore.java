@@ -80,7 +80,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         final FlushData compactedData = calculateFlushData(new TombstoneSkipIterator<>(
                 MergeIterator.of(
                         data,
-                        EntryComparator::compareMemorySegmentEntries
+                        EntryComparator::compareMemorySegmentEntryKeys
                 )
         ));
 
@@ -148,7 +148,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
     private Iterator<MemorySegmentEntry> readFromDisk(MemorySegment from, MemorySegment to) {
         return MergeIterator.of(
                 ssTables.stream().map(ssTable -> ssTable.get(from, to)).toList(),
-                EntryComparator::compareMemorySegmentEntries
+                EntryComparator::compareMemorySegmentEntryKeys
         );
     }
 }

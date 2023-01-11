@@ -58,7 +58,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
                 new TombstoneSkipIterator<>(
                         MergeIterator.of(
                                 List.of(fromDisk, fromMemory),
-                                EntryComparator::compareMemorySegmentEntries)));
+                                EntryComparator::compareMemorySegmentEntryKeys)));
     }
 
     @Override
