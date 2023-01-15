@@ -18,7 +18,7 @@ public class NullEntryGeneratorList extends EntryGeneratorList {
             throw new IndexOutOfBoundsException("Available index range: [0, " + count + "], got: " + index);
         }
 
-        return new AbstractEntry<>(keyPrefix + Utils.generateKeyByIndex(index), null) {
+        return new AbstractEntry<>(keyPrefix + TestUtils.generateKeyByIndex(index), null) {
             @Override
             public String getKey() {
                 return super.getKey();

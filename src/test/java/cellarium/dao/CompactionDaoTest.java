@@ -7,11 +7,11 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
+import cellarium.disk.DiskUtils;
 import cellarium.entry.Entry;
 import cellarium.iterators.ReadIterator;
-import cellarium.disk.DiskUtils;
 import test.entry.EntryGeneratorList;
-import test.entry.Utils;
+import test.entry.TestUtils;
 
 public class CompactionDaoTest extends AConcurrentDaoTest {
     private static final long SIZE_BYTES = 1024 * 4; //4KB
@@ -206,7 +206,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
             long entriesSizeBytes = 0;
             for (Entry<String> entry : entries) {
                 dao.upsert(entry);
-                entriesSizeBytes += Utils.getSizeBytesOf(entry);
+                entriesSizeBytes += TestUtils.getSizeBytesOf(entry);
             }
 
             Runtime.getRuntime().gc();
