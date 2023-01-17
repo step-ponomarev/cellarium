@@ -9,7 +9,7 @@ import cellarium.entry.Entry;
 import cellarium.disk.DiskUtils;
 import cellarium.entry.AbstractEntry;
 
-public abstract class AbstractDaoTest {
+public abstract class ADaoTest {
     private static final String WORKING_DIR = "dao_test";
 
     protected static Dao<String, Entry<String>> createDao(long bytesLimit) throws IOException {

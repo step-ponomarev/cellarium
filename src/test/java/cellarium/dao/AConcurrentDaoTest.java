@@ -7,7 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
-public abstract class AConcurrentDaoTest extends AbstractDaoTest {
+public abstract class AConcurrentDaoTest extends ADaoTest {
     public Await runAsync(int threadCount, int tasksCount, AsyncTask runnable) {
         final ExecutorService service = Executors.newFixedThreadPool(threadCount);
         final List<Callable<Object>> tasks = IntStream.range(0, tasksCount).mapToObj(i -> (Callable<Object>) () -> {
