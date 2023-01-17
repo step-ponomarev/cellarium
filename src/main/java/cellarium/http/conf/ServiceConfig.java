@@ -3,7 +3,7 @@ package cellarium.http.conf;
 import java.nio.file.Path;
 import java.util.List;
 
-public class ServiceConfig {
+public final class ServiceConfig {
     private final int selfPort;
     private final String selfUrl;
     private final List<String> clusterUrls;

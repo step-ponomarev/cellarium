@@ -14,13 +14,15 @@ import one.nio.http.RequestMethod;
 import one.nio.http.Response;
 import one.nio.http.VirtualHost;
 
-@VirtualHost(EntityRequestHandler.ROUTER_NAME)
-public class EntityRequestHandler implements RequestHandler {
-    public static final String ROUTER_NAME = "ENTITY";
-
+@VirtualHost(HandlerName.DAO_REQUEST_HANDLER)
+public final class DaoRequestHandler implements RequestHandler {
     private final MemorySegmentDao dao;
 
-    public EntityRequestHandler(MemorySegmentDao dao) {
+    public DaoRequestHandler(MemorySegmentDao dao) {
+        if (dao == null) {
+            throw new NullPointerException("Dao cannot be null");
+        }
+
         this.dao = dao;
     }
 
