@@ -41,9 +41,8 @@ public final class DaoRequestHandler implements RequestHandler {
                 return new Response(Response.NOT_FOUND, Response.EMPTY);
             }
 
-            //TODO: Все ли тут ок?
             return Response.ok(
-                    entry.getValue().asByteBuffer().array()
+                    entry.getValue().toByteArray()
             );
         } catch (Exception e) {
             return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
