@@ -12,7 +12,7 @@ import cellarium.entry.Entry;
 import cellarium.iterators.ReadIterator;
 import test.entry.EntryGeneratorList;
 
-public class BasicDaoTest extends AbstractDaoTest {
+public class BasicDaoTest extends ADaoTest {
     private static final Long SIZE_BYTES = 1024 * 4L; // 4KB
 
     @Test
