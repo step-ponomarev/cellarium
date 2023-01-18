@@ -10,6 +10,7 @@ public class MemorySegmentEntryReader extends AMemorySegmentHandler implements R
         super(memorySegment, tombstoneTag);
     }
 
+    // TODO: Убрать аллокации? // Что делать с отданными итераторами?
     @Override
     public MemorySegmentEntry read() {
         final long keySize = MemoryAccess.getLongAtOffset(memorySegment, position);

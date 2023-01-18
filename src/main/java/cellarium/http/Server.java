@@ -38,6 +38,10 @@ public class Server extends HttpServer {
         );
     }
 
+    //TODO: Добавить закрытие сессий! 
+    // Они не закрываются по-дефолту
+    // Ядро закроет сессии (сокеты само)
+    // У нас лучше сделать руками
     @Override
     public synchronized void stop() {
         try {
