@@ -40,7 +40,6 @@ public abstract class AHttpTest {
         server = null;
     }
 
-
     protected static byte[] generateBody() {
         return generateRandomBytes(BODY_LEN_BYTES);
     }
