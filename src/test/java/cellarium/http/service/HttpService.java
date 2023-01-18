@@ -17,8 +17,12 @@ public class HttpService {
     }
 
     public HttpResponse<byte[]> put(String id, byte[] body) throws IOException, InterruptedException {
+        final HttpRequest.BodyPublisher publisher = body == null
+                ? HttpRequest.BodyPublishers.noBody()
+                : HttpRequest.BodyPublishers.ofByteArray(body);
+
         return client.send(
-                createRequestById(id).PUT(HttpRequest.BodyPublishers.ofByteArray(body)).build(),
+                createRequestById(id).PUT(publisher).build(),
                 HttpResponse.BodyHandlers.ofByteArray()
         );
     }
@@ -30,7 +34,18 @@ public class HttpService {
         );
     }
 
+    public HttpResponse<byte[]> delete(String id) throws IOException, InterruptedException {
+        return client.send(
+                createRequestById(id).DELETE().build(),
+                HttpResponse.BodyHandlers.ofByteArray()
+        );
+    }
+
     private HttpRequest.Builder createRequestById(String id) {
+        if (id == null) {
+            return createRequest("");
+        }
+
         return createRequest("?id=" + id);
     }
 

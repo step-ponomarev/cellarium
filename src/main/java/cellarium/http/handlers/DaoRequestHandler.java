@@ -58,7 +58,7 @@ public final class DaoRequestHandler implements RequestHandler {
 
         try {
             final byte[] body = request.getBody();
-            if (body == null) {
+            if (body == null || body.length == 0) {
                 return new Response(Response.BAD_REQUEST, Response.EMPTY);
             }
 
