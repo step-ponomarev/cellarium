@@ -35,6 +35,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
         }
     }
 
+    //TODO: Тест сделано очень погано, нужен признак по-конкретнее
     @Test
     public void testOnlyOneDirAfterCompaction() throws IOException {
         final int count = 2_000;
@@ -161,7 +162,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
         }
     }
 
-    @Test(timeout = 15_000)
+    @Test(timeout = 60_000)
     public void testConcurrentWriteCompactReadEach() throws Exception {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);

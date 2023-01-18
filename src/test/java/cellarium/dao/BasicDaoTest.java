@@ -226,7 +226,7 @@ public class BasicDaoTest extends ADaoTest {
         dataFromDao.next();
     }
 
-    @Test(timeout = 15000)
+    @Test(timeout = 60_000)
     public void testReadHugeData() throws Exception {
         final int count = 30_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);

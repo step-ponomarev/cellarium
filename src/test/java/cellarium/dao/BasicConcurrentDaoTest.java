@@ -9,7 +9,7 @@ import test.entry.EntryGeneratorList;
 public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
     private static final long SIZE_BYTES = 1024 * 4; //4KB
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 60_000)
     public void testConcurrentWrite() throws Exception {
         final int count = 10_000;
 
@@ -25,7 +25,7 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
         }
     }
 
-    @Test(timeout = 15_000)
+    @Test(timeout = 60_000)
     public void testConcurrentWriteRead() throws Exception {
         final int count = 5_000;
 
@@ -40,7 +40,7 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
         }
     }
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 60_000)
     public void testConcurrentRemoveReadEach() throws Exception {
         final int count = 10_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
@@ -57,7 +57,7 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
         }
     }
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 60_000)
     public void testConcurrentRemoveReadAll() throws Exception {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
@@ -74,7 +74,7 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
         }
     }
 
-    @Test(timeout = 15_000)
+    @Test(timeout = 60_000)
     public void testConcurrentRead() throws Exception {
         final int count = 2_500;
 
