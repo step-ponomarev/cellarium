@@ -1,5 +1,4 @@
 plugins.apply('java')
-plugins.apply('checkstyle')
 repositories.mavenCentral()
 
 java {
@@ -14,8 +13,6 @@ dependencies {
     implementation 'ch.qos.logback:logback-classic:1.2.11'
 
     implementation 'ru.odnoklassniki:one-nio:1.6.1'
-
-    checkstyle 'com.puppycrawl.tools:checkstyle:10.6.0'
 }
 
 final args = ["--add-modules", "jdk.incubator.foreign"]
@@ -25,8 +22,4 @@ tasks.withType(JavaCompile) {
 
 tasks.withType(Test) {
     jvmArgs += args
-}
-
-checkstyle {
-    configFile = new File('checkstyle.xml')
 }
