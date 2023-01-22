@@ -38,10 +38,6 @@ public class Server extends HttpServer {
         );
     }
 
-    //TODO: Добавить закрытие сессий! 
-    // Они не закрываются по-дефолту
-    // Ядро закроет сессии (сокеты само)
-    // У нас лучше сделать руками
     @Override
     public synchronized void stop() {
         try {
@@ -73,8 +69,9 @@ public class Server extends HttpServer {
         httpConfig.acceptors = new AcceptorConfig[]{
                 acceptor
         };
-        // При старте можно и побаловаться, почему бы нет?
+
         httpConfig.virtualHosts = createVirtualHosts(clusterUrls);
+        httpConfig.closeSessions = true;
 
         return httpConfig;
     }
