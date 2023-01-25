@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.concurrent.ThreadLocalRandom;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.conf.ServiceConfig;
 import cellarium.http.service.HttpService;
@@ -17,12 +17,12 @@ public abstract class AHttpTest {
     private static final String ENDPOINT = URL + ServerConfiguration.V_0_ENTITY_ENDPOINT;
     private static final int BODY_LEN_BYTES = 40;
 
-    private static HttpServer server;
+    private HttpServer server;
 
     protected final HttpService httpService = new HttpService(ENDPOINT);
 
-    @BeforeClass
-    public static void startServer() throws IOException {
+    @Before
+    public void startServer() throws IOException {
         final ServiceConfig config = new ServiceConfig(
                 PORT,
                 URL,
@@ -34,8 +34,8 @@ public abstract class AHttpTest {
         server.start();
     }
 
-    @AfterClass
-    public static void stopServer() {
+    @After
+    public void stopServer() {
         server.stop();
         server = null;
     }

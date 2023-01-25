@@ -9,6 +9,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.conf.ServiceConfig;
@@ -24,6 +27,11 @@ import one.nio.server.AcceptorConfig;
 public class Server extends HttpServer {
     private final MemorySegmentDao dao;
 
+    private static final int THREAD_LIMIT = 32;
+    private static final long timeout = 2000;
+
+    private final ExecutorService executorService;
+
     public Server(ServiceConfig config) throws IOException {
         super(createServerConfig(config.selfPort(), config.clusterUrls()));
 
@@ -36,15 +44,46 @@ public class Server extends HttpServer {
         addRequestHandlers(
                 new DaoRequestHandler(this.dao)
         );
+
+        this.executorService = Executors.newFixedThreadPool(THREAD_LIMIT);
     }
 
     @Override
     public synchronized void stop() {
+        executorService.shutdown();
+
         try {
-            super.stop();
+            executorService.awaitTermination(60, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        super.stop();
+        try {
             dao.close();
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    //TODO: Выполняем поток в отдельном потоке, поток селекторов не висит.
+    //TODO: нужно сделать нормальный таймаут
+    @Override
+    public void handleRequest(Request request, HttpSession session) throws IOException {
+        if (executorService.isShutdown()) {
+            session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE));
+        }
+
+        try {
+            executorService.execute(() -> {
+                try {
+                    super.handleRequest(request, session);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (RuntimeException e) {
+            session.sendResponse(new Response(Response.INTERNAL_ERROR));
         }
     }
 
