@@ -42,7 +42,7 @@ public class Server extends HttpServer {
         );
 
         this.executorService = Executors.newFixedThreadPool(
-                Runtime.getRuntime().availableProcessors()
+                Runtime.getRuntime().availableProcessors() - 1
         );
     }
 
