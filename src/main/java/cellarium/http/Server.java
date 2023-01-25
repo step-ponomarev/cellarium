@@ -26,10 +26,6 @@ import one.nio.server.AcceptorConfig;
 
 public class Server extends HttpServer {
     private final MemorySegmentDao dao;
-
-    private static final int THREAD_LIMIT = 32;
-    private static final long timeout = 2000;
-
     private final ExecutorService executorService;
 
     public Server(ServiceConfig config) throws IOException {
@@ -45,7 +41,9 @@ public class Server extends HttpServer {
                 new DaoRequestHandler(this.dao)
         );
 
-        this.executorService = Executors.newFixedThreadPool(THREAD_LIMIT);
+        this.executorService = Executors.newFixedThreadPool(
+                Runtime.getRuntime().availableProcessors()
+        );
     }
 
     @Override
