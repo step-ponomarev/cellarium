@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.conf.ServiceConfig;
@@ -25,6 +27,8 @@ import one.nio.http.Response;
 import one.nio.server.AcceptorConfig;
 
 public class Server extends HttpServer {
+    private static final Logger logger = LoggerFactory.getLogger(Server.class);
+
     private final MemorySegmentDao dao;
     private final ExecutorService executorService;
 
@@ -42,7 +46,7 @@ public class Server extends HttpServer {
         );
 
         this.executorService = Executors.newFixedThreadPool(
-                Runtime.getRuntime().availableProcessors()
+                Runtime.getRuntime().availableProcessors() / 2
         );
     }
 
@@ -57,6 +61,7 @@ public class Server extends HttpServer {
         }
 
         super.stop();
+
         try {
             dao.close();
         } catch (IOException e) {
@@ -64,24 +69,25 @@ public class Server extends HttpServer {
         }
     }
 
-    //TODO: Выполняем поток в отдельном потоке, поток селекторов не висит.
-    //TODO: нужно сделать нормальный таймаут
     @Override
-    public void handleRequest(Request request, HttpSession session) throws IOException {
-        if (executorService.isShutdown()) {
-            session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE));
-        }
-
+    public void handleRequest(Request request, HttpSession session) {
         try {
+            if (executorService.isShutdown()) {
+                session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE));
+                return;
+            }
+
             executorService.execute(() -> {
                 try {
                     super.handleRequest(request, session);
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    logger.error("Response is failed", e);
+                    sendInternalError(session);
                 }
             });
-        } catch (RuntimeException e) {
-            session.sendResponse(new Response(Response.INTERNAL_ERROR));
+        } catch (IOException | RuntimeException e) {
+            logger.error("Response is failed", e);
+            sendInternalError(session);
         }
     }
 
@@ -94,6 +100,15 @@ public class Server extends HttpServer {
 
         if (methods != null && !methods.contains(request.getMethod())) {
             session.sendResponse(new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY));
+        }
+    }
+
+    private static void sendInternalError(HttpSession session) {
+        try {
+            session.sendResponse(new Response(Response.INTERNAL_ERROR));
+        } catch (IOException ex) {
+            logger.error("Response is failed", ex);
+            session.socket().close();
         }
     }
 
