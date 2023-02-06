@@ -4,36 +4,23 @@ import java.nio.file.Path;
 import java.util.List;
 
 public final class ServiceConfig {
-    private final int selfPort;
-    private final String selfUrl;
-    private final List<String> clusterUrls;
-    private final Path workingDir;
+    public final int selfPort;
+    public final String selfUrl;
+    public final List<String> clusterUrls;
+    public final Path workingDir;
+    public final int threadCount;
 
     public ServiceConfig(
             int selfPort,
             String selfUrl,
             List<String> clusterUrls,
-            Path workingDir
+            Path workingDir,
+            int threadCount
     ) {
         this.selfPort = selfPort;
         this.selfUrl = selfUrl;
         this.clusterUrls = clusterUrls;
         this.workingDir = workingDir;
-    }
-
-    public int selfPort() {
-        return selfPort;
-    }
-
-    public String selfUrl() {
-        return selfUrl;
-    }
-
-    public List<String> clusterUrls() {
-        return clusterUrls;
-    }
-
-    public Path workingDir() {
-        return workingDir;
+        this.threadCount = threadCount;
     }
 }

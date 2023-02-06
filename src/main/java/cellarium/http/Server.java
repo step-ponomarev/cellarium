@@ -33,9 +33,9 @@ public class Server extends HttpServer {
     private final ExecutorService executorService;
 
     public Server(ServiceConfig config) throws IOException {
-        super(createServerConfig(config.selfPort(), config.clusterUrls()));
+        super(createServerConfig(config.selfPort, config.clusterUrls));
 
-        final Path workingDir = config.workingDir();
+        final Path workingDir = config.workingDir;
         if (Files.notExists(workingDir)) {
             Files.createDirectory(workingDir);
         }
@@ -46,7 +46,7 @@ public class Server extends HttpServer {
         );
 
         this.executorService = Executors.newFixedThreadPool(
-                Runtime.getRuntime().availableProcessors()
+                config.threadCount
         );
     }
 
