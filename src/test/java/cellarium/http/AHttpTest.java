@@ -27,7 +27,8 @@ public abstract class AHttpTest {
                 PORT,
                 URL,
                 Collections.singletonList(URL),
-                Files.createTempDirectory("TMP_DIR")
+                Files.createTempDirectory("TMP_DIR"),
+                Runtime.getRuntime().availableProcessors()
         );
         server = new Server(config);
 
