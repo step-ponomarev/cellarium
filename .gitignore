@@ -1,12 +1,3 @@
-*
-
-!.gitignore
-!scripts
-!gradle
-!.github
-!LICENCE
-!README.md
-!settings.gradle
-!build.gradle
-!src
-!.gitattributes
+.gradle
+.idea
+build
