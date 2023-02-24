@@ -1,21 +1,21 @@
 package cellarium.http.handlers;
 
+import java.io.IOException;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.entry.MemorySegmentEntry;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.utils.Utils;
 import jdk.incubator.foreign.MemorySegment;
 import one.nio.http.HttpSession;
-import one.nio.http.Param;
 import one.nio.http.Path;
 import one.nio.http.Request;
 import one.nio.http.RequestHandler;
-import one.nio.http.RequestMethod;
 import one.nio.http.Response;
 import one.nio.http.VirtualHost;
 
 @VirtualHost(HandlerName.DAO_REQUEST_HANDLER)
 public final class DaoRequestHandler implements RequestHandler {
+    private static final String PARAM_ID = "id";
     private final MemorySegmentDao dao;
 
     public DaoRequestHandler(MemorySegmentDao dao) {
@@ -26,10 +26,24 @@ public final class DaoRequestHandler implements RequestHandler {
         this.dao = dao;
     }
 
-    @RequestMethod(Request.METHOD_GET)
+    @Override
     @Path(ServerConfiguration.V_0_ENTITY_ENDPOINT)
-    public Response getById(@Param(value = "id", required = true) String id) {
-        if (id.isEmpty()) {
+    public void handleRequest(Request request, HttpSession session) throws IOException {
+        session.sendResponse(handleRequest(request));
+    }
+
+    private Response handleRequest(Request request) {
+        return switch (request.getMethod()) {
+            case Request.METHOD_GET -> getById(request);
+            case Request.METHOD_PUT -> put(request);
+            case Request.METHOD_DELETE -> delete(request);
+            default -> new Response(Response.BAD_REQUEST);
+        };
+    }
+
+    private Response getById(Request request) {
+        final String id = request.getParameter(PARAM_ID);
+        if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
 
@@ -49,10 +63,9 @@ public final class DaoRequestHandler implements RequestHandler {
         }
     }
 
-    @RequestMethod(Request.METHOD_PUT)
-    @Path(ServerConfiguration.V_0_ENTITY_ENDPOINT)
-    public Response put(Request request, @Param(value = "id", required = true) String id) {
-        if (id.isEmpty()) {
+    private Response put(Request request) {
+        final String id = request.getParameter(PARAM_ID);
+        if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
 
@@ -76,10 +89,9 @@ public final class DaoRequestHandler implements RequestHandler {
         }
     }
 
-    @RequestMethod(Request.METHOD_DELETE)
-    @Path(ServerConfiguration.V_0_ENTITY_ENDPOINT)
-    public Response delete(@Param(value = "id", required = true) String id) {
-        if (id.isEmpty()) {
+    private Response delete(Request request) {
+        final String id = request.getParameter(PARAM_ID);
+        if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
 
@@ -97,8 +109,5 @@ public final class DaoRequestHandler implements RequestHandler {
             return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
         }
     }
-
-    @Override
-    public void handleRequest(Request request, HttpSession session) {}
 }
 

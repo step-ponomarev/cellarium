@@ -9,6 +9,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.conf.ServiceConfig;
@@ -22,12 +27,15 @@ import one.nio.http.Response;
 import one.nio.server.AcceptorConfig;
 
 public class Server extends HttpServer {
+    private static final Logger logger = LoggerFactory.getLogger(Server.class);
+
     private final MemorySegmentDao dao;
+    private final ExecutorService executorService;
 
     public Server(ServiceConfig config) throws IOException {
-        super(createServerConfig(config.selfPort(), config.clusterUrls()));
+        super(createServerConfig(config.selfPort, config.clusterUrls));
 
-        final Path workingDir = config.workingDir();
+        final Path workingDir = config.workingDir;
         if (Files.notExists(workingDir)) {
             Files.createDirectory(workingDir);
         }
@@ -36,15 +44,50 @@ public class Server extends HttpServer {
         addRequestHandlers(
                 new DaoRequestHandler(this.dao)
         );
+
+        this.executorService = Executors.newFixedThreadPool(
+                config.threadCount
+        );
     }
 
     @Override
     public synchronized void stop() {
+        executorService.shutdown();
+
         try {
-            super.stop();
+            executorService.awaitTermination(60, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        super.stop();
+
+        try {
             dao.close();
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public void handleRequest(Request request, HttpSession session) {
+        try {
+            if (executorService.isShutdown()) {
+                session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE));
+                return;
+            }
+
+            executorService.execute(() -> {
+                try {
+                    super.handleRequest(request, session);
+                } catch (IOException e) {
+                    logger.error("Response is failed", e);
+                    sendInternalError(session);
+                }
+            });
+        } catch (IOException | RuntimeException e) {
+            logger.error("Response is failed", e);
+            sendInternalError(session);
         }
     }
 
@@ -57,6 +100,15 @@ public class Server extends HttpServer {
 
         if (methods != null && !methods.contains(request.getMethod())) {
             session.sendResponse(new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY));
+        }
+    }
+
+    private static void sendInternalError(HttpSession session) {
+        try {
+            session.sendResponse(new Response(Response.INTERNAL_ERROR));
+        } catch (IOException ex) {
+            logger.error("Response is failed", ex);
+            session.socket().close();
         }
     }
 

@@ -15,7 +15,8 @@ public class Main {
                 PORT,
                 URL,
                 Collections.singletonList(URL),
-                Files.createTempDirectory("TMP_DIR")
+                Files.createTempDirectory("TMP_DIR"),
+                Runtime.getRuntime().availableProcessors() - 2
         );
 
         final Server server = new Server(config);
