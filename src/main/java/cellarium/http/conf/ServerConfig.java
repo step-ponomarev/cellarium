@@ -3,14 +3,14 @@ package cellarium.http.conf;
 import java.nio.file.Path;
 import java.util.Collection;
 
-public final class ServiceConfig {
+public final class ServerConfig {
     public final int selfPort;
     public final String selfUrl;
     public final Collection<String> clusterUrls;
     public final Path workingDir;
     public final int threadCount;
 
-    public ServiceConfig(
+    public ServerConfig(
             int selfPort,
             String selfUrl,
             Collection<String> clusterUrls,

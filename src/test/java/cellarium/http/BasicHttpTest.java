@@ -12,40 +12,40 @@ public class BasicHttpTest extends AHttpTest {
         final String id = generateId();
         final byte[] body = generateBody();
 
-        Assert.assertEquals(HttpURLConnection.HTTP_CREATED, httpService.put(id, body).statusCode());
+        Assert.assertEquals(HttpURLConnection.HTTP_CREATED, httpEndpointService.put(id, body).statusCode());
 
-        final HttpResponse<byte[]> getResponse = httpService.get(id);
+        final HttpResponse<byte[]> getResponse = httpEndpointService.get(id);
         Assert.assertEquals(HttpURLConnection.HTTP_OK, getResponse.statusCode());
         Assert.assertArrayEquals(body, getResponse.body());
     }
 
     @Test(timeout = 5000)
     public void testGetNonexistentEntity() throws IOException, InterruptedException {
-        final HttpResponse<byte[]> getResponse = httpService.get("fake_id");
+        final HttpResponse<byte[]> getResponse = httpEndpointService.get("fake_id");
         Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, getResponse.statusCode());
     }
 
     @Test(timeout = 5000)
     public void testGetWithoutId() throws IOException, InterruptedException {
-        final HttpResponse<byte[]> getResponse = httpService.get(null);
+        final HttpResponse<byte[]> getResponse = httpEndpointService.get(null);
         Assert.assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, getResponse.statusCode());
     }
 
     @Test(timeout = 5000)
     public void testDeleteWithoutId() throws IOException, InterruptedException {
-        final HttpResponse<byte[]> getResponse = httpService.delete(null);
+        final HttpResponse<byte[]> getResponse = httpEndpointService.delete(null);
         Assert.assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, getResponse.statusCode());
     }
 
     @Test(timeout = 5000)
     public void testPutWithoutId() throws IOException, InterruptedException {
-        final HttpResponse<byte[]> getResponse = httpService.put(null, generateBody());
+        final HttpResponse<byte[]> getResponse = httpEndpointService.put(null, generateBody());
         Assert.assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, getResponse.statusCode());
     }
 
     @Test(timeout = 5000)
     public void testPutWithEmptyBody() throws IOException, InterruptedException {
-        final HttpResponse<byte[]> getResponse = httpService.put("fake_id", null);
+        final HttpResponse<byte[]> getResponse = httpEndpointService.put("fake_id", null);
         Assert.assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, getResponse.statusCode());
     }
 
@@ -54,14 +54,14 @@ public class BasicHttpTest extends AHttpTest {
         final String id = generateId();
         final byte[] body = generateBody();
 
-        Assert.assertEquals(HttpURLConnection.HTTP_CREATED, httpService.put(id, body).statusCode());
+        Assert.assertEquals(HttpURLConnection.HTTP_CREATED, httpEndpointService.put(id, body).statusCode());
 
-        final HttpResponse<byte[]> getResponse = httpService.get(id);
+        final HttpResponse<byte[]> getResponse = httpEndpointService.get(id);
         Assert.assertEquals(HttpURLConnection.HTTP_OK, getResponse.statusCode());
         Assert.assertArrayEquals(body, getResponse.body());
 
-        Assert.assertEquals(HttpURLConnection.HTTP_ACCEPTED, httpService.delete(id).statusCode());
-        Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, httpService.get(id).statusCode());
+        Assert.assertEquals(HttpURLConnection.HTTP_ACCEPTED, httpEndpointService.delete(id).statusCode());
+        Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, httpEndpointService.get(id).statusCode());
     }
 
     @Test(timeout = 5000)
@@ -69,16 +69,16 @@ public class BasicHttpTest extends AHttpTest {
         final String id = generateId();
         final byte[] originalBody = generateBody();
 
-        Assert.assertEquals(HttpURLConnection.HTTP_CREATED, httpService.put(id, originalBody).statusCode());
+        Assert.assertEquals(HttpURLConnection.HTTP_CREATED, httpEndpointService.put(id, originalBody).statusCode());
 
-        HttpResponse<byte[]> getResponse = httpService.get(id);
+        HttpResponse<byte[]> getResponse = httpEndpointService.get(id);
         Assert.assertEquals(HttpURLConnection.HTTP_OK, getResponse.statusCode());
         Assert.assertArrayEquals(originalBody, getResponse.body());
 
         final byte[] newBody = generateBody();
-        Assert.assertEquals(HttpURLConnection.HTTP_CREATED, httpService.put(id, newBody).statusCode());
+        Assert.assertEquals(HttpURLConnection.HTTP_CREATED, httpEndpointService.put(id, newBody).statusCode());
 
-        getResponse = httpService.get(id);
+        getResponse = httpEndpointService.get(id);
         Assert.assertEquals(HttpURLConnection.HTTP_OK, getResponse.statusCode());
         Assert.assertArrayEquals(newBody, getResponse.body());
     }

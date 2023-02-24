@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfiguration;
-import cellarium.http.conf.ServiceConfig;
+import cellarium.http.conf.ServerConfig;
 import cellarium.http.handlers.DaoRequestHandler;
 import cellarium.http.handlers.HandlerName;
 import one.nio.http.HttpServer;
@@ -42,7 +42,7 @@ public class Server extends HttpServer {
     private final String selfUrl;
     private final String[] clusterUrls;
 
-    public Server(ServiceConfig config) throws IOException {
+    public Server(ServerConfig config) throws IOException {
         super(createServerConfig(config.selfPort, config.clusterUrls));
 
         this.selfUrl = config.selfUrl;

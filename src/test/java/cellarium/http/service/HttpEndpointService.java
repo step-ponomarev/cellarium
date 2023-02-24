@@ -7,12 +7,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
-public class HttpService {
+public class HttpEndpointService {
     private final static HttpClient client = HttpClient.newHttpClient();
 
     private final String endpoint;
 
-    public HttpService(String endpoint) {
+    public HttpEndpointService(String endpoint) {
         this.endpoint = endpoint;
     }
 
