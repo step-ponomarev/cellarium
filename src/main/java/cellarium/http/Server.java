@@ -2,6 +2,9 @@ package cellarium.http;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -9,6 +12,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +28,7 @@ import one.nio.http.HttpServer;
 import one.nio.http.HttpServerConfig;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
+import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 import one.nio.server.AcceptorConfig;
 
@@ -31,9 +37,16 @@ public class Server extends HttpServer {
 
     private final MemorySegmentDao dao;
     private final ExecutorService executorService;
+    private final HttpClient client = HttpClient.newHttpClient();
+
+    private final String selfUrl;
+    private final String[] clusterUrls;
 
     public Server(ServiceConfig config) throws IOException {
         super(createServerConfig(config.selfPort, config.clusterUrls));
+
+        this.selfUrl = config.selfUrl;
+        this.clusterUrls = config.clusterUrls.stream().toArray(String[]::new);
 
         final Path workingDir = config.workingDir;
         if (Files.notExists(workingDir)) {
@@ -77,30 +90,73 @@ public class Server extends HttpServer {
                 return;
             }
 
+            final Response defaultResponse = createResponseIfBadRequest(request);
+            if (defaultResponse != null) {
+                session.sendResponse(defaultResponse);
+                return;
+            }
+
+            final String id = request.getParameter(QueryParam.ID);
+            final String clusterUrl = getClusterUrl(id, clusterUrls);
+            if (!clusterUrl.equals(selfUrl)) {
+                
+                final HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(clusterUrl + request.getURI()))
+                        .method(request.getMethodName(), HttpRequest.BodyPublishers.ofByteArray(request.getBody()))
+                        .build();
+
+                //TODO: Делаем запрос на другую ноду за данными? Может лучше просить клиента сходить на другую ноду? Наверное неет
+                final CompletableFuture<HttpResponse<byte[]>> httpResponseCompletableFuture = client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
+                final HttpResponse<byte[]> httpResponse = httpResponseCompletableFuture.get();
+                //TODO: Теряем хедеры?
+                session.sendResponse(new Response(String.valueOf(httpResponse.statusCode()), httpResponse.body()));
+
+                return;
+            }
+
             executorService.execute(() -> {
+
+                //TODO: Проверяем валидный ли запрос
+                // Проверяем на этой ноде должны мы это делать или на другой
+                // Если на этой, то хендлим запрос через локальный хендлер
+                // Если на другой, то отпраляем по HTTP Client на другую ноду в кластере
                 try {
-                    super.handleRequest(request, session);
+                    final RequestHandler handlerByHost = findHandlerByHost(request);
+                    handlerByHost.handleRequest(request, session);
                 } catch (IOException e) {
                     logger.error("Response is failed", e);
                     sendInternalError(session);
                 }
             });
-        } catch (IOException | RuntimeException e) {
+        } catch (IOException | RuntimeException | ExecutionException | InterruptedException e) {
             logger.error("Response is failed", e);
             sendInternalError(session);
         }
     }
 
-    @Override
-    public void handleDefault(Request request, HttpSession session) throws IOException {
-        final Set<Integer> methods = ServerConfiguration.SUPPORTED_METHODS_BY_ENDPOINT.get(request.getPath());
-        if (methods == null) {
-            session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
+    private static String getClusterUrl(String id, String[] clusterUrls) {
+        if (clusterUrls.length == 1) {
+            return clusterUrls[0];
         }
 
-        if (methods != null && !methods.contains(request.getMethod())) {
-            session.sendResponse(new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY));
+        int i = Math.floorMod(id.hashCode(), clusterUrls.length);
+        return clusterUrls[0];
+    }
+
+    /**
+     * @param request
+     * @return null if valid request
+     */
+    public static Response createResponseIfBadRequest(Request request) {
+        final Set<Integer> methods = ServerConfiguration.SUPPORTED_METHODS_BY_ENDPOINT.get(request.getPath());
+        if (methods == null) {
+            return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
+
+        if (!methods.contains(request.getMethod())) {
+            return new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY);
+        }
+
+        return null;
     }
 
     private static void sendInternalError(HttpSession session) {
@@ -122,6 +178,7 @@ public class Server extends HttpServer {
                 acceptor
         };
 
+        //TODO: Нужно ли тут указывать все хосты в кластере?
         httpConfig.virtualHosts = createVirtualHosts(clusterUrls);
         httpConfig.closeSessions = true;
 
