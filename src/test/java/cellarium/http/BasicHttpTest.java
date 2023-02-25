@@ -5,8 +5,17 @@ import java.net.HttpURLConnection;
 import java.net.http.HttpResponse;
 import org.junit.Assert;
 import org.junit.Test;
+import cellarium.http.service.HttpEndpointService;
 
 public class BasicHttpTest extends AHttpTest {
+    private HttpEndpointService httpEndpointService;
+    
+    @Override
+    public void beforeEachTest() throws IOException {
+        super.beforeEachTest();
+        httpEndpointService = getRandomHostEndpointService();
+    }
+
     @Test(timeout = 5000)
     public void testPutSingleEntity() throws IOException, InterruptedException {
         final String id = generateId();

@@ -24,9 +24,9 @@ public abstract class AHttpTest {
 
     private final Set<Integer> ports;
     private final List<String> clusterUrls;
-    
-    private Set<HttpServer> servers;
-    private Map<String, HttpEndpointService> urlToEndpoint;
+
+    private final Set<HttpServer> servers;
+    private final Map<String, HttpEndpointService> urlToEndpointService;
 
     public AHttpTest() {
         this(Set.of(DEFAULT_PORT));
@@ -34,29 +34,35 @@ public abstract class AHttpTest {
 
     public AHttpTest(Set<Integer> ports) {
         this.ports = ports;
+        this.servers = new HashSet<>();
+        this.urlToEndpointService = new HashMap<>();
         this.clusterUrls = this.ports.stream().map(p -> URL + p).collect(Collectors.toList());
     }
 
     @Before
-    public void start() throws IOException {
-        final Set<HttpServer> servers = new HashSet<>();
-        final Map<String, HttpEndpointService> urlToEndpoint = new HashMap<>();
-
+    public void beforeEachTest() throws IOException {
         for (int port : ports) {
-            final ServerConfig config = createConfig(port);
-            servers.add(new Server(config));
+            final Server server = new Server(createConfig(port));
+            server.start();
+            servers.add(server);
 
             final String url = URL + port;
-            urlToEndpoint.put(url, new HttpEndpointService(url + ServerConfiguration.V_0_ENTITY_ENDPOINT));
+            urlToEndpointService.put(url, new HttpEndpointService(url + ServerConfiguration.V_0_ENTITY_ENDPOINT));
         }
-
-        this.servers = servers;
     }
 
     @After
-    public void stop() {
-        servers.stop();
-        servers = null;
+    public void afterEachTest() {
+        urlToEndpointService.clear();
+        servers.forEach(one.nio.server.Server::stop);
+    }
+
+    protected HttpEndpointService getRandomHostEndpointService() {
+        return urlToEndpointService.get(
+                clusterUrls.get(
+                        ThreadLocalRandom.current().nextInt(0, clusterUrls.size())
+                )
+        );
     }
 
     protected static byte[] generateBody() {
@@ -83,7 +89,7 @@ public abstract class AHttpTest {
                 URL + currentPort,
                 this.clusterUrls,
                 Files.createTempDirectory(DIR_PREFIX + currentPort),
-                ports.size() / (Runtime.getRuntime().availableProcessors() - 2)
+                Math.max(1, ports.size() / (Runtime.getRuntime().availableProcessors() - 2))
         );
     }
 }
