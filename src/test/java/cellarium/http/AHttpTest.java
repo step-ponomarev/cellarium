@@ -1,69 +1,9 @@
 package cellarium.http;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.Before;
-import cellarium.http.conf.ServerConfig;
-import cellarium.http.conf.ServerConfiguration;
-import cellarium.http.service.HttpEndpointService;
-import one.nio.http.HttpServer;
 
 public abstract class AHttpTest {
-    private static final String DIR_PREFIX = "TMP_";
-    private static final int DEFAULT_PORT = 8080;
     private static final int BODY_LEN_BYTES = 40;
-    private static final String URL = "http://localhost:";
-
-    private final Set<Integer> ports;
-    private final List<String> clusterUrls;
-
-    private final Set<HttpServer> servers;
-    private final Map<String, HttpEndpointService> urlToEndpointService;
-
-    public AHttpTest() {
-        this(Set.of(DEFAULT_PORT));
-    }
-
-    public AHttpTest(Set<Integer> ports) {
-        this.ports = ports;
-        this.servers = new HashSet<>();
-        this.urlToEndpointService = new HashMap<>();
-        this.clusterUrls = this.ports.stream().map(p -> URL + p).collect(Collectors.toList());
-    }
-
-    @Before
-    public void beforeEachTest() throws IOException {
-        for (int port : ports) {
-            final Server server = new Server(createConfig(port));
-            server.start();
-            servers.add(server);
-
-            final String url = URL + port;
-            urlToEndpointService.put(url, new HttpEndpointService(url + ServerConfiguration.V_0_ENTITY_ENDPOINT));
-        }
-    }
-
-    @After
-    public void afterEachTest() {
-        urlToEndpointService.clear();
-        servers.forEach(one.nio.server.Server::stop);
-    }
-
-    protected HttpEndpointService getRandomHostEndpointService() {
-        return urlToEndpointService.get(
-                clusterUrls.get(
-                        ThreadLocalRandom.current().nextInt(0, clusterUrls.size())
-                )
-        );
-    }
 
     protected static byte[] generateBody() {
         return generateRandomBytes(BODY_LEN_BYTES);
@@ -81,15 +21,5 @@ public abstract class AHttpTest {
         byte[] bytes = new byte[len];
         ThreadLocalRandom.current().nextBytes(bytes);
         return bytes;
-    }
-
-    private ServerConfig createConfig(int currentPort) throws IOException {
-        return new ServerConfig(
-                currentPort,
-                URL + currentPort,
-                this.clusterUrls,
-                Files.createTempDirectory(DIR_PREFIX + currentPort),
-                Math.max(1, ports.size() / (Runtime.getRuntime().availableProcessors() - 2))
-        );
     }
 }
