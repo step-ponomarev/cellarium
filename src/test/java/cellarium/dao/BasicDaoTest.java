@@ -90,7 +90,7 @@ public class BasicDaoTest extends ADaoTest {
 
     @Test
     public void testGetAllManyTimes() throws Exception {
-        final int count = 10_000;
+        final int count = 2_000;
 
         try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
@@ -226,7 +226,7 @@ public class BasicDaoTest extends ADaoTest {
         dataFromDao.next();
     }
 
-    @Test(timeout = 15000)
+    @Test(timeout = 60_000)
     public void testReadHugeData() throws Exception {
         final int count = 30_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);

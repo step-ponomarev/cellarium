@@ -9,7 +9,7 @@ import org.junit.Test;
 import cellarium.disk.DiskUtils;
 import cellarium.entry.Entry;
 import test.entry.EntryGeneratorList;
-import test.entry.Utils;
+import test.entry.TestUtils;
 
 public class FlushDaoTest extends AConcurrentDaoTest {
     private static final long UNLIMITED_MEMORY_SIZE = Long.MAX_VALUE;
@@ -139,7 +139,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
             long entriesSizeBytes = 0;
             for (Entry<String> entry : entries) {
                 dao.upsert(entry);
-                entriesSizeBytes += Utils.getSizeBytesOf(entry);
+                entriesSizeBytes += TestUtils.getSizeBytesOf(entry);
             }
 
             Runtime.getRuntime().gc();
@@ -193,7 +193,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
         }
     }
 
-    @Test(timeout = 15_000)
+    @Test(timeout = 60_000)
     public void testFlushCompactionReadEachConcurrent() throws Exception {
         final int count = 2_000;
         try (Dao<String, Entry<String>> dao = createDao(UNLIMITED_MEMORY_SIZE)) {

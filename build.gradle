@@ -1,5 +1,5 @@
 plugins.apply('java')
-plugins.apply('checkstyle')
+plugins.apply('application')
 repositories.mavenCentral()
 
 java {
@@ -13,7 +13,7 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:1.7.36'
     implementation 'ch.qos.logback:logback-classic:1.2.11'
 
-    checkstyle 'com.puppycrawl.tools:checkstyle:10.6.0'
+    implementation 'ru.odnoklassniki:one-nio:1.6.1'
 }
 
 final args = ["--add-modules", "jdk.incubator.foreign"]
@@ -25,6 +25,7 @@ tasks.withType(Test) {
     jvmArgs += args
 }
 
-checkstyle {
-    configFile = new File('checkstyle.xml')
+application {
+    mainClass = 'cellarium.Main'
+    applicationDefaultJvmArgs = args + ["-XX:+PrintGC"]
 }

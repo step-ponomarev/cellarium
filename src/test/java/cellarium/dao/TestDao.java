@@ -7,12 +7,12 @@ import cellarium.entry.AbstractEntry;
 import cellarium.entry.Entry;
 import cellarium.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemorySegment;
-import test.entry.Utils;
+import cellarium.utils.Utils;
 
-public class TestDaoWrapper implements Dao<String, Entry<String>> {
+public class TestDao implements Dao<String, Entry<String>> {
     private final MemorySegmentDao memorySegmentDao;
 
-    public TestDaoWrapper(MemorySegmentDao memorySegmentDao) {
+    public TestDao(MemorySegmentDao memorySegmentDao) {
         this.memorySegmentDao = memorySegmentDao;
     }
 

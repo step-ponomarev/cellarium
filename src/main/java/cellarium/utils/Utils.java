@@ -1,16 +1,10 @@
-package test.entry;
+package cellarium.utils;
 
 import java.nio.charset.StandardCharsets;
 import jdk.incubator.foreign.MemorySegment;
-import cellarium.entry.Entry;
 
 public class Utils {
-    private Utils() {
-    }
-
-    public static String generateKeyByIndex(int index) {
-        return String.format("%012d", index);
-    }
+    private Utils() {}
 
     public static String memorySegmentToString(MemorySegment data) {
         if (data == null) {
@@ -26,10 +20,5 @@ public class Utils {
         }
 
         return MemorySegment.ofByteBuffer(StandardCharsets.UTF_8.encode(data));
-    }
-
-    public static long getSizeBytesOf(Entry<String> entry) {
-        return Utils.stringToMemorySegment(entry.getKey()).byteSize() +
-                (entry.getValue() == null ? 0 : Utils.stringToMemorySegment(entry.getValue()).byteSize());
     }
 }

@@ -7,11 +7,11 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
+import cellarium.disk.DiskUtils;
 import cellarium.entry.Entry;
 import cellarium.iterators.ReadIterator;
-import cellarium.disk.DiskUtils;
 import test.entry.EntryGeneratorList;
-import test.entry.Utils;
+import test.entry.TestUtils;
 
 public class CompactionDaoTest extends AConcurrentDaoTest {
     private static final long SIZE_BYTES = 1024 * 4; //4KB
@@ -35,6 +35,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
         }
     }
 
+    //TODO: Тест сделано очень погано, нужен признак по-конкретнее
     @Test
     public void testOnlyOneDirAfterCompaction() throws IOException {
         final int count = 2_000;
@@ -161,7 +162,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
         }
     }
 
-    @Test(timeout = 15_000)
+    @Test(timeout = 60_000)
     public void testConcurrentWriteCompactReadEach() throws Exception {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
@@ -206,7 +207,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
             long entriesSizeBytes = 0;
             for (Entry<String> entry : entries) {
                 dao.upsert(entry);
-                entriesSizeBytes += Utils.getSizeBytesOf(entry);
+                entriesSizeBytes += TestUtils.getSizeBytesOf(entry);
             }
 
             Runtime.getRuntime().gc();

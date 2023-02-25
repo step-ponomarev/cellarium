@@ -29,7 +29,7 @@ public abstract class ADaoTest {
 
         final Path tempDirectory = dir == null ? Files.createTempDirectory(WORKING_DIR) : dir;
 
-        return new TestDaoWrapper(new MemorySegmentDao(tempDirectory, bytesLimit)) {
+        return new TestDao(new MemorySegmentDao(tempDirectory, bytesLimit)) {
             @Override
             public void close() throws IOException {
                 super.close();

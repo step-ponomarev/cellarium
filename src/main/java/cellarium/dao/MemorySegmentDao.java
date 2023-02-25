@@ -30,7 +30,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     private final Object scheduleFlushLock = new Object();
 
     private final Object flushCompactionLock = new Object();
-    private final Runnable flushTask = new LockedTask(flushCompactionLock, this::handlePreparedFlush);
+    private final Runnable flushTask = new LockedTask(this::handlePreparedFlush, flushCompactionLock);
 
     private final MemoryStore memoryStore;
 

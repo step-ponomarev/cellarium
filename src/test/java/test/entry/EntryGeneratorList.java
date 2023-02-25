@@ -27,7 +27,7 @@ public class EntryGeneratorList extends AbstractList<Entry<String>> {
             throw new IndexOutOfBoundsException("Available index range: [0, " + count + "], got: " + index);
         }
 
-        final String key = Utils.generateKeyByIndex(index);
+        final String key = TestUtils.generateKeyByIndex(index);
         return new AbstractEntry<>(keyPrefix + key, valuePrefix + key) {
             @Override
             public String getKey() {
