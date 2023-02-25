@@ -20,8 +20,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
-import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.conf.ServerConfig;
+import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.handlers.DaoRequestHandler;
 import cellarium.http.handlers.HandlerName;
 import one.nio.http.HttpServer;
@@ -46,7 +46,7 @@ public class Server extends HttpServer {
         super(createServerConfig(config.selfPort, config.clusterUrls));
 
         this.selfUrl = config.selfUrl;
-        this.clusterUrls = config.clusterUrls.stream().toArray(String[]::new);
+        this.clusterUrls = config.clusterUrls.toArray(String[]::new);
 
         final Path workingDir = config.workingDir;
         if (Files.notExists(workingDir)) {
@@ -99,7 +99,7 @@ public class Server extends HttpServer {
             final String id = request.getParameter(QueryParam.ID);
             final String clusterUrl = getClusterUrl(id, clusterUrls);
             if (!clusterUrl.equals(selfUrl)) {
-                
+
                 final HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(clusterUrl + request.getURI()))
                         .method(request.getMethodName(), HttpRequest.BodyPublishers.ofByteArray(request.getBody()))
                         .build();
