@@ -139,10 +139,10 @@ public class ClusterTest extends AHttpTest {
             cluster.stop();
 
             for (String url : CLUSTER_URLS) {
-                final Cluster urlCluster = new Cluster(Collections.singletonList(url), workDir);
-                urlCluster.start();
+                final Cluster singleInstanceCluster = new Cluster(Collections.singletonList(url), workDir);
+                singleInstanceCluster.start();
 
-                final EndpointService endpoint = urlCluster.getExactEndpoint(url);
+                final EndpointService endpoint = singleInstanceCluster.getExactEndpoint(url);
 
                 boolean isEmpty = true;
                 for (String id : ids) {
@@ -154,7 +154,7 @@ public class ClusterTest extends AHttpTest {
                     }
                 }
 
-                urlCluster.stop();
+                singleInstanceCluster.stop();
 
                 Assert.assertFalse(isEmpty);
             }
