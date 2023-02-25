@@ -1,5 +1,9 @@
 !*
 
+/src/test/.DS_Store
+/src/test/resources/.DS_Store
+.DS_Store
+
 .gradle
 /build/
 
