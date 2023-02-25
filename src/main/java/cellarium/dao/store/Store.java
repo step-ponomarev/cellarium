@@ -1,8 +1,8 @@
-package cellarium.store;
+package cellarium.dao.store;
 
 import java.io.IOException;
 import java.util.Iterator;
-import cellarium.entry.Entry;
+import cellarium.dao.entry.Entry;
 
 public interface Store<T, E extends Entry<T>> {
     /**

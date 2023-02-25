@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import cellarium.disk.DiskUtils;
+import cellarium.dao.disk.DiskUtils;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import one.nio.http.HttpServer;
@@ -90,12 +90,13 @@ public class Cluster {
         return urlToEndpoint.get(url);
     }
 
-    private static ServerConfig createServerConfig(URI currentUrl, List<String> clusterUrls, Path instanceDir) throws IOException {
+    private static ServerConfig createServerConfig(URI currentUrl, List<String> clusterUrls, Path instanceDir) {
         return new ServerConfig(
                 currentUrl.getPort(),
                 currentUrl.toString(),
                 clusterUrls,
                 instanceDir,
+                1024 * 1024 * 1,
                 Math.max(1, clusterUrls.size() / (Runtime.getRuntime().availableProcessors() - 2))
         );
     }

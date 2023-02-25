@@ -16,6 +16,7 @@ public class Main {
                 URL,
                 Collections.singletonList(URL),
                 Files.createTempDirectory("TMP_DIR"),
+                1024 * 1024 * 1,
                 Runtime.getRuntime().availableProcessors() - 2
         );
 

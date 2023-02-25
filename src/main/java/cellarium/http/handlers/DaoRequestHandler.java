@@ -2,19 +2,16 @@ package cellarium.http.handlers;
 
 import java.io.IOException;
 import cellarium.dao.MemorySegmentDao;
-import cellarium.entry.MemorySegmentEntry;
-import cellarium.http.QueryParam;
+import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.http.conf.ServerConfiguration;
-import cellarium.utils.Utils;
+import cellarium.dao.utils.Utils;
 import jdk.incubator.foreign.MemorySegment;
 import one.nio.http.HttpSession;
 import one.nio.http.Path;
 import one.nio.http.Request;
 import one.nio.http.RequestHandler;
 import one.nio.http.Response;
-import one.nio.http.VirtualHost;
 
-@VirtualHost(HandlerName.DAO_REQUEST_HANDLER)
 public final class DaoRequestHandler implements RequestHandler {
     private final MemorySegmentDao dao;
 

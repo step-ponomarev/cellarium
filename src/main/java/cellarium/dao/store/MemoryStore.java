@@ -1,4 +1,4 @@
-package cellarium.store;
+package cellarium.dao.store;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -6,10 +6,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import cellarium.entry.EntryComparator;
-import cellarium.entry.MemorySegmentEntry;
-import cellarium.iterators.MergeIterator;
-import cellarium.memtable.MemTable;
+import cellarium.dao.entry.EntryComparator;
+import cellarium.dao.entry.MemorySegmentEntry;
+import cellarium.dao.iterators.MergeIterator;
+import cellarium.dao.memtable.MemTable;
 import jdk.incubator.foreign.MemorySegment;
 
 public class MemoryStore implements Store<MemorySegment, MemorySegmentEntry> {

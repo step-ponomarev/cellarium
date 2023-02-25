@@ -1,19 +1,8 @@
 package cellarium.http;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +12,7 @@ import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.handlers.DaoRequestHandler;
-import cellarium.http.handlers.HandlerName;
+import cellarium.http.handlers.RequestCoordinator;
 import one.nio.http.HttpServer;
 import one.nio.http.HttpServerConfig;
 import one.nio.http.HttpSession;
@@ -32,30 +21,27 @@ import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 import one.nio.server.AcceptorConfig;
 
-public class Server extends HttpServer {
+public final class Server extends HttpServer {
     private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
     private final MemorySegmentDao dao;
     private final ExecutorService executorService;
-    private final HttpClient client = HttpClient.newHttpClient();
 
-    private final String selfUrl;
-    private final String[] clusterUrls;
+    private final RequestHandler requestCoordinator;
 
     public Server(ServerConfig config) throws IOException {
-        super(createServerConfig(config.selfPort, config.clusterUrls));
-
-        this.selfUrl = config.selfUrl;
-        this.clusterUrls = config.clusterUrls.toArray(String[]::new);
+        super(createServerConfig(config.selfPort));
 
         final Path workingDir = config.workingDir;
         if (Files.notExists(workingDir)) {
             Files.createDirectory(workingDir);
         }
 
-        this.dao = new MemorySegmentDao(workingDir, ServerConfiguration.DAO_INMEMORY_LIMIT_BYTES);
-        addRequestHandlers(
-                new DaoRequestHandler(this.dao)
+        this.dao = new MemorySegmentDao(workingDir, config.memTableSizeBytes);
+        this.requestCoordinator = new RequestCoordinator(
+                new DaoRequestHandler(this.dao),
+                config.selfUrl,
+                config.clusterUrls.toArray(String[]::new)
         );
 
         this.executorService = Executors.newFixedThreadPool(
@@ -69,15 +55,13 @@ public class Server extends HttpServer {
 
         try {
             executorService.awaitTermination(60, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
 
-        super.stop();
-
-        try {
+            super.stop();
             dao.close();
         } catch (IOException e) {
+            throw new IllegalStateException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
         }
     }
@@ -90,71 +74,40 @@ public class Server extends HttpServer {
                 return;
             }
 
-            final Response defaultResponse = createResponseIfBadRequest(request);
-            if (defaultResponse != null) {
-                session.sendResponse(defaultResponse);
-                return;
-            }
-
-            final String id = request.getParameter(QueryParam.ID);
-            final String clusterUrl = getClusterUrl(id, clusterUrls);
-            if (!clusterUrl.equals(selfUrl)) {
-                final HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(clusterUrl + request.getURI()))
-                        .method(request.getMethodName(), HttpRequest.BodyPublishers.ofByteArray(request.getBody()))
-                        .build();
-
-                //TODO: Делаем запрос на другую ноду за данными? Может лучше просить клиента сходить на другую ноду? Наверное неет
-                final CompletableFuture<HttpResponse<byte[]>> httpResponseCompletableFuture = client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
-                final HttpResponse<byte[]> httpResponse = httpResponseCompletableFuture.get();
-                //TODO: Теряем хедеры?
-                session.sendResponse(new Response(String.valueOf(httpResponse.statusCode()), httpResponse.body()));
-
+            if (!isValidRequest(request)) {
+                session.sendResponse(createInvalidResponse(request));
                 return;
             }
 
             executorService.execute(() -> {
-                //TODO: Проверяем валидный ли запрос
-                // Проверяем на этой ноде должны мы это делать или на другой
-                // Если на этой, то хендлим запрос через локальный хендлер
-                // Если на другой, то отпраляем по HTTP Client на другую ноду в кластере
                 try {
-                    final RequestHandler handlerByHost = findHandlerByHost(request);
-                    handlerByHost.handleRequest(request, session);
+                    requestCoordinator.handleRequest(request, session);
                 } catch (IOException e) {
                     logger.error("Response is failed", e);
                     sendInternalError(session);
                 }
             });
-        } catch (IOException | RuntimeException | ExecutionException | InterruptedException e) {
+        } catch (IOException e) {
             logger.error("Response is failed", e);
             sendInternalError(session);
         }
     }
 
-    private static String getClusterUrl(String id, String[] clusterUrls) {
-        if (clusterUrls.length == 1) {
-            return clusterUrls[0];
-        }
-
-        int i = Math.floorMod(id.hashCode(), clusterUrls.length);
-        return clusterUrls[0];
-    }
-
-    /**
-     * @param request
-     * @return null if valid request
-     */
-    public static Response createResponseIfBadRequest(Request request) {
-        final Set<Integer> methods = ServerConfiguration.SUPPORTED_METHODS_BY_ENDPOINT.get(request.getPath());
-        if (methods == null) {
+    private static Response createInvalidResponse(Request request) {
+        if (!ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
 
-        if (!methods.contains(request.getMethod())) {
+        if (!ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod())) {
             return new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY);
         }
 
-        return null;
+        throw new IllegalStateException("Request is valid");
+    }
+
+    private static boolean isValidRequest(Request request) {
+        return ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())
+                && ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod());
     }
 
     private static void sendInternalError(HttpSession session) {
@@ -166,7 +119,7 @@ public class Server extends HttpServer {
         }
     }
 
-    private static HttpServerConfig createServerConfig(int port, Collection<String> clusterUrls) {
+    private static HttpServerConfig createServerConfig(int port) {
         final AcceptorConfig acceptor = new AcceptorConfig();
         acceptor.port = port;
         acceptor.reusePort = true;
@@ -176,26 +129,8 @@ public class Server extends HttpServer {
                 acceptor
         };
 
-        //TODO: Нужно ли тут указывать все хосты в кластере?
-        httpConfig.virtualHosts = createVirtualHosts(clusterUrls);
         httpConfig.closeSessions = true;
 
         return httpConfig;
-    }
-
-    private static Map<String, String[]> createVirtualHosts(Collection<String> clusterUrls) {
-        if (clusterUrls == null || clusterUrls.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        final Map<String, String[]> virtualHosts = new HashMap<>(1);
-        final String[] hosts = clusterUrls.stream()
-                .map(url -> URI.create(url).getHost())
-                .distinct()
-                .toArray(String[]::new);
-
-        virtualHosts.put(HandlerName.DAO_REQUEST_HANDLER, hosts);
-
-        return virtualHosts;
     }
 }

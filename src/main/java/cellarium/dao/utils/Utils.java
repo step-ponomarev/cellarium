@@ -1,4 +1,4 @@
-package cellarium.utils;
+package cellarium.dao.utils;
 
 import java.nio.charset.StandardCharsets;
 import jdk.incubator.foreign.MemorySegment;

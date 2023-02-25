@@ -1,4 +1,4 @@
-package cellarium.store;
+package cellarium.dao.store;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -12,11 +12,11 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import cellarium.entry.EntryComparator;
-import cellarium.entry.MemorySegmentEntry;
-import cellarium.iterators.MergeIterator;
-import cellarium.iterators.TombstoneSkipIterator;
-import cellarium.sstable.SSTable;
+import cellarium.dao.entry.MemorySegmentEntry;
+import cellarium.dao.entry.EntryComparator;
+import cellarium.dao.iterators.MergeIterator;
+import cellarium.dao.iterators.TombstoneSkipIterator;
+import cellarium.dao.sstable.SSTable;
 import jdk.incubator.foreign.MemorySegment;
 
 public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Closeable {

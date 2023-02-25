@@ -1,7 +1,7 @@
-package cellarium.store;
+package cellarium.dao.store;
 
 import java.util.Iterator;
-import cellarium.entry.MemorySegmentEntry;
+import cellarium.dao.entry.MemorySegmentEntry;
 
 public class FlushData {
     public final Iterator<MemorySegmentEntry> data;
