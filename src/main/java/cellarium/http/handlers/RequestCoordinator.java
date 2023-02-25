@@ -57,8 +57,7 @@ public final class RequestCoordinator implements RequestHandler {
             return clusterUrls[0];
         }
 
-        int i = Math.floorMod(id.hashCode(), clusterUrls.length);
-        return clusterUrls[i];
+        return clusterUrls[Math.floorMod(id.hashCode(), clusterUrls.length)];
     }
 
     private static void sendInternalError(HttpSession session) {

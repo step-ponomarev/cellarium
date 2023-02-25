@@ -8,6 +8,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -113,6 +114,50 @@ public class ClusterTest extends AHttpTest {
 
             Assert.assertTrue(replicasCount > 0);
             Assert.assertTrue(replicasCount < CLUSTER_URLS.size());
+        }
+    }
+
+    @Test
+    public final void testEachNodeHasData() throws IOException, InterruptedException {
+        final Path workDir = Files.createDirectory(CLUSTER_TEST_DIR);
+
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
+            cluster.start();
+
+            final int count = 20_000;
+            final List<String> ids = new ArrayList<>(count);
+            for (int i = 0; i < count; i++) {
+                final String id = generateId();
+                final byte[] body = generateBody();
+
+                final HttpResponse<byte[]> putResponse = cluster.getRandomEndpoint().put(id, body);
+                Assert.assertEquals(HttpURLConnection.HTTP_CREATED, putResponse.statusCode());
+
+                ids.add(id);
+            }
+
+            cluster.stop();
+
+            for (String url : CLUSTER_URLS) {
+                final Cluster urlCluster = new Cluster(Collections.singletonList(url), workDir);
+                urlCluster.start();
+
+                final EndpointService endpoint = urlCluster.getExactEndpoint(url);
+
+                boolean isEmpty = true;
+                for (String id : ids) {
+                    HttpResponse<byte[]> response = endpoint.get(id);
+
+                    if (response.statusCode() == HttpURLConnection.HTTP_OK) {
+                        isEmpty = false;
+                        break;
+                    }
+                }
+
+                urlCluster.stop();
+
+                Assert.assertFalse(isEmpty);
+            }
         }
     }
 
