@@ -99,7 +99,6 @@ public class Server extends HttpServer {
             final String id = request.getParameter(QueryParam.ID);
             final String clusterUrl = getClusterUrl(id, clusterUrls);
             if (!clusterUrl.equals(selfUrl)) {
-
                 final HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(clusterUrl + request.getURI()))
                         .method(request.getMethodName(), HttpRequest.BodyPublishers.ofByteArray(request.getBody()))
                         .build();
@@ -114,7 +113,6 @@ public class Server extends HttpServer {
             }
 
             executorService.execute(() -> {
-
                 //TODO: Проверяем валидный ли запрос
                 // Проверяем на этой ноде должны мы это делать или на другой
                 // Если на этой, то хендлим запрос через локальный хендлер
