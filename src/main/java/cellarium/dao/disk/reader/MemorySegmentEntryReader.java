@@ -1,7 +1,7 @@
 package cellarium.dao.disk.reader;
 
-import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.disk.AMemorySegmentHandler;
+import cellarium.dao.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
 
@@ -10,14 +10,12 @@ public class MemorySegmentEntryReader extends AMemorySegmentHandler implements R
         super(memorySegment, tombstoneTag);
     }
 
-    // TODO: Убрать аллокации? // Что делать с отданными итераторами?
     @Override
     public MemorySegmentEntry read() {
         final long keySize = MemoryAccess.getLongAtOffset(memorySegment, position);
         position += Long.BYTES;
 
-        //TODO: Можно ли эффективнее?
-        // Делается это для того чтобы при дальнейшем взаимодействии с entry не было привязки к первичному scope
+        // Аллоцирум чтобы при дальнейшем взаимодействии с entry не было привязки к первичному scope
         final MemorySegment key = MemorySegment.ofByteBuffer(memorySegment.asSlice(position, keySize).asByteBuffer());
         position += keySize;
 
@@ -32,8 +30,7 @@ public class MemorySegmentEntryReader extends AMemorySegmentHandler implements R
             return new MemorySegmentEntry(key, null, timestamp);
         }
 
-        //TODO: Можно ли эффективнее?
-        // Делается это для того чтобы при дальнейшем взаимодействии с entry не было привязки к первичному scope
+        // Аллоцирум чтобы при дальнейшем взаимодействии с entry не было привязки к первичному scope
         final MemorySegment value = MemorySegment.ofByteBuffer(
                 memorySegment.asSlice(position, valueSize).asByteBuffer()
         );

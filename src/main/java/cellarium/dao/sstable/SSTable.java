@@ -16,14 +16,14 @@ import java.util.stream.Stream;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.dao.disk.reader.MemorySegmentEntryReader;
 import cellarium.dao.disk.reader.Reader;
-import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.disk.writer.MemorySegmentEntryWriter;
+import cellarium.dao.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
 import jdk.incubator.foreign.ResourceScope;
 
 public final class SSTable implements Closeable {
-    public static final long TOMBSTONE_TAG = -1;
+    private static final long TOMBSTONE_TAG = -1;
     private static final String SSTABLE_FILE_NAME = "sstable.data";
     private static final String INDEX_FILE_NAME = "sstable.index";
 
