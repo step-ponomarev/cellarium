@@ -1,12 +1,12 @@
 package cellarium.http.conf;
 
 import java.nio.file.Path;
-import java.util.Collection;
+import java.util.Set;
 
 public final class ServerConfig {
     public final int selfPort;
     public final String selfUrl;
-    public final Collection<String> clusterUrls;
+    public final Set<String> clusterUrls;
     public final Path workingDir;
     public final int threadCount;
     public final int memTableSizeBytes;
@@ -14,7 +14,7 @@ public final class ServerConfig {
     public ServerConfig(
             int selfPort,
             String selfUrl,
-            Collection<String> clusterUrls,
+            Set<String> clusterUrls,
             Path workingDir,
             int memTableSizeBytes,
             int threadCount

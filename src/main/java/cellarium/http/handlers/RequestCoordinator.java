@@ -2,51 +2,53 @@ package cellarium.http.handlers;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import one.nio.http.HttpClient;
+import one.nio.http.HttpException;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
 import one.nio.http.RequestHandler;
 import one.nio.http.Response;
+import one.nio.net.ConnectionString;
+import one.nio.pool.PoolException;
 
 public final class RequestCoordinator implements RequestHandler {
     private static final Logger logger = LoggerFactory.getLogger(RequestCoordinator.class);
-
-    private final HttpClient client = HttpClient.newHttpClient();
     private final RequestHandler requestHandler;
 
-    private final String selfUrl;
+    private final URI currentURI;
     private final String[] clusterUrls;
 
-    public RequestCoordinator(RequestHandler requestHandler, String selfUrl, String[] clusterUrls) {
+    private final Map<String, HttpClient> nodes;
+
+    public RequestCoordinator(RequestHandler requestHandler, String selfUrl, Set<String> clusterUrls) {
         this.requestHandler = requestHandler;
-        this.selfUrl = selfUrl;
-        this.clusterUrls = clusterUrls;
+        this.currentURI = URI.create(selfUrl);
+        this.clusterUrls = clusterUrls.toArray(String[]::new);
+        this.nodes = clusterUrls.stream()
+                .filter(u -> !u.equals(selfUrl))
+                .collect(Collectors.toMap(UnaryOperator.identity(), u -> new HttpClient(new ConnectionString(u))));
     }
 
     @Override
     public void handleRequest(Request request, HttpSession session) throws IOException {
         final String id = request.getParameter(QueryParam.ID);
         final String clusterUrl = getClusterUrl(id, clusterUrls);
-        if (clusterUrl.equals(selfUrl)) {
+        if (currentURI.toString().equals(clusterUrl)) {
             requestHandler.handleRequest(request, session);
             return;
         }
 
-        final HttpRequest httpRequest = HttpRequest.newBuilder(
-                        URI.create(clusterUrl + request.getURI())
-                ).method(request.getMethodName(), HttpRequest.BodyPublishers.ofByteArray(request.getBody()))
-                .build();
-
         try {
-            final HttpResponse<byte[]> response = client.send(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
             session.sendResponse(
-                    new Response(String.valueOf(response.statusCode()), response.body())
+                    nodes.get(clusterUrl).invoke(request)
             );
-        } catch (InterruptedException e) {
+        } catch (PoolException | HttpException | InterruptedException e) {
             logger.error("Response is failed", e);
             sendInternalError(session);
         }

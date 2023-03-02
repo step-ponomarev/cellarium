@@ -12,20 +12,34 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import cellarium.dao.disk.DiskUtils;
 import cellarium.http.service.Cluster;
 import cellarium.http.service.EndpointService;
 
+
+//TODO: Тесты дерьмо - если что-то зафейлится папка с ресурсами может не зачиститься
 public class ClusterTest extends AHttpTest {
     private static final String BASE_URL = "http://localhost:";
     private static final Set<Integer> PORTS = Set.of(8080, 8081, 8082, 8083, 8084);
-    private static final List<String> CLUSTER_URLS = PORTS.stream().map(p -> BASE_URL + p).toList();
+    private static final Set<String> CLUSTER_URLS = PORTS.stream()
+            .map(p -> BASE_URL + p)
+            .collect(Collectors.toSet());
 
     private static final Path CLUSTER_TEST_DIR = Paths.get(
             "./src/test/resources").toAbsolutePath().normalize().resolve(
             Path.of("test_dir")
     );
+
+    @Before
+    public void before() throws IOException {
+        if (Files.exists(CLUSTER_TEST_DIR)) {
+            DiskUtils.removeDir(CLUSTER_TEST_DIR);
+        }
+    }
 
     @Test
     public final void testPutAndGetFromEachShard() throws IOException, InterruptedException {
@@ -60,7 +74,7 @@ public class ClusterTest extends AHttpTest {
         }
     }
 
-    @Test
+    @Test()
     public final void testClusterKeepDataAfterRestart() throws IOException, InterruptedException {
         try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(CLUSTER_TEST_DIR))) {
             cluster.start();
@@ -84,7 +98,7 @@ public class ClusterTest extends AHttpTest {
         }
     }
 
-    @Test
+    @Test()
     public final void testNotAllNodesKeepData() throws IOException, InterruptedException {
         final Path workDir = Files.createDirectory(CLUSTER_TEST_DIR);
 
@@ -101,7 +115,7 @@ public class ClusterTest extends AHttpTest {
 
             int replicasCount = 0;
             for (String url : CLUSTER_URLS) {
-                final Cluster urlCluster = new Cluster(Collections.singletonList(url), workDir);
+                final Cluster urlCluster = new Cluster(Collections.singleton(url), workDir);
                 urlCluster.start();
 
                 HttpResponse<byte[]> httpResponse = urlCluster.getExactEndpoint(url).get(id);
@@ -139,7 +153,7 @@ public class ClusterTest extends AHttpTest {
             cluster.stop();
 
             for (String url : CLUSTER_URLS) {
-                final Cluster singleInstanceCluster = new Cluster(Collections.singletonList(url), workDir);
+                final Cluster singleInstanceCluster = new Cluster(Collections.singleton(url), workDir);
                 singleInstanceCluster.start();
 
                 final EndpointService endpoint = singleInstanceCluster.getExactEndpoint(url);
@@ -162,7 +176,7 @@ public class ClusterTest extends AHttpTest {
     }
 
     private static class ClearableCluster extends Cluster implements Closeable {
-        public ClearableCluster(List<String> clusterUrls, Path baseDir) throws IOException {
+        public ClearableCluster(Set<String> clusterUrls, Path baseDir) throws IOException {
             super(clusterUrls, baseDir);
         }
 

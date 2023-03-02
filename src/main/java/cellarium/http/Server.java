@@ -41,7 +41,7 @@ public final class Server extends HttpServer {
         this.requestCoordinator = new RequestCoordinator(
                 new DaoRequestHandler(this.dao),
                 config.selfUrl,
-                config.clusterUrls.toArray(String[]::new)
+                config.clusterUrls
         );
 
         this.executorService = Executors.newFixedThreadPool(

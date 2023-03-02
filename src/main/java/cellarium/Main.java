@@ -14,7 +14,7 @@ public class Main {
         final ServerConfig config = new ServerConfig(
                 PORT,
                 URL,
-                Collections.singletonList(URL),
+                Collections.singleton(URL),
                 Files.createTempDirectory("TMP_DIR"),
                 1024 * 1024 * 1,
                 Runtime.getRuntime().availableProcessors() - 2

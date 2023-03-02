@@ -6,8 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.http.conf.ServerConfig;
@@ -19,12 +21,12 @@ public class Cluster {
 
     protected boolean running = true;
 
-    public final List<String> clusterUrls;
+    public final Set<String> clusterUrls;
     private final List<HttpServer> instances;
     private final Map<String, EndpointService> urlToEndpoint;
     private final Path baseDir;
 
-    public Cluster(List<String> clusterUrls, Path baseDir) throws IOException {
+    public Cluster(Set<String> clusterUrls, Path baseDir) {
         if (clusterUrls == null || clusterUrls.isEmpty()) {
             throw new IllegalArgumentException("Cluster urls cannot be empty");
         }
@@ -85,12 +87,15 @@ public class Cluster {
     }
 
     public EndpointService getRandomEndpoint() {
-        final String url = clusterUrls.get(ThreadLocalRandom.current().nextInt(0, clusterUrls.size()));
+        Iterator<String> iterator = clusterUrls.iterator();
 
-        return urlToEndpoint.get(url);
+        final int index = ThreadLocalRandom.current().nextInt(0, clusterUrls.size());
+        for (int i = 0; i < index; i++, iterator.next()) {}
+
+        return urlToEndpoint.get(iterator.next());
     }
 
-    private static ServerConfig createServerConfig(URI currentUrl, List<String> clusterUrls, Path instanceDir) {
+    private static ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls, Path instanceDir) {
         return new ServerConfig(
                 currentUrl.getPort(),
                 currentUrl.toString(),

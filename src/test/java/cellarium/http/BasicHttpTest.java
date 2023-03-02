@@ -24,7 +24,7 @@ public class BasicHttpTest extends AHttpTest {
         final Path testPath = Paths.get(".").toAbsolutePath().normalize().resolve(Path.of("test_dir"));
         Files.createDirectory(testPath);
 
-        cluster = new Cluster(Collections.singletonList(URL), testPath);
+        cluster = new Cluster(Collections.singleton(URL), testPath);
         cluster.start();
 
         endpointService = cluster.getRandomEndpoint();
