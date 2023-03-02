@@ -48,8 +48,11 @@ public final class RequestCoordinator implements RequestHandler {
             session.sendResponse(
                     nodes.get(clusterUrl).invoke(request)
             );
-        } catch (PoolException | HttpException | InterruptedException e) {
-            logger.error("Response is failed", e);
+        } catch (PoolException | HttpException e) {
+            logger.error("Request is failed is failed host: " + clusterUrl, e);
+            sendInternalError(session);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             sendInternalError(session);
         }
     }
@@ -59,7 +62,7 @@ public final class RequestCoordinator implements RequestHandler {
             return clusterUrls[0];
         }
 
-        return clusterUrls[Math.floorMod(id.hashCode(), clusterUrls.length)];
+        return clusterUrls[(id.hashCode() & Integer.MAX_VALUE) % clusterUrls.length];
     }
 
     private static void sendInternalError(HttpSession session) {
