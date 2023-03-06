@@ -21,7 +21,7 @@ import jdk.incubator.foreign.MemorySegment;
 public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentEntry> {
     private static final Logger log = LoggerFactory.getLogger(MemorySegmentDao.class);
 
-    private final long sizeLimit;
+    private final long memTableLimitBytes;
     private final int sstablesLimit;
     private final ThreadSafeExecutor executor;
 
@@ -39,7 +39,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
             throw new IllegalArgumentException("Path: " + config.path + " is not exist");
         }
 
-        this.sizeLimit = config.sizeLimit;
+        this.memTableLimitBytes = config.memtableLimitBytes;
         this.sstablesLimit = config.sstablesLimit;
         this.executor = new ThreadSafeExecutor(Executors.newFixedThreadPool(2));
 
@@ -82,14 +82,14 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     @Override
     public void upsert(MemorySegmentEntry entry) {
         final long entrySize = entry.getSizeBytes();
-        if (entrySize >= sizeLimit) {
+        if (entrySize >= memTableLimitBytes) {
             throw new IllegalStateException(
-                    "Entry is too big, limit is " + sizeLimit + "bytes, entry size is: " + entry.getSizeBytes());
+                    "Entry is too big, limit is " + memTableLimitBytes + "bytes, entry size is: " + entry.getSizeBytes());
         }
 
-        if (memoryStore.getSizeBytes() + entrySize >= sizeLimit && !memoryStore.hasFlushData()) {
+        if (memoryStore.getSizeBytes() + entrySize >= memTableLimitBytes && !memoryStore.hasFlushData()) {
             synchronized (scheduleFlushLock) {
-                if (memoryStore.getSizeBytes() + entrySize >= sizeLimit && !memoryStore.hasFlushData()) {
+                if (memoryStore.getSizeBytes() + entrySize >= memTableLimitBytes && !memoryStore.hasFlushData()) {
                     memoryStore.prepareFlushData();
                     executor.execute(flushTask);
                 }
