@@ -16,6 +16,7 @@ import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 import one.nio.net.ConnectionString;
 import one.nio.pool.PoolException;
+import one.nio.util.Hash;
 
 public final class RequestCoordinator implements RequestHandler {
     private static final Logger logger = LoggerFactory.getLogger(RequestCoordinator.class);
@@ -62,7 +63,7 @@ public final class RequestCoordinator implements RequestHandler {
             return clusterUrls[0];
         }
 
-        return clusterUrls[(id.hashCode() & Integer.MAX_VALUE) % clusterUrls.length];
+        return clusterUrls[(Hash.murmur3(id) & Integer.MAX_VALUE) % clusterUrls.length];
     }
 
     private static void sendInternalError(HttpSession session) {
