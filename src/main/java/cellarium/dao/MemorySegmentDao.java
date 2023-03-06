@@ -2,7 +2,6 @@ package cellarium.dao;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -22,7 +21,8 @@ import jdk.incubator.foreign.MemorySegment;
 public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentEntry> {
     private static final Logger log = LoggerFactory.getLogger(MemorySegmentDao.class);
 
-    private final long sizeLimit;
+    private final long memTableLimitBytes;
+    private final int sstablesLimit;
     private final ThreadSafeExecutor executor;
 
     private final DiskStore diskStore;
@@ -34,15 +34,16 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
 
     private final MemoryStore memoryStore;
 
-    public MemorySegmentDao(Path path, long limitBytes) throws IOException {
-        if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Path: " + path + " is not exist");
+    public MemorySegmentDao(DaoConfig config) throws IOException {
+        if (Files.notExists(config.path)) {
+            throw new IllegalArgumentException("Path: " + config.path + " is not exist");
         }
 
-        this.sizeLimit = limitBytes;
+        this.memTableLimitBytes = config.memtableLimitBytes;
+        this.sstablesLimit = config.sstablesLimit;
         this.executor = new ThreadSafeExecutor(Executors.newFixedThreadPool(2));
 
-        this.diskStore = new DiskStore(path);
+        this.diskStore = new DiskStore(config.path);
         this.memoryStore = new MemoryStore();
     }
 
@@ -81,14 +82,14 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     @Override
     public void upsert(MemorySegmentEntry entry) {
         final long entrySize = entry.getSizeBytes();
-        if (entrySize >= sizeLimit) {
+        if (entrySize >= memTableLimitBytes) {
             throw new IllegalStateException(
-                    "Entry is too big, limit is " + sizeLimit + "bytes, entry size is: " + entry.getSizeBytes());
+                    "Entry is too big, limit is " + memTableLimitBytes + "bytes, entry size is: " + entry.getSizeBytes());
         }
 
-        if (memoryStore.getSizeBytes() + entrySize >= sizeLimit && !memoryStore.hasFlushData()) {
+        if (memoryStore.getSizeBytes() + entrySize >= memTableLimitBytes && !memoryStore.hasFlushData()) {
             synchronized (scheduleFlushLock) {
-                if (memoryStore.getSizeBytes() + entrySize >= sizeLimit && !memoryStore.hasFlushData()) {
+                if (memoryStore.getSizeBytes() + entrySize >= memTableLimitBytes && !memoryStore.hasFlushData()) {
                     memoryStore.prepareFlushData();
                     executor.execute(flushTask);
                 }
@@ -123,6 +124,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             } finally {
+                //TODO: Не вышло закомпактиться - теряем данные??
                 memoryStore.clearFlushData();
             }
         }
@@ -160,8 +162,14 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
                 return;
             }
 
-            diskStore.flush(flushData);
+            if (sstablesLimit - 1 > diskStore.getSSTablesAmount()) {
+                diskStore.flush(flushData);
+            } else {
+                log.info("Reached compaction limit: " + diskStore.getSSTablesAmount());
+                diskStore.compact(flushData);
+            }
         } finally {
+            //TODO: Не вышло зафлашиться - теряем данные??
             memoryStore.clearFlushData();
         }
     }

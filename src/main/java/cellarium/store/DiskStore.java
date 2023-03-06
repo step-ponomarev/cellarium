@@ -109,6 +109,10 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         removeFromDisk(ssTablesToRemove);
     }
 
+    public int getSSTablesAmount() {
+        return this.ssTables.size();
+    }
+
     private static void removeFromDisk(final List<SSTable> ssTables) throws IOException {
         if (ssTables == null || ssTables.isEmpty()) {
             return;
