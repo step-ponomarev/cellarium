@@ -2,7 +2,6 @@ package cellarium.dao;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -23,6 +22,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     private static final Logger log = LoggerFactory.getLogger(MemorySegmentDao.class);
 
     private final long sizeLimit;
+    private final int sstablesLimit;
     private final ThreadSafeExecutor executor;
 
     private final DiskStore diskStore;
@@ -34,15 +34,16 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
 
     private final MemoryStore memoryStore;
 
-    public MemorySegmentDao(Path path, long limitBytes) throws IOException {
-        if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Path: " + path + " is not exist");
+    public MemorySegmentDao(DaoConfig config) throws IOException {
+        if (Files.notExists(config.path)) {
+            throw new IllegalArgumentException("Path: " + config.path + " is not exist");
         }
 
-        this.sizeLimit = limitBytes;
+        this.sizeLimit = config.sizeLimit;
+        this.sstablesLimit = config.sstablesLimit;
         this.executor = new ThreadSafeExecutor(Executors.newFixedThreadPool(2));
 
-        this.diskStore = new DiskStore(path);
+        this.diskStore = new DiskStore(config.path);
         this.memoryStore = new MemoryStore();
     }
 
@@ -123,6 +124,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             } finally {
+                //TODO: Не вышло закомпактиться - теряем данные??
                 memoryStore.clearFlushData();
             }
         }
@@ -160,8 +162,14 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
                 return;
             }
 
-            diskStore.flush(flushData);
+            if (sstablesLimit - 1 > diskStore.getSSTablesAmount()) {
+                diskStore.flush(flushData);
+            } else {
+                log.info("Reached compaction limit: " + diskStore.getSSTablesAmount());
+                diskStore.compact(flushData);
+            }
         } finally {
+            //TODO: Не вышло зафлашиться - теряем данные??
             memoryStore.clearFlushData();
         }
     }
