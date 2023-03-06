@@ -1,7 +1,7 @@
 package test.entry;
 
-import cellarium.entry.AbstractEntry;
-import cellarium.entry.Entry;
+import cellarium.dao.entry.AbstractEntry;
+import cellarium.dao.entry.Entry;
 
 public class NullEntryGeneratorList extends EntryGeneratorList {
     public NullEntryGeneratorList(int count) {
