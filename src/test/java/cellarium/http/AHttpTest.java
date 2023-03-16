@@ -1,9 +1,16 @@
 package cellarium.http;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ThreadLocalRandom;
 
 public abstract class AHttpTest {
     private static final int BODY_LEN_BYTES = 40;
+
+    protected static final Path TEST_DIR = Paths.get(
+            "./src/test/resources").toAbsolutePath().normalize().resolve(
+            Path.of("test_dir")
+    );
 
     protected static byte[] generateBody() {
         return generateRandomBytes(BODY_LEN_BYTES);

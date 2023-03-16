@@ -4,27 +4,26 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import cellarium.dao.disk.DiskUtils;
 import cellarium.http.service.Cluster;
 import cellarium.http.service.EndpointService;
 
 public class BasicHttpTest extends AHttpTest {
-    private String URL = "http://localhost:8080";
+    private final static String URL = "http://localhost:8080";
+
     private Cluster cluster;
     private EndpointService endpointService;
 
     @Before
     public void beforeEachTest() throws IOException {
-        final Path testPath = Paths.get(".").toAbsolutePath().normalize().resolve(Path.of("test_dir"));
-        Files.createDirectory(testPath);
+        Files.createDirectory(TEST_DIR);
 
-        cluster = new Cluster(Collections.singleton(URL), testPath);
+        cluster = new Cluster(Collections.singleton(URL), TEST_DIR);
         cluster.start();
 
         endpointService = cluster.getRandomEndpoint();
@@ -33,8 +32,11 @@ public class BasicHttpTest extends AHttpTest {
     @After
     public void afterEachTest() throws IOException {
         cluster.stop();
-        cluster.clearData();
         endpointService = null;
+
+        if (Files.exists(TEST_DIR)) {
+            DiskUtils.removeDir(TEST_DIR);
+        }
     }
 
     @Test(timeout = 5000)

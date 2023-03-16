@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import cellarium.dao.disk.DiskUtils;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import one.nio.http.HttpServer;
@@ -24,7 +23,7 @@ public class Cluster {
     public final Set<String> clusterUrls;
     private final List<HttpServer> instances;
     private final Map<String, EndpointService> urlToEndpoint;
-    private final Path baseDir;
+    protected final Path baseDir;
 
     public Cluster(Set<String> clusterUrls, Path baseDir) {
         if (clusterUrls == null || clusterUrls.isEmpty()) {
@@ -76,10 +75,6 @@ public class Cluster {
         this.instances.clear();
 
         this.running = false;
-    }
-
-    public void clearData() throws IOException {
-        DiskUtils.removeDir(this.baseDir);
     }
 
     public EndpointService getExactEndpoint(String url) {

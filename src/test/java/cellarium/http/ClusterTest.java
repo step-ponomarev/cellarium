@@ -7,21 +7,18 @@ import java.net.HttpURLConnection;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.http.service.Cluster;
 import cellarium.http.service.EndpointService;
 
-
-//TODO: Тесты дерьмо - если что-то зафейлится папка с ресурсами может не зачиститься
 public class ClusterTest extends AHttpTest {
     private static final String BASE_URL = "http://localhost:";
     private static final Set<Integer> PORTS = Set.of(8080, 8081, 8082, 8083, 8084);
@@ -29,21 +26,16 @@ public class ClusterTest extends AHttpTest {
             .map(p -> BASE_URL + p)
             .collect(Collectors.toSet());
 
-    private static final Path CLUSTER_TEST_DIR = Paths.get(
-            "./src/test/resources").toAbsolutePath().normalize().resolve(
-            Path.of("test_dir")
-    );
-
-    @Before
-    public void before() throws IOException {
-        if (Files.exists(CLUSTER_TEST_DIR)) {
-            DiskUtils.removeDir(CLUSTER_TEST_DIR);
+    @AfterClass
+    public static void cleanUp() throws IOException {
+        if (Files.exists(TEST_DIR)) {
+            DiskUtils.removeDir(TEST_DIR);
         }
     }
 
     @Test
     public final void testPutAndGetFromEachShard() throws IOException, InterruptedException {
-        try (final ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(CLUSTER_TEST_DIR))) {
+        try (final ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(TEST_DIR))) {
             cluster.start();
             final String id = generateId();
             final byte[] body = generateBody();
@@ -63,7 +55,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test(expected = ConnectException.class)
     public final void testClusterStop() throws IOException, InterruptedException {
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(CLUSTER_TEST_DIR))) {
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(TEST_DIR))) {
             cluster.start();
 
             final HttpResponse<byte[]> putResponse = cluster.getRandomEndpoint().put(generateId(), generateBody());
@@ -76,7 +68,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test()
     public final void testClusterKeepDataAfterRestart() throws IOException, InterruptedException {
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(CLUSTER_TEST_DIR))) {
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(TEST_DIR))) {
             cluster.start();
 
             final String id = generateId();
@@ -100,7 +92,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test()
     public final void testNotAllNodesKeepData() throws IOException, InterruptedException {
-        final Path workDir = Files.createDirectory(CLUSTER_TEST_DIR);
+        final Path workDir = Files.createDirectory(TEST_DIR);
 
         try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
             cluster.start();
@@ -133,7 +125,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test
     public final void testEachNodeHasData() throws IOException, InterruptedException {
-        final Path workDir = Files.createDirectory(CLUSTER_TEST_DIR);
+        final Path workDir = Files.createDirectory(TEST_DIR);
 
         try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
             cluster.start();
@@ -185,7 +177,8 @@ public class ClusterTest extends AHttpTest {
             if (this.running) {
                 this.stop();
             }
-            this.clearData();
+
+            DiskUtils.removeDir(baseDir);
         }
     }
 }
