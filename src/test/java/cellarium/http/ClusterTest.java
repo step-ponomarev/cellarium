@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Test;
 import cellarium.dao.disk.DiskUtils;
@@ -25,13 +24,6 @@ public class ClusterTest extends AHttpTest {
     private static final Set<String> CLUSTER_URLS = PORTS.stream()
             .map(p -> BASE_URL + p)
             .collect(Collectors.toSet());
-
-    @AfterClass
-    public static void cleanUp() throws IOException {
-        if (Files.exists(TEST_DIR)) {
-            DiskUtils.removeDir(TEST_DIR);
-        }
-    }
 
     @Test
     public final void testPutAndGetFromEachShard() throws IOException, InterruptedException {

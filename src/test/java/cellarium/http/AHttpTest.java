@@ -1,8 +1,12 @@
 package cellarium.http;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ThreadLocalRandom;
+import org.junit.AfterClass;
+import cellarium.dao.disk.DiskUtils;
 
 public abstract class AHttpTest {
     private static final int BODY_LEN_BYTES = 40;
@@ -11,6 +15,13 @@ public abstract class AHttpTest {
             "./src/test/resources").toAbsolutePath().normalize().resolve(
             Path.of("test_dir")
     );
+
+    @AfterClass
+    public static void cleanUp() throws IOException {
+        if (Files.exists(TEST_DIR)) {
+            DiskUtils.removeDir(TEST_DIR);
+        }
+    }
 
     protected static byte[] generateBody() {
         return generateRandomBytes(BODY_LEN_BYTES);
