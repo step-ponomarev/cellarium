@@ -25,6 +25,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     private final long sizeLimit;
     private final ThreadSafeExecutor executor;
 
+    private final MemoryStore memoryStore;
     private final DiskStore diskStore;
 
     private final Object scheduleFlushLock = new Object();
@@ -32,7 +33,6 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     private final Object flushCompactionLock = new Object();
     private final Runnable flushTask = new LockedTask(this::handlePreparedFlush, flushCompactionLock);
 
-    private final MemoryStore memoryStore;
 
     public MemorySegmentDao(Path path, long limitBytes) throws IOException {
         if (Files.notExists(path)) {
@@ -42,8 +42,8 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
         this.sizeLimit = limitBytes;
         this.executor = new ThreadSafeExecutor(Executors.newFixedThreadPool(2));
 
-        this.diskStore = new DiskStore(path);
         this.memoryStore = new MemoryStore();
+        this.diskStore = new DiskStore(path);
     }
 
     @Override
