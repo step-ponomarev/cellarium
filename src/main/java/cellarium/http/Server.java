@@ -6,13 +6,11 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
+import cellarium.http.handlers.CoordinatorRequestHandler;
 import cellarium.http.handlers.DaoRequestHandler;
-import cellarium.http.handlers.RequestCoordinator;
 import one.nio.http.HttpServer;
 import one.nio.http.HttpServerConfig;
 import one.nio.http.HttpSession;
@@ -21,13 +19,13 @@ import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 import one.nio.server.AcceptorConfig;
 
+
 public final class Server extends HttpServer {
-    private static final Logger logger = LoggerFactory.getLogger(Server.class);
-
     private final MemorySegmentDao dao;
-    private final ExecutorService executorService;
+    private final RequestHandler coordinator;
 
-    private final RequestHandler requestCoordinator;
+    private final ExecutorService localExecutorService;
+    private final ExecutorService remoteExecutorService;
 
     public Server(ServerConfig config) throws IOException {
         super(createServerConfig(config.selfPort));
@@ -38,23 +36,26 @@ public final class Server extends HttpServer {
         }
 
         this.dao = new MemorySegmentDao(workingDir, config.memTableSizeBytes);
-        this.requestCoordinator = new RequestCoordinator(
+        //TODO: Нормально настроить координатор(на каждый экзикьютор в конфиг количество тредов)
+        final int threadCount = config.threadCount == 1 ? 1 : config.threadCount / 2;
+        this.localExecutorService = Executors.newFixedThreadPool(threadCount);
+        this.remoteExecutorService = Executors.newFixedThreadPool(threadCount);
+        this.coordinator = new CoordinatorRequestHandler(
+                new Cluster(config.selfUrl, config.clusterUrls),
                 new DaoRequestHandler(this.dao),
-                config.selfUrl,
-                config.clusterUrls
-        );
-
-        this.executorService = Executors.newFixedThreadPool(
-                config.threadCount
+                this.localExecutorService,
+                this.remoteExecutorService
         );
     }
 
     @Override
     public synchronized void stop() {
-        executorService.shutdown();
+        localExecutorService.shutdown();
+        remoteExecutorService.shutdown();
 
         try {
-            executorService.awaitTermination(60, TimeUnit.SECONDS);
+            localExecutorService.awaitTermination(60, TimeUnit.SECONDS);
+            remoteExecutorService.awaitTermination(60, TimeUnit.SECONDS);
 
             super.stop();
             dao.close();
@@ -67,56 +68,30 @@ public final class Server extends HttpServer {
     }
 
     @Override
-    public void handleRequest(Request request, HttpSession session) {
-        try {
-            if (executorService.isShutdown()) {
-                session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE));
-                return;
-            }
-
-            if (!isValidRequest(request)) {
-                session.sendResponse(createInvalidResponse(request));
-                return;
-            }
-
-            executorService.execute(() -> {
-                try {
-                    requestCoordinator.handleRequest(request, session);
-                } catch (IOException e) {
-                    logger.error("Response is failed", e);
-                    sendInternalError(session);
-                }
-            });
-        } catch (IOException e) {
-            logger.error("Response is failed", e);
-            sendInternalError(session);
+    protected RequestHandler findHandlerByHost(Request request) {
+        if (!isValidRequest(request)) {
+            return null;
         }
+
+        return coordinator;
     }
 
-    private static Response createInvalidResponse(Request request) {
+    @Override
+    public void handleDefault(Request request, HttpSession session) throws IOException {
         if (!ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())) {
-            return new Response(Response.BAD_REQUEST, Response.EMPTY);
+            session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
+            return;
         }
 
         if (!ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod())) {
-            return new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY);
+            session.sendResponse(new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY));
+            return;
         }
-
-        throw new IllegalStateException("Request is valid");
     }
 
     private static boolean isValidRequest(Request request) {
         return ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())
                 && ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod());
-    }
-
-    private static void sendInternalError(HttpSession session) {
-        try {
-            session.sendResponse(new Response(Response.INTERNAL_ERROR));
-        } catch (IOException ex) {
-            logger.error("Response is failed", ex);
-            session.socket().close();
-        }
     }
 
     private static HttpServerConfig createServerConfig(int port) {
