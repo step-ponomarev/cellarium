@@ -18,15 +18,15 @@ public final class ExecutorRequestHandler extends ARequestHandler {
 
     @Override
     protected void doHandleRequest(Request request, HttpSession session) throws RequestHandlingException {
-        try {
-            if (executorService.isShutdown()) {
+        if (executorService.isShutdown()) {
+            try {
                 session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE));
                 return;
+            } catch (IOException e) {
+                throw new RequestHandlingException(e);
             }
-        } catch (IOException e) {
-            throw new RequestHandlingException(e);
         }
-
+        
         this.executorService.execute(() -> {
             try {
                 delegate.handleRequest(request, session);
