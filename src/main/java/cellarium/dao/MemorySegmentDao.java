@@ -82,12 +82,12 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     @Override
     public void upsert(MemorySegmentEntry entry) {
         final long entrySize = entry.getSizeBytes();
-        if (entrySize >= memTableLimitBytes) {
+        if (entrySize > memTableLimitBytes) {
             throw new IllegalStateException(
                     "Entry is too big, limit is " + memTableLimitBytes + "bytes, entry size is: " + entry.getSizeBytes());
         }
 
-        if (memoryStore.getSizeBytes() + entrySize >= memTableLimitBytes) {
+        if (memoryStore.getSizeBytes() + entrySize > memTableLimitBytes) {
             scheduleFlush(memoryStore.getSizeBytes() + entrySize);
         }
 
