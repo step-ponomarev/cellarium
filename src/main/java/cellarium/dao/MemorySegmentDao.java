@@ -151,10 +151,10 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
+        } finally {
+            flush();
+            diskStore.close();
         }
-
-        flush();
-        diskStore.close();
     }
 
     private void handlePreparedFlush() {
