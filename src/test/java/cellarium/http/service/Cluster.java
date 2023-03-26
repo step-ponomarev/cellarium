@@ -28,6 +28,8 @@ public class Cluster {
     private final Map<String, EndpointService> urlToEndpoint;
     protected final Path baseDir;
 
+    private int requestTimeoutMs = Integer.MAX_VALUE;
+
     public Cluster(Set<String> clusterUrls, Path baseDir) {
         if (clusterUrls == null || clusterUrls.isEmpty()) {
             throw new IllegalArgumentException("Cluster urls cannot be empty");
@@ -49,6 +51,11 @@ public class Cluster {
         for (String url : clusterUrls) {
             urlToEndpoint.put(url, new SingleEndpointService(url + ServerConfiguration.V_0_ENTITY_ENDPOINT));
         }
+    }
+
+    public Cluster setRequestTimeoutMs(int requestTimeoutMs) {
+        this.requestTimeoutMs = requestTimeoutMs;
+        return this;
     }
 
     public void start() throws IOException {
@@ -102,7 +109,7 @@ public class Cluster {
         return new MemorySegmentDao(daoConfig);
     }
 
-    private static ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls) {
+    private ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls) {
         final ServerConfig serverConfig = new ServerConfig();
         serverConfig.selfPort = currentUrl.getPort();
         serverConfig.selfUrl = currentUrl.toString();
@@ -118,6 +125,7 @@ public class Cluster {
         };
 
         serverConfig.closeSessions = true;
+        serverConfig.requestTimeoutMs = this.requestTimeoutMs;
 
         return serverConfig;
     }

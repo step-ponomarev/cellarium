@@ -115,6 +115,30 @@ public class ClusterTest extends AHttpTest {
         }
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public final void testNegativeTimeout() throws IOException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
+            cluster.setRequestTimeoutMs(-1);
+            cluster.start();
+        }
+    }
+
+    //TODO: Тест говно, тест не работает, придумай что-то по-лучше
+    @Test
+    public final void testZeroTimeout() throws IOException, InterruptedException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
+            cluster.setRequestTimeoutMs(0);
+            cluster.start();
+
+            HttpResponse<byte[]> put = cluster.getRandomEndpoint().put(generateId(), generateBody());
+            Assert.assertEquals(HttpURLConnection.HTTP_GATEWAY_TIMEOUT, put.statusCode());
+
+            cluster.stop();
+        }
+    }
+
     @Test
     public final void testEachNodeHasData() throws IOException, InterruptedException {
         final Path workDir = Files.createDirectory(DEFAULT_DIR);
