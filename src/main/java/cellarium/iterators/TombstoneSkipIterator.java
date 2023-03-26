@@ -4,7 +4,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import cellarium.entry.Entry;
 
-public class TombstoneSkipIterator<E extends Entry<?>> implements Iterator<E> {
+public final class TombstoneSkipIterator<E extends Entry<?>> implements Iterator<E> {
     private final Iterator<E> delegate;
     private E current;
 

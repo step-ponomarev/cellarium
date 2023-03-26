@@ -12,7 +12,7 @@ import cellarium.iterators.MergeIterator;
 import cellarium.memtable.MemTable;
 import jdk.incubator.foreign.MemorySegment;
 
-public class MemoryStore implements Store<MemorySegment, MemorySegmentEntry> {
+public final class MemoryStore implements Store<MemorySegment, MemorySegmentEntry> {
     private final ReadWriteLock swapLock = new ReentrantReadWriteLock();
     private volatile CompositeMemTable compositeMemTable;
 
@@ -130,7 +130,6 @@ public class MemoryStore implements Store<MemorySegment, MemorySegmentEntry> {
         try {
             compositeMemTable = CompositeMemTable.prepareToFlush(compositeMemTable);
         } finally {
-
             swapLock.writeLock().unlock();
         }
     }
