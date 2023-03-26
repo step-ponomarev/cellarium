@@ -3,22 +3,19 @@ package cellarium.conf;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import cellarium.dao.DaoConfig;
 import cellarium.http.conf.ServerConfig;
 import one.nio.config.ConfigParser;
 
 public final class ConfigReader {
+    private final Path confDir = Path.of("configurations");
+
     private static final String SERVER_CONF = "server.config.yaml";
     private static final String DAO_CONF = "dao.config.yaml";
 
-    private final Path confDir;
-
-    public ConfigReader(Path confDir) {
-        if (confDir == null || Files.notExists(confDir)) {
+    public ConfigReader() {
+        if (Files.notExists(confDir)) {
             throw new IllegalArgumentException("Config directory does not exist");
         }
-
-        this.confDir = confDir;
     }
 
     public AnnotatedDaoConfig readDaoConfig() throws IOException {

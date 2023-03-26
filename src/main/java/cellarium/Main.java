@@ -9,7 +9,7 @@ import cellarium.dao.MemorySegmentDao;
 import cellarium.http.Server;
 
 public class Main {
-    public static final ConfigReader configReader = new ConfigReader(Path.of("conf"));
+    public static final ConfigReader configReader = new ConfigReader();
 
     public static void main(String[] args) throws IOException {
         final AnnotatedDaoConfig daoConfig = configReader.readDaoConfig();
