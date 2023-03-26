@@ -5,9 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
 import org.junit.Assert;
-import cellarium.dao.entry.Entry;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.dao.entry.AbstractEntry;
+import cellarium.dao.entry.Entry;
 
 public abstract class ADaoTest {
     private static final String WORKING_DIR = "dao_test";
@@ -33,7 +33,10 @@ public abstract class ADaoTest {
 
         final Path tempDirectory = dir == null ? Files.createTempDirectory(WORKING_DIR) : dir;
 
-        final DaoConfig daoConfig = new DaoConfig(dir, bytesLimit, sstablesLimit);
+        final DaoConfig daoConfig = new DaoConfig();
+        daoConfig.path = tempDirectory;
+        daoConfig.memtableLimitBytes = bytesLimit;
+        daoConfig.sstablesLimit = sstablesLimit;
 
         return new TestDao(new MemorySegmentDao(daoConfig)) {
             @Override
@@ -52,7 +55,8 @@ public abstract class ADaoTest {
             throw new IllegalArgumentException("Key cannot be null!");
         }
 
-        return new AbstractEntry<>(key, value) {};
+        return new AbstractEntry<>(key, value) {
+        };
     }
 
     protected Entry<String> createEntryByIndex(int index) {

@@ -1,12 +1,9 @@
 package cellarium.http;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import cellarium.dao.DaoConfig;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
@@ -26,16 +23,10 @@ public final class Server extends HttpServer {
     private final ExecutorService localExecutorService;
     private final ExecutorService remoteExecutorService;
 
-    public Server(ServerConfig config) throws IOException {
+    public Server(ServerConfig config, MemorySegmentDao dao) throws IOException {
         super(config);
 
-        final Path workingDir = config.workingDir;
-        if (Files.notExists(workingDir)) {
-            Files.createDirectory(workingDir);
-        }
-
-        //TODO: Сделать нормальное чтение конфига
-        this.dao = new MemorySegmentDao(new DaoConfig(workingDir, config.memTableSizeBytes, 500));
+        this.dao = dao;
         //TODO: Нормально настроить координатор(на каждый экзикьютор в конфиг количество тредов)
         final int threadCount = config.threadCount == 1 ? 1 : config.threadCount / 2;
         this.localExecutorService = Executors.newFixedThreadPool(threadCount);

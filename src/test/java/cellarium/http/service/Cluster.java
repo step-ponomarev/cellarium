@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import cellarium.dao.DaoConfig;
+import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import one.nio.http.HttpServer;
@@ -61,7 +63,8 @@ public class Cluster {
             }
 
             final cellarium.http.Server server = new cellarium.http.Server(
-                    createServerConfig(uri, clusterUrls, instanceDir)
+                    createServerConfig(uri, clusterUrls),
+                    createDao(instanceDir)
             );
 
             instances.add(server);
@@ -91,15 +94,19 @@ public class Cluster {
         return urlToEndpoint.get(iterator.next());
     }
 
-    private static ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls, Path instanceDir) throws IOException {
+    private static MemorySegmentDao createDao(Path instanceDir) throws IOException {
+        final DaoConfig daoConfig = new DaoConfig();
+        daoConfig.path = instanceDir;
+        daoConfig.memtableLimitBytes = 1024 * 1024;
+
+        return new MemorySegmentDao(daoConfig);
+    }
+
+    private static ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls) {
         final ServerConfig serverConfig = new ServerConfig();
         serverConfig.selfPort = currentUrl.getPort();
         serverConfig.selfUrl = currentUrl.toString();
         serverConfig.clusterUrls = clusterUrls;
-        serverConfig.workingDir = instanceDir;
-
-        // 1 MB
-        serverConfig.memTableSizeBytes = 1024 * 1024;
         serverConfig.threadCount = Runtime.getRuntime().availableProcessors() - 2;
 
         final AcceptorConfig acceptor = new AcceptorConfig();
