@@ -5,9 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
 import org.junit.Assert;
-import cellarium.entry.Entry;
 import cellarium.disk.DiskUtils;
 import cellarium.entry.AbstractEntry;
+import cellarium.entry.Entry;
 
 public abstract class ADaoTest {
     private static final String WORKING_DIR = "dao_test";
@@ -23,13 +23,19 @@ public abstract class ADaoTest {
     }
 
     protected static Dao<String, Entry<String>> createDao(Path dir, long bytesLimit, boolean deleteDirAfterClose) throws IOException {
+        return createDao(dir, bytesLimit, Integer.MAX_VALUE, deleteDirAfterClose);
+    }
+
+    protected static Dao<String, Entry<String>> createDao(Path dir, long bytesLimit, int sstablesLimit, boolean deleteDirAfterClose) throws IOException {
         if (dir != null && Files.notExists(dir)) {
             throw new IllegalStateException("Test dir is not exists");
         }
 
         final Path tempDirectory = dir == null ? Files.createTempDirectory(WORKING_DIR) : dir;
 
-        return new TestDao(new MemorySegmentDao(tempDirectory, bytesLimit)) {
+        final DaoConfig daoConfig = new DaoConfig(dir, bytesLimit, sstablesLimit);
+
+        return new TestDao(new MemorySegmentDao(daoConfig)) {
             @Override
             public void close() throws IOException {
                 super.close();
@@ -46,7 +52,7 @@ public abstract class ADaoTest {
             throw new IllegalArgumentException("Key cannot be null!");
         }
 
-        return new AbstractEntry<>(key, value) { };
+        return new AbstractEntry<>(key, value) {};
     }
 
     protected Entry<String> createEntryByIndex(int index) {

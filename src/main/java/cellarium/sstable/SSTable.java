@@ -134,10 +134,6 @@ public final class SSTable implements Closeable {
         }
     }
 
-    public long getCreatedTime() {
-        return createdTimeMs;
-    }
-
     public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) {
         if (from == null && to == null) {
             return new MappedIterator(

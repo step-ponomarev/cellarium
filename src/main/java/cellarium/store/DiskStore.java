@@ -39,18 +39,12 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
 
     @Override
     public MemorySegmentEntry get(MemorySegment key) throws IOException {
-        //TODO: Можно оптимизировать искать по каждой SSTable только одну запись по ключу.
         final Iterator<MemorySegmentEntry> data = readFromDisk(key, null);
         if (!data.hasNext()) {
             return null;
         }
 
-        final MemorySegmentEntry entry = data.next();
-        if (EntryComparator.compareMemorySegments(key, entry.getKey()) != 0) {
-            return null;
-        }
-
-        return entry;
+        return data.next();
     }
 
     @Override
@@ -84,29 +78,25 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
                 )
         ));
 
-        List<SSTable> ssTablesToRemove = new ArrayList<>(ssTables);
-        if (compactedData.count == 0) {
-            ssTables.clear();
-            removeFromDisk(ssTablesToRemove);
+        final List<SSTable> ssTablesToRemove = new ArrayList<>(ssTables);
+        final boolean hasCompactedData = compactedData.count != 0;
+        if (hasCompactedData) {
+            final SSTable ssTable = SSTable.flushAndCreateSSTable(
+                    this.path,
+                    compactedData.data,
+                    compactedData.count,
+                    compactedData.sizeBytes
+            );
 
-            return;
+            ssTables.add(ssTable);
         }
 
-        final SSTable ssTable = SSTable.flushAndCreateSSTable(
-                this.path,
-                compactedData.data,
-                compactedData.count,
-                compactedData.sizeBytes
-        );
-
-        ssTablesToRemove = ssTablesToRemove.stream()
-                .filter(table -> table.getCreatedTime() < ssTable.getCreatedTime())
-                .toList();
-
-        ssTables.add(ssTable);
         ssTables.removeAll(ssTablesToRemove);
-
         removeFromDisk(ssTablesToRemove);
+    }
+
+    public int getSSTablesAmount() {
+        return ssTables.size();
     }
 
     private static void removeFromDisk(final List<SSTable> ssTables) throws IOException {
