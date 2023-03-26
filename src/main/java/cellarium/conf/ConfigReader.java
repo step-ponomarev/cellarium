@@ -7,7 +7,7 @@ import cellarium.http.conf.ServerConfig;
 import one.nio.config.ConfigParser;
 
 public final class ConfigReader {
-    private final Path confDir = Path.of("configurations");
+    private final Path confDir = Path.of("conf");
 
     private static final String SERVER_CONF = "server.config.yaml";
     private static final String DAO_CONF = "dao.config.yaml";
