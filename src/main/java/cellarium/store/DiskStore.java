@@ -99,10 +99,6 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
                 compactedData.sizeBytes
         );
 
-        ssTablesToRemove = ssTablesToRemove.stream()
-                .filter(table -> table.getCreatedTime() < ssTable.getCreatedTime())
-                .toList();
-
         ssTables.add(ssTable);
         ssTables.removeAll(ssTablesToRemove);
 
