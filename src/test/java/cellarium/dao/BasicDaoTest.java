@@ -9,7 +9,7 @@ import java.util.stream.IntStream;
 import org.junit.Assert;
 import org.junit.Test;
 import cellarium.dao.entry.Entry;
-import cellarium.dao.iterators.ReadIterator;
+import cellarium.dao.iterators.StrictReadIterator;
 import test.entry.EntryGeneratorList;
 
 public class BasicDaoTest extends ADaoTest {
@@ -211,7 +211,7 @@ public class BasicDaoTest extends ADaoTest {
         }
     }
 
-    @Test(expected = ReadIterator.ReadException.class)
+    @Test(expected = StrictReadIterator.ReadException.class)
     public void testReadAfterDaoClose() throws IOException {
         final int count = 100_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);

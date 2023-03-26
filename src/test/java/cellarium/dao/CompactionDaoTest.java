@@ -9,7 +9,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.dao.entry.Entry;
-import cellarium.dao.iterators.ReadIterator;
+import cellarium.dao.iterators.StrictReadIterator;
 import test.entry.EntryGeneratorList;
 import test.entry.TestUtils;
 
@@ -178,7 +178,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
         }
     }
 
-    @Test(timeout = 15_000, expected = ReadIterator.ReadException.class)
+    @Test(timeout = 15_000, expected = StrictReadIterator.ReadException.class)
     public void testGetAllWhenCompaction() throws Exception {
         final int count = 100_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);

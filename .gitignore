@@ -1,5 +1,3 @@
-!*
-
 /src/test/.DS_Store
 /src/test/resources/.DS_Store
 .DS_Store
@@ -18,14 +16,13 @@ gradle-app.setting
 
 # # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
 # gradle/wrapper/gradle-wrapper.properties
-.idea
+/.idea/
 # Ignore Gradle build output directory
-build
 
-bin
+/bin/
 .vscode
-dao
-conf
+/dao/
+/conf/
 
 # Костыль для тестов с этой папкой, тесты бы перпеписать
-test_dir_tmp
+/test_dir_tmp/

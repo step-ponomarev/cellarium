@@ -2,10 +2,10 @@ package cellarium.dao.iterators;
 
 import java.util.Iterator;
 
-public class ReadIterator<E> implements Iterator<E> {
+public class StrictReadIterator<E> implements Iterator<E> {
     private final Iterator<E> delegate;
 
-    public ReadIterator(Iterator<E> delegate) {
+    public StrictReadIterator(Iterator<E> delegate) {
         this.delegate = delegate;
     }
 

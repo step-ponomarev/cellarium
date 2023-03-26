@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import cellarium.dao.entry.EntryComparator;
 import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.iterators.MergeIterator;
-import cellarium.dao.iterators.ReadIterator;
+import cellarium.dao.iterators.StrictReadIterator;
 import cellarium.dao.iterators.TombstoneSkipIterator;
 import cellarium.dao.store.DiskStore;
 import cellarium.dao.store.FlushData;
@@ -58,7 +58,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
         final Iterator<MemorySegmentEntry> fromMemory = memoryStore.get(from, to);
         final Iterator<MemorySegmentEntry> fromDisk = diskStore.get(from, to);
 
-        return new ReadIterator<>(
+        return new StrictReadIterator<>(
                 new TombstoneSkipIterator<>(
                         MergeIterator.of(
                                 List.of(fromDisk, fromMemory),
