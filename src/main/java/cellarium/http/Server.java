@@ -26,6 +26,10 @@ public final class Server extends HttpServer {
     public Server(ServerConfig config, MemorySegmentDao dao) throws IOException {
         super(config);
 
+        if (dao == null) {
+            throw new NullPointerException("Dao cannot be null");
+        }
+
         this.dao = dao;
         //TODO: Нормально настроить координатор(на каждый экзикьютор в конфиг количество тредов)
         final int threadCount = config.threadCount == 1 ? 1 : config.threadCount / 2;
