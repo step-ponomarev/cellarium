@@ -2,43 +2,25 @@ package cellarium.http;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collections;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ThreadLocalRandom;
-import org.junit.After;
-import org.junit.Before;
-import cellarium.http.conf.ServerConfiguration;
-import cellarium.http.conf.ServiceConfig;
-import cellarium.http.service.HttpService;
-import one.nio.http.HttpServer;
+import org.junit.AfterClass;
+import cellarium.dao.disk.DiskUtils;
 
 public abstract class AHttpTest {
-    private static final int PORT = 8080;
-    private static final String URL = "http://localhost:" + PORT;
-    private static final String ENDPOINT = URL + ServerConfiguration.V_0_ENTITY_ENDPOINT;
     private static final int BODY_LEN_BYTES = 40;
 
-    private HttpServer server;
+    protected static final Path TEST_DIR = Paths.get(
+            "./src/test/resources").toAbsolutePath().normalize().resolve(
+            Path.of("test_dir")
+    );
 
-    protected final HttpService httpService = new HttpService(ENDPOINT);
-
-    @Before
-    public void startServer() throws IOException {
-        final ServiceConfig config = new ServiceConfig(
-                PORT,
-                URL,
-                Collections.singletonList(URL),
-                Files.createTempDirectory("TMP_DIR"),
-                Runtime.getRuntime().availableProcessors() - 2
-        );
-        server = new Server(config);
-
-        server.start();
-    }
-
-    @After
-    public void stopServer() {
-        server.stop();
-        server = null;
+    @AfterClass
+    public static void cleanUp() throws IOException {
+        if (Files.exists(TEST_DIR)) {
+            DiskUtils.removeDir(TEST_DIR);
+        }
     }
 
     protected static byte[] generateBody() {

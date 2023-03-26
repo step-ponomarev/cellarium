@@ -7,9 +7,9 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.disk.DiskUtils;
-import cellarium.entry.Entry;
-import cellarium.iterators.ReadIterator;
+import cellarium.dao.disk.DiskUtils;
+import cellarium.dao.entry.Entry;
+import cellarium.dao.iterators.ReadIterator;
 import test.entry.EntryGeneratorList;
 import test.entry.TestUtils;
 
