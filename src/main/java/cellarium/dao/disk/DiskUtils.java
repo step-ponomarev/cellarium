@@ -44,7 +44,7 @@ public class DiskUtils {
 
     public static boolean isDirEmpty(Path dir) throws IOException {
         if (Files.notExists(dir)) {
-            throw new IllegalStateException("Dir is not exists: " + dir);
+            throw new IllegalStateException("Dir does not exist: " + dir);
         }
 
         if (!Files.isDirectory(dir)) {

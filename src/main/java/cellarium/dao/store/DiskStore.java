@@ -25,7 +25,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
 
     public DiskStore(Path path) throws IOException {
         if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Path: " + path + " is not exist");
+            throw new IllegalArgumentException("Path: " + path + " does not exist");
         }
 
         this.path = path;

@@ -24,4 +24,6 @@ build
 
 bin
 .vscode
+dao
+/configurations/
 

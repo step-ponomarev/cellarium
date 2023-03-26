@@ -96,7 +96,7 @@ public class Cluster {
 
     private static MemorySegmentDao createDao(Path instanceDir) throws IOException {
         final DaoConfig daoConfig = new DaoConfig();
-        daoConfig.path = instanceDir;
+        daoConfig.path = instanceDir.toString();
         daoConfig.memtableLimitBytes = 1024 * 1024;
 
         return new MemorySegmentDao(daoConfig);

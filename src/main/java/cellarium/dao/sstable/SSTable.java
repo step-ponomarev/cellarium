@@ -52,7 +52,7 @@ public final class SSTable implements Closeable {
         }
 
         if (!indexMemorySegment.isReadOnly() || !tableMemorySegment.isReadOnly()) {
-            throw new IllegalArgumentException("Mapped segments must be read ondly!");
+            throw new IllegalArgumentException("Mapped segments must be read only!");
         }
 
         this.path = path;
@@ -68,7 +68,7 @@ public final class SSTable implements Closeable {
                                                 long sizeBytes
     ) throws IOException {
         if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Dir is not exists: " + path);
+            throw new IllegalArgumentException("Dir does not exist: " + path);
         }
 
         if (!data.hasNext()) {
@@ -100,7 +100,7 @@ public final class SSTable implements Closeable {
 
     public static List<SSTable> wakeUpSSTables(Path path) throws IOException {
         if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Dir is not exists: " + path);
+            throw new IllegalArgumentException("Dir does not exist: " + path);
         }
 
         try (Stream<Path> files = Files.list(path)) {
@@ -167,13 +167,13 @@ public final class SSTable implements Closeable {
 
     private static SSTable upInstance(Path path) throws IOException {
         if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Dir is not exists");
+            throw new IllegalArgumentException("Dir does not exist");
         }
 
         final Path sstableFile = path.resolve(SSTABLE_FILE_NAME);
         final Path indexFile = path.resolve(INDEX_FILE_NAME);
         if (Files.notExists(path) || Files.notExists(indexFile)) {
-            throw new IllegalArgumentException("Files must exist.");
+            throw new IllegalArgumentException("File does not exist");
         }
 
         final MemorySegment mappedSsTable = MemorySegment.mapFile(
@@ -202,7 +202,7 @@ public final class SSTable implements Closeable {
 
     private static void flush(Iterator<MemorySegmentEntry> data, MemorySegment sstable, MemorySegment index) {
         if (!data.hasNext()) {
-            throw new IllegalStateException("Flushing data is empty!");
+            throw new IllegalStateException("Flushing data is empty");
         }
 
         long indexOffset = 0;
@@ -226,7 +226,7 @@ public final class SSTable implements Closeable {
 
     private static MemorySegment mapFile(final Path path, long sizeBytes) throws IOException {
         if (Files.notExists(path)) {
-            throw new IllegalStateException("File is not exists " + path);
+            throw new IllegalStateException("File does not exist " + path);
         }
 
         return MemorySegment.mapFile(

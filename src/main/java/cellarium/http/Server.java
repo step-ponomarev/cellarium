@@ -15,7 +15,6 @@ import one.nio.http.Request;
 import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 
-
 public final class Server extends HttpServer {
     private final MemorySegmentDao dao;
     private final RequestHandler coordinator;

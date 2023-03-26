@@ -28,13 +28,13 @@ public abstract class ADaoTest {
 
     protected static Dao<String, Entry<String>> createDao(Path dir, long bytesLimit, int sstablesLimit, boolean deleteDirAfterClose) throws IOException {
         if (dir != null && Files.notExists(dir)) {
-            throw new IllegalStateException("Test dir is not exists");
+            throw new IllegalStateException("Test dir does not exist");
         }
 
         final Path tempDirectory = dir == null ? Files.createTempDirectory(WORKING_DIR) : dir;
 
         final DaoConfig daoConfig = new DaoConfig();
-        daoConfig.path = tempDirectory;
+        daoConfig.path = tempDirectory.toString();
         daoConfig.memtableLimitBytes = bytesLimit;
         daoConfig.sstablesLimit = sstablesLimit;
 
