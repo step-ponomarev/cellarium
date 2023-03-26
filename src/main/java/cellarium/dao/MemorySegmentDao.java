@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -23,25 +24,24 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
 
     private final long memTableLimitBytes;
     private final int sstablesLimit;
-    private final ThreadSafeExecutor executor;
-
-    private final DiskStore diskStore;
+    private final ExecutorService executor;
 
     private final Object scheduleFlushLock = new Object();
-
     private final Object flushCompactionLock = new Object();
     private final Runnable flushTask = new LockedTask(flushCompactionLock, this::handlePreparedFlush);
 
     private final MemoryStore memoryStore;
+    private final DiskStore diskStore;
 
     public MemorySegmentDao(DaoConfig config) throws IOException {
         if (Files.notExists(config.path)) {
             throw new IllegalArgumentException("Path: " + config.path + " is not exist");
         }
+        
+        this.executor = Executors.newSingleThreadExecutor();
 
         this.memTableLimitBytes = config.memtableLimitBytes;
         this.sstablesLimit = config.sstablesLimit;
-        this.executor = new ThreadSafeExecutor(Executors.newFixedThreadPool(2));
 
         this.diskStore = new DiskStore(config.path);
         this.memoryStore = new MemoryStore();
@@ -87,16 +87,22 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
                     "Entry is too big, limit is " + memTableLimitBytes + "bytes, entry size is: " + entry.getSizeBytes());
         }
 
-        if (memoryStore.getSizeBytes() + entrySize >= memTableLimitBytes && !memoryStore.hasFlushData()) {
-            synchronized (scheduleFlushLock) {
-                if (memoryStore.getSizeBytes() + entrySize >= memTableLimitBytes && !memoryStore.hasFlushData()) {
-                    memoryStore.prepareFlushData();
-                    executor.execute(flushTask);
-                }
-            }
+        if (memoryStore.getSizeBytes() + entrySize >= memTableLimitBytes) {
+            scheduleFlush(memoryStore.getSizeBytes() + entrySize);
         }
 
         memoryStore.upsert(entry);
+    }
+
+    private void scheduleFlush(long expectedSizeBytes) {
+        synchronized (scheduleFlushLock) {
+            if (memoryStore.hasFlushData() || expectedSizeBytes <= memTableLimitBytes) {
+                return;
+            }
+
+            memoryStore.prepareFlushData();
+            executor.execute(flushTask);
+        }
     }
 
     @Override
@@ -106,9 +112,13 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
                 log.warn("Flush is running already!");
                 return;
             }
-            memoryStore.prepareFlushData();
 
-            handleFlush();
+            memoryStore.prepareFlushData();
+            try {
+                doFlush();
+            } finally {
+                memoryStore.clearFlushData();
+            }
         }
     }
 
@@ -132,7 +142,17 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
 
     @Override
     public void close() throws IOException {
-        executor.close(TimeUnit.MINUTES.toMillis(1));
+        synchronized (scheduleFlushLock) {
+            executor.shutdown();
+        }
+
+        try {
+            executor.awaitTermination(TimeUnit.MINUTES.toMillis(1), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+
         flush();
         diskStore.close();
     }
@@ -144,33 +164,31 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
         }
 
         try {
-            handleFlush();
+            doFlush();
         } catch (IOException e) {
             throw new IllegalStateException(e);
+        } finally {
+            //TODO: Если не получилось - теряем данные?
+            memoryStore.clearFlushData();
         }
     }
 
-    private void handleFlush() throws IOException {
+    private void doFlush() throws IOException {
         final FlushData flushData = memoryStore.createFlushData();
         if (flushData == null) {
             throw new IllegalStateException("Flush is not prepared!");
         }
 
-        try {
-            if (!flushData.data.hasNext()) {
-                log.warn("Flush task with empty data");
-                return;
-            }
+        if (!flushData.data.hasNext()) {
+            log.warn("Flush task with empty data");
+            return;
+        }
 
-            if (sstablesLimit - 1 > diskStore.getSSTablesAmount()) {
-                diskStore.flush(flushData);
-            } else {
-                log.info("Reached compaction limit: " + diskStore.getSSTablesAmount());
-                diskStore.compact(flushData);
-            }
-        } finally {
-            //TODO: Не вышло зафлашиться - теряем данные??
-            memoryStore.clearFlushData();
+        if (sstablesLimit - 1 > diskStore.getSSTablesAmount()) {
+            diskStore.flush(flushData);
+        } else {
+            log.info("Reached compaction limit: " + diskStore.getSSTablesAmount());
+            diskStore.compact(flushData);
         }
     }
 }
