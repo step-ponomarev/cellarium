@@ -23,6 +23,4 @@ gradle-app.setting
 .vscode
 /dao/
 /conf/
-
-# Костыль для тестов с этой папкой, тесты бы перпеписать
-/test_dir_tmp/
+/tmp/

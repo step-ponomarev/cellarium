@@ -16,6 +16,10 @@ public final class TombstoneSkipIterator<E extends Entry<?>> implements Iterator
     }
 
     public TombstoneSkipIterator(Iterator<E> delegate, int timeoutMs) {
+        if (timeoutMs < 0) {
+            throw new IllegalArgumentException("Timeout cannot be negative: " + timeoutMs);
+        }
+
         this.delegate = delegate;
         this.timeoutMs = timeoutMs;
         this.createdMs = System.currentTimeMillis();
@@ -43,23 +47,21 @@ public final class TombstoneSkipIterator<E extends Entry<?>> implements Iterator
     }
 
     private E getNext(Iterator<E> iterator) throws TimeoutException {
-        int tombstonesSkippedAmount = 0;
         while (iterator.hasNext()) {
+            if (timeoutMs != Integer.MAX_VALUE && System.currentTimeMillis() - createdMs > timeoutMs) {
+                throw new TimeoutException("Timeout while skipped tombstones");
+            }
+
             final E entry = iterator.next();
             if (entry.getValue() != null) {
                 return entry;
-            }
-
-            tombstonesSkippedAmount++;
-            if (System.currentTimeMillis() - createdMs > timeoutMs) {
-                throw new TimeoutException("Timeout while skipped tombstones, skipped: " + tombstonesSkippedAmount + "tombstone");
             }
         }
 
         return null;
     }
 
-    private static class TimeoutException extends RuntimeException {
+    public static class TimeoutException extends RuntimeException {
         public TimeoutException(String message) {
             super(message);
         }

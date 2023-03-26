@@ -46,7 +46,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
         this.executor = Executors.newSingleThreadExecutor();
         this.memTableLimitBytes = config.memtableLimitBytes;
         this.sstablesLimit = config.sstablesLimit;
-        this.timeoutMs = config.timeoutMs;
+        this.timeoutMs = config.timeoutMs == null ? Integer.MAX_VALUE : config.timeoutMs;
 
         this.diskStore = new DiskStore(path);
         this.memoryStore = new MemoryStore();

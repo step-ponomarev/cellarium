@@ -27,7 +27,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test
     public final void testPutAndGetFromEachShard() throws IOException, InterruptedException {
-        try (final ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(TEST_DIR))) {
+        try (final ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(DEFAULT_DIR))) {
             cluster.start();
             final String id = generateId();
             final byte[] body = generateBody();
@@ -47,7 +47,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test(expected = ConnectException.class)
     public final void testClusterStop() throws IOException, InterruptedException {
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(TEST_DIR))) {
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(DEFAULT_DIR))) {
             cluster.start();
 
             final HttpResponse<byte[]> putResponse = cluster.getRandomEndpoint().put(generateId(), generateBody());
@@ -60,7 +60,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test()
     public final void testClusterKeepDataAfterRestart() throws IOException, InterruptedException {
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(TEST_DIR))) {
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(DEFAULT_DIR))) {
             cluster.start();
 
             final String id = generateId();
@@ -84,7 +84,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test()
     public final void testNotAllNodesKeepData() throws IOException, InterruptedException {
-        final Path workDir = Files.createDirectory(TEST_DIR);
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
 
         try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
             cluster.start();
@@ -117,7 +117,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test
     public final void testEachNodeHasData() throws IOException, InterruptedException {
-        final Path workDir = Files.createDirectory(TEST_DIR);
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
 
         try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
             cluster.start();

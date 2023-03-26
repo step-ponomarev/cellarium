@@ -2,11 +2,10 @@ package cellarium.dao;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
+import cellarium.dao.conf.TestDaoConfig;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.dao.entry.Entry;
 import cellarium.dao.iterators.ReadIterator;
@@ -15,13 +14,12 @@ import test.entry.TestUtils;
 
 public class CompactionDaoTest extends AConcurrentDaoTest {
     private static final long SIZE_BYTES = 1024 * 4; //4KB
-    private static final String CURRENT_DIR = Paths.get(".").toAbsolutePath().normalize().toString();
 
     @Test
     public void testReadEachAfterCompaction() throws IOException {
         final int count = 100_000;
 
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
             entries.forEach(dao::upsert);
 
@@ -40,20 +38,17 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
     public void testOnlyOneDirAfterCompaction() throws IOException {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
-        final Path tmpDir = Files.createDirectory(Paths.get(CURRENT_DIR).resolve("test_dir_tmp"));
 
-        try (final Dao<String, Entry<String>> dao = createDao(tmpDir, Long.MAX_VALUE, false)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             for (Entry<String> entry : entries) {
                 dao.upsert(entry);
                 dao.flush();
             }
 
-            Assert.assertEquals(count, Files.list(tmpDir).count());
+            Assert.assertEquals(count, Files.list(DEFAULT_DIR).count());
             dao.compact();
 
-            Assert.assertEquals(1, Files.list(tmpDir).count());
-        } finally {
-            DiskUtils.removeDir(tmpDir);
+            Assert.assertEquals(1, Files.list(DEFAULT_DIR).count());
         }
     }
 
@@ -61,9 +56,8 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
     public void testAllEntriesRemovedCompaction() throws IOException {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
-        final Path tmpDir = Files.createDirectory(Paths.get(CURRENT_DIR).resolve("test_dir_tmp"));
 
-        try (final Dao<String, Entry<String>> dao = createDao(tmpDir, Long.MAX_VALUE, false)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             entries.forEach(dao::upsert);
             dao.flush();
 
@@ -73,9 +67,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
             }
 
             dao.compact();
-            Assert.assertEquals(0, Files.list(tmpDir).count());
-        } finally {
-            DiskUtils.removeDir(tmpDir);
+            Assert.assertEquals(0, Files.list(DEFAULT_DIR).count());
         }
     }
 
@@ -84,12 +76,11 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        final Path tmpDir = Files.createDirectory(Paths.get(CURRENT_DIR).resolve("test_dir_tmp"));
-        try (final Dao<String, Entry<String>> dao = createDao(tmpDir, Long.MAX_VALUE, false)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             entries.forEach(dao::upsert);
             dao.flush();
 
-            final long beforeCompaction = DiskUtils.gerDirSizeBytes(tmpDir);
+            final long beforeCompaction = DiskUtils.gerDirSizeBytes(DEFAULT_DIR);
             for (int i = 0; i < count; i++) {
                 if (i % 2 == 0) {
                     dao.upsert(createEntry(entries.get(i).getKey(), null));
@@ -100,9 +91,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
             dao.compact();
 
             // Сжалось в двое, 1% погрешности
-            Assert.assertTrue(beforeCompaction * 0.55 >= DiskUtils.gerDirSizeBytes(tmpDir));
-        } finally {
-            DiskUtils.removeDir(tmpDir);
+            Assert.assertTrue(beforeCompaction * 0.55 >= DiskUtils.gerDirSizeBytes(DEFAULT_DIR));
         }
     }
 
@@ -110,9 +99,8 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
     public void testRemovedEntriesAfterCompaction() throws IOException {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
-        final Path tmpDir = Files.createDirectory(Paths.get(CURRENT_DIR).resolve("test_dir_tmp"));
 
-        try (final Dao<String, Entry<String>> dao = createDao(tmpDir, Long.MAX_VALUE, false);) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             for (Entry<String> entry : entries) {
                 dao.upsert(entry);
             }
@@ -125,9 +113,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
             }
             dao.compact();
 
-            Assert.assertEquals(1, Files.list(tmpDir).count());
-        } finally {
-            DiskUtils.removeDir(tmpDir);
+            Assert.assertEquals(1, Files.list(DEFAULT_DIR).count());
         }
     }
 
@@ -135,7 +121,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
     public void testReadAllAfterCompaction() throws IOException {
         final int count = 100_000;
 
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
             entries.forEach(dao::upsert);
 
@@ -152,13 +138,10 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
 
     @Test
     public void testEmptyDaoCompact() throws IOException {
-        final Path tmpDir = Files.createTempDirectory("test_dir_tmp");
-        try (final Dao<String, Entry<String>> dao = createDao(tmpDir, 0, false);) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             dao.compact();
 
-            Assert.assertTrue(DiskUtils.isDirEmpty(tmpDir));
-        } finally {
-            DiskUtils.removeDir(tmpDir);
+            Assert.assertTrue(DiskUtils.isDirEmpty(DEFAULT_DIR));
         }
     }
 
@@ -167,7 +150,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (final Dao<String, Entry<String>> dao = createDao(Long.MAX_VALUE)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(Long.MAX_VALUE))) {
             runAsync(100, count, i -> {
                 final Entry<String> addedEntry = entries.get(i);
                 dao.upsert(addedEntry);
@@ -183,7 +166,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
         final int count = 100_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (final Dao<String, Entry<String>> dao = createDao(Long.MAX_VALUE)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(Long.MAX_VALUE))) {
             entries.forEach(dao::upsert);
 
             while (true) {
@@ -200,10 +183,9 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
     @Test
     public void testAvailableMemoryIncreaseAfterCompaction() throws IOException {
         final int count = 10_000;
-        final Path tmpDir = Files.createTempDirectory("test_dir_tmp");
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (final Dao<String, Entry<String>> dao = createDao(tmpDir, Long.MAX_VALUE, false)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(Long.MAX_VALUE))) {
             long entriesSizeBytes = 0;
             for (Entry<String> entry : entries) {
                 dao.upsert(entry);
@@ -219,23 +201,23 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
             final long freeMemoryAfterFlush = Runtime.getRuntime().freeMemory();
 
             Assert.assertTrue(freeMemoryBeforeFlush - freeMemoryAfterFlush >= entriesSizeBytes);
-        } finally {
-            DiskUtils.removeDir(tmpDir);
         }
     }
 
     @Test
     public void testAutoCompaction() throws IOException {
         final int count = 10_000;
-        final Path tmpDir = Files.createTempDirectory("test_dir_tmp");
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (final Dao<String, Entry<String>> dao = createDao(tmpDir, 100, 4, true)) {
+        final TestDaoConfig config = createConfig(100);
+        config.sstablesLimit = 4;
+
+        try (final Dao<String, Entry<String>> dao = new TestDao(config)) {
             for (Entry<String> entry : entries) {
                 dao.upsert(entry);
             }
 
-            final long sstablesAmount = Files.list(tmpDir).count();
+            final long sstablesAmount = Files.list(DEFAULT_DIR).count();
             Assert.assertTrue(sstablesAmount > 0);
             Assert.assertTrue(sstablesAmount <= 4);
         }

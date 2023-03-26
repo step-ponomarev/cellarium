@@ -4,53 +4,33 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
+import cellarium.dao.conf.TestDaoConfig;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.dao.entry.AbstractEntry;
 import cellarium.dao.entry.Entry;
 
 public abstract class ADaoTest {
-    private static final String WORKING_DIR = "dao_test";
+    public static final Path DEFAULT_DIR = Path.of("tmp");
 
-    protected static Dao<String, Entry<String>> createDao(long bytesLimit) throws IOException {
-        return createDao(bytesLimit, true);
-    }
-
-    protected static Dao<String, Entry<String>> createDao(long bytesLimit, boolean deleteDirAfterClose) throws IOException {
-        final Path tempDirectory = Files.createTempDirectory(WORKING_DIR);
-
-        return createDao(tempDirectory, bytesLimit, deleteDirAfterClose);
-    }
-
-    protected static Dao<String, Entry<String>> createDao(Path dir, long bytesLimit, boolean deleteDirAfterClose) throws IOException {
-        return createDao(dir, bytesLimit, Integer.MAX_VALUE, deleteDirAfterClose);
-    }
-
-    protected static Dao<String, Entry<String>> createDao(Path dir, long bytesLimit, int sstablesLimit, boolean deleteDirAfterClose) throws IOException {
-        if (dir != null && Files.notExists(dir)) {
-            throw new IllegalStateException("Test dir does not exist");
+    @Before
+    public void init() throws IOException {
+        if (Files.exists(DEFAULT_DIR)) {
+            DiskUtils.removeDir(DEFAULT_DIR);
         }
-
-        final Path tempDirectory = dir == null ? Files.createTempDirectory(WORKING_DIR) : dir;
-
-        final DaoConfig daoConfig = new DaoConfig();
-        daoConfig.path = tempDirectory.toString();
-        daoConfig.memtableLimitBytes = bytesLimit;
-        daoConfig.sstablesLimit = sstablesLimit;
-
-        return new TestDao(new MemorySegmentDao(daoConfig)) {
-            @Override
-            public void close() throws IOException {
-                super.close();
-
-                if (deleteDirAfterClose) {
-                    DiskUtils.removeDir(tempDirectory);
-                }
-            }
-        };
+        Files.createDirectory(DEFAULT_DIR);
     }
 
-    public Entry<String> createEntry(String key, String value) {
+    @After
+    public void cleanup() throws IOException {
+        if (Files.exists(DEFAULT_DIR)) {
+            DiskUtils.removeDir(DEFAULT_DIR);
+        }
+    }
+
+    public final Entry<String> createEntry(String key, String value) {
         if (key == null) {
             throw new IllegalArgumentException("Key cannot be null!");
         }
@@ -59,7 +39,17 @@ public abstract class ADaoTest {
         };
     }
 
-    protected Entry<String> createEntryByIndex(int index) {
+    protected final TestDaoConfig createConfig(long sizeBytes) {
+        final TestDaoConfig testDaoConfig = new TestDaoConfig();
+        testDaoConfig.path = DEFAULT_DIR.toString();
+        testDaoConfig.memtableLimitBytes = sizeBytes;
+        testDaoConfig.sstablesLimit = Integer.MAX_VALUE;
+
+
+        return testDaoConfig;
+    }
+
+    protected final Entry<String> createEntryByIndex(int index) {
         return createEntry(String.valueOf(index), "value_" + index);
     }
 

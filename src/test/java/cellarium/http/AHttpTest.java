@@ -3,7 +3,6 @@ package cellarium.http;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.ThreadLocalRandom;
 import org.junit.AfterClass;
 import cellarium.dao.disk.DiskUtils;
@@ -11,15 +10,12 @@ import cellarium.dao.disk.DiskUtils;
 public abstract class AHttpTest {
     private static final int BODY_LEN_BYTES = 40;
 
-    protected static final Path TEST_DIR = Paths.get(
-            "./src/test/resources").toAbsolutePath().normalize().resolve(
-            Path.of("test_dir")
-    );
+    public static final Path DEFAULT_DIR = Path.of("tmp");
 
     @AfterClass
     public static void cleanUp() throws IOException {
-        if (Files.exists(TEST_DIR)) {
-            DiskUtils.removeDir(TEST_DIR);
+        if (Files.exists(DEFAULT_DIR)) {
+            DiskUtils.removeDir(DEFAULT_DIR);
         }
     }
 
