@@ -14,6 +14,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import one.nio.http.HttpServer;
+import one.nio.server.AcceptorConfig;
 
 public class Cluster {
     private static final String DIR_PREFIX = "CLUSTER_";
@@ -90,14 +91,27 @@ public class Cluster {
         return urlToEndpoint.get(iterator.next());
     }
 
-    private static ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls, Path instanceDir) {
-        return new ServerConfig(
-                currentUrl.getPort(),
-                currentUrl.toString(),
-                clusterUrls,
-                instanceDir,
-                1024 * 1024 * 1,
-                Math.max(1, clusterUrls.size() / (Runtime.getRuntime().availableProcessors() - 2))
-        );
+    private static ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls, Path instanceDir) throws IOException {
+        final ServerConfig serverConfig = new ServerConfig();
+        serverConfig.selfPort = currentUrl.getPort();
+        serverConfig.selfUrl = currentUrl.toString();
+        serverConfig.clusterUrls = clusterUrls;
+        serverConfig.workingDir = instanceDir;
+
+        // 1 MB
+        serverConfig.memTableSizeBytes = 1024 * 1024;
+        serverConfig.threadCount = Runtime.getRuntime().availableProcessors() - 2;
+
+        final AcceptorConfig acceptor = new AcceptorConfig();
+        acceptor.port = serverConfig.selfPort;
+        acceptor.reusePort = true;
+
+        serverConfig.acceptors = new AcceptorConfig[]{
+                acceptor
+        };
+
+        serverConfig.closeSessions = true;
+
+        return serverConfig;
     }
 }

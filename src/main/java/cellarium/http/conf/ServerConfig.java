@@ -2,28 +2,15 @@ package cellarium.http.conf;
 
 import java.nio.file.Path;
 import java.util.Set;
+import one.nio.http.HttpServerConfig;
 
-public final class ServerConfig {
-    public final int selfPort;
-    public final String selfUrl;
-    public final Set<String> clusterUrls;
-    public final Path workingDir;
-    public final int threadCount;
-    public final int memTableSizeBytes;
-
-    public ServerConfig(
-            int selfPort,
-            String selfUrl,
-            Set<String> clusterUrls,
-            Path workingDir,
-            int memTableSizeBytes,
-            int threadCount
-    ) {
-        this.selfPort = selfPort;
-        this.selfUrl = selfUrl;
-        this.clusterUrls = clusterUrls;
-        this.workingDir = workingDir;
-        this.memTableSizeBytes = memTableSizeBytes;
-        this.threadCount = threadCount;
-    }
+public final class ServerConfig extends HttpServerConfig {
+    public int selfPort;
+    public String selfUrl;
+    public Set<String> clusterUrls;
+    public Path workingDir;
+    public int threadCount;
+    public int memTableSizeBytes = 4 * 1024 * 1024 * 1024;
+    public int daoTimeoutMs = 3000;
+    public int requestTimeoutMs = 200;
 }

@@ -13,12 +13,10 @@ import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.handlers.CoordinatorRequestHandler;
 import cellarium.http.handlers.DaoRequestHandler;
 import one.nio.http.HttpServer;
-import one.nio.http.HttpServerConfig;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
 import one.nio.http.RequestHandler;
 import one.nio.http.Response;
-import one.nio.server.AcceptorConfig;
 
 
 public final class Server extends HttpServer {
@@ -29,7 +27,7 @@ public final class Server extends HttpServer {
     private final ExecutorService remoteExecutorService;
 
     public Server(ServerConfig config) throws IOException {
-        super(createServerConfig(config.selfPort));
+        super(config);
 
         final Path workingDir = config.workingDir;
         if (Files.notExists(workingDir)) {
@@ -94,20 +92,5 @@ public final class Server extends HttpServer {
     private static boolean isValidRequest(Request request) {
         return ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())
                 && ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod());
-    }
-
-    private static HttpServerConfig createServerConfig(int port) {
-        final AcceptorConfig acceptor = new AcceptorConfig();
-        acceptor.port = port;
-        acceptor.reusePort = true;
-
-        final HttpServerConfig httpConfig = new HttpServerConfig();
-        httpConfig.acceptors = new AcceptorConfig[]{
-                acceptor
-        };
-
-        httpConfig.closeSessions = true;
-
-        return httpConfig;
     }
 }
