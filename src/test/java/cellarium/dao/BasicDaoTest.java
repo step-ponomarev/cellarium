@@ -9,7 +9,7 @@ import java.util.stream.IntStream;
 import org.junit.Assert;
 import org.junit.Test;
 import cellarium.dao.entry.Entry;
-import cellarium.dao.iterators.StrictReadIterator;
+import cellarium.dao.iterators.ReadIterator;
 import test.entry.EntryGeneratorList;
 
 public class BasicDaoTest extends ADaoTest {
@@ -180,7 +180,7 @@ public class BasicDaoTest extends ADaoTest {
             Assert.assertNull(dao.get(entry.getKey()));
         }
     }
-    
+
     @Test
     public void testRemoveAndReplaceRemoved() throws IOException {
         try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
@@ -193,7 +193,7 @@ public class BasicDaoTest extends ADaoTest {
 
             final Entry<String> expected = createEntry(entry.getKey(), "NEW_VALUE");
             dao.upsert(expected);
-            
+
             assertEquals(expected, dao.get(entry.getKey()));
         }
     }
@@ -211,7 +211,7 @@ public class BasicDaoTest extends ADaoTest {
         }
     }
 
-    @Test(expected = StrictReadIterator.ReadException.class)
+    @Test(expected = ReadIterator.ReadException.class)
     public void testReadAfterDaoClose() throws IOException {
         final int count = 100_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
