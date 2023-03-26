@@ -19,6 +19,7 @@ public final class TombstoneSkipIterator<E extends Entry<?>> implements Iterator
         this.delegate = delegate;
         this.timeoutMs = timeoutMs;
         this.createdMs = System.currentTimeMillis();
+        this.current = getNext(delegate);
     }
 
     @Override
@@ -57,7 +58,7 @@ public final class TombstoneSkipIterator<E extends Entry<?>> implements Iterator
 
         return null;
     }
-    
+
     private static class TimeoutException extends RuntimeException {
         public TimeoutException(String message) {
             super(message);
