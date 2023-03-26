@@ -3,11 +3,11 @@ package cellarium.dao;
 import java.io.IOException;
 import java.util.Iterator;
 
-import cellarium.entry.AbstractEntry;
-import cellarium.entry.Entry;
-import cellarium.entry.MemorySegmentEntry;
+import cellarium.dao.entry.AbstractEntry;
+import cellarium.dao.entry.Entry;
+import cellarium.dao.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemorySegment;
-import cellarium.utils.Utils;
+import cellarium.dao.utils.Utils;
 
 public class TestDao implements Dao<String, Entry<String>> {
     private final MemorySegmentDao memorySegmentDao;

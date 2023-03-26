@@ -2,20 +2,17 @@ package cellarium.http.handlers;
 
 import java.io.IOException;
 import cellarium.dao.MemorySegmentDao;
-import cellarium.entry.MemorySegmentEntry;
+import cellarium.dao.entry.MemorySegmentEntry;
+import cellarium.dao.utils.Utils;
 import cellarium.http.conf.ServerConfiguration;
-import cellarium.utils.Utils;
 import jdk.incubator.foreign.MemorySegment;
 import one.nio.http.HttpSession;
 import one.nio.http.Path;
 import one.nio.http.Request;
 import one.nio.http.RequestHandler;
 import one.nio.http.Response;
-import one.nio.http.VirtualHost;
 
-@VirtualHost(HandlerName.DAO_REQUEST_HANDLER)
 public final class DaoRequestHandler implements RequestHandler {
-    private static final String PARAM_ID = "id";
     private final MemorySegmentDao dao;
 
     public DaoRequestHandler(MemorySegmentDao dao) {
@@ -42,7 +39,7 @@ public final class DaoRequestHandler implements RequestHandler {
     }
 
     private Response getById(Request request) {
-        final String id = request.getParameter(PARAM_ID);
+        final String id = request.getParameter(QueryParam.ID);
         if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
@@ -64,7 +61,7 @@ public final class DaoRequestHandler implements RequestHandler {
     }
 
     private Response put(Request request) {
-        final String id = request.getParameter(PARAM_ID);
+        final String id = request.getParameter(QueryParam.ID);
         if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
@@ -90,7 +87,7 @@ public final class DaoRequestHandler implements RequestHandler {
     }
 
     private Response delete(Request request) {
-        final String id = request.getParameter(PARAM_ID);
+        final String id = request.getParameter(QueryParam.ID);
         if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }

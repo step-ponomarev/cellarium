@@ -1,118 +1,100 @@
 package cellarium.http;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
+import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
-import cellarium.http.conf.ServiceConfig;
+import cellarium.http.handlers.CoordinatorRequestHandler;
 import cellarium.http.handlers.DaoRequestHandler;
-import cellarium.http.handlers.HandlerName;
 import one.nio.http.HttpServer;
 import one.nio.http.HttpServerConfig;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
+import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 import one.nio.server.AcceptorConfig;
 
-public class Server extends HttpServer {
-    private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
+public final class Server extends HttpServer {
     private final MemorySegmentDao dao;
-    private final ExecutorService executorService;
+    private final RequestHandler coordinator;
 
-    public Server(ServiceConfig config) throws IOException {
-        super(createServerConfig(config.selfPort, config.clusterUrls));
+    private final ExecutorService localExecutorService;
+    private final ExecutorService remoteExecutorService;
+
+    public Server(ServerConfig config) throws IOException {
+        super(createServerConfig(config.selfPort));
 
         final Path workingDir = config.workingDir;
         if (Files.notExists(workingDir)) {
             Files.createDirectory(workingDir);
         }
 
-        this.dao = new MemorySegmentDao(workingDir, ServerConfiguration.DAO_INMEMORY_LIMIT_BYTES);
-        addRequestHandlers(
-                new DaoRequestHandler(this.dao)
-        );
-
-        this.executorService = Executors.newFixedThreadPool(
-                config.threadCount
+        this.dao = new MemorySegmentDao(workingDir, config.memTableSizeBytes);
+        //TODO: Нормально настроить координатор(на каждый экзикьютор в конфиг количество тредов)
+        final int threadCount = config.threadCount == 1 ? 1 : config.threadCount / 2;
+        this.localExecutorService = Executors.newFixedThreadPool(threadCount);
+        this.remoteExecutorService = Executors.newFixedThreadPool(threadCount);
+        this.coordinator = new CoordinatorRequestHandler(
+                new Cluster(config.selfUrl, config.clusterUrls),
+                new DaoRequestHandler(this.dao),
+                this.localExecutorService,
+                this.remoteExecutorService
         );
     }
 
     @Override
     public synchronized void stop() {
-        executorService.shutdown();
+        localExecutorService.shutdown();
+        remoteExecutorService.shutdown();
 
         try {
-            executorService.awaitTermination(60, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+            localExecutorService.awaitTermination(60, TimeUnit.SECONDS);
+            remoteExecutorService.awaitTermination(60, TimeUnit.SECONDS);
 
-        super.stop();
-
-        try {
+            super.stop();
             dao.close();
         } catch (IOException e) {
+            throw new IllegalStateException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
         }
     }
 
     @Override
-    public void handleRequest(Request request, HttpSession session) {
-        try {
-            if (executorService.isShutdown()) {
-                session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE));
-                return;
-            }
-
-            executorService.execute(() -> {
-                try {
-                    super.handleRequest(request, session);
-                } catch (IOException e) {
-                    logger.error("Response is failed", e);
-                    sendInternalError(session);
-                }
-            });
-        } catch (IOException | RuntimeException e) {
-            logger.error("Response is failed", e);
-            sendInternalError(session);
+    protected RequestHandler findHandlerByHost(Request request) {
+        if (!isValidRequest(request)) {
+            return null;
         }
+
+        return coordinator;
     }
 
     @Override
     public void handleDefault(Request request, HttpSession session) throws IOException {
-        final Set<Integer> methods = ServerConfiguration.SUPPORTED_METHODS_BY_ENDPOINT.get(request.getPath());
-        if (methods == null) {
+        if (!ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())) {
             session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
+            return;
         }
 
-        if (methods != null && !methods.contains(request.getMethod())) {
+        if (!ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod())) {
             session.sendResponse(new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY));
+            return;
         }
     }
 
-    private static void sendInternalError(HttpSession session) {
-        try {
-            session.sendResponse(new Response(Response.INTERNAL_ERROR));
-        } catch (IOException ex) {
-            logger.error("Response is failed", ex);
-            session.socket().close();
-        }
+    private static boolean isValidRequest(Request request) {
+        return ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())
+                && ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod());
     }
 
-    private static HttpServerConfig createServerConfig(int port, Collection<String> clusterUrls) {
+    private static HttpServerConfig createServerConfig(int port) {
         final AcceptorConfig acceptor = new AcceptorConfig();
         acceptor.port = port;
         acceptor.reusePort = true;
@@ -122,25 +104,8 @@ public class Server extends HttpServer {
                 acceptor
         };
 
-        httpConfig.virtualHosts = createVirtualHosts(clusterUrls);
         httpConfig.closeSessions = true;
 
         return httpConfig;
-    }
-
-    private static Map<String, String[]> createVirtualHosts(Collection<String> clusterUrls) {
-        if (clusterUrls == null || clusterUrls.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        final Map<String, String[]> virtualHosts = new HashMap<>(1);
-        final String[] hosts = clusterUrls.stream()
-                .map(url -> URI.create(url).getHost())
-                .distinct()
-                .toArray(String[]::new);
-
-        virtualHosts.put(HandlerName.DAO_REQUEST_HANDLER, hosts);
-
-        return virtualHosts;
     }
 }

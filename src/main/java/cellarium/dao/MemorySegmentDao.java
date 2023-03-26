@@ -9,14 +9,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cellarium.entry.EntryComparator;
-import cellarium.entry.MemorySegmentEntry;
-import cellarium.iterators.MergeIterator;
-import cellarium.iterators.ReadIterator;
-import cellarium.iterators.TombstoneSkipIterator;
-import cellarium.store.DiskStore;
-import cellarium.store.FlushData;
-import cellarium.store.MemoryStore;
+import cellarium.dao.entry.EntryComparator;
+import cellarium.dao.entry.MemorySegmentEntry;
+import cellarium.dao.iterators.MergeIterator;
+import cellarium.dao.iterators.ReadIterator;
+import cellarium.dao.iterators.TombstoneSkipIterator;
+import cellarium.dao.store.DiskStore;
+import cellarium.dao.store.FlushData;
+import cellarium.dao.store.MemoryStore;
 import jdk.incubator.foreign.MemorySegment;
 
 public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentEntry> {
@@ -25,6 +25,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     private final long sizeLimit;
     private final ThreadSafeExecutor executor;
 
+    private final MemoryStore memoryStore;
     private final DiskStore diskStore;
 
     private final Object scheduleFlushLock = new Object();
@@ -32,7 +33,6 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     private final Object flushCompactionLock = new Object();
     private final Runnable flushTask = new LockedTask(this::handlePreparedFlush, flushCompactionLock);
 
-    private final MemoryStore memoryStore;
 
     public MemorySegmentDao(Path path, long limitBytes) throws IOException {
         if (Files.notExists(path)) {
@@ -42,8 +42,8 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
         this.sizeLimit = limitBytes;
         this.executor = new ThreadSafeExecutor(Executors.newFixedThreadPool(2));
 
-        this.diskStore = new DiskStore(path);
         this.memoryStore = new MemoryStore();
+        this.diskStore = new DiskStore(path);
     }
 
     @Override
