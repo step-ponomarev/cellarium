@@ -13,13 +13,11 @@ import jdk.incubator.foreign.MemorySegment;
 
 public class TestDao implements Dao<String, Entry<String>> {
     private final MemorySegmentDao memorySegmentDao;
-    ;
-    private Path path;
 
     public TestDao(TestDaoConfig config) throws IOException {
-        this.path = Path.of(config.path);
+        Path path = Path.of(config.path);
         if (Files.notExists(path)) {
-            throw new IllegalStateException("File does not exist: " + this.path);
+            throw new IllegalStateException("File does not exist: " + path);
         }
 
         this.memorySegmentDao = new MemorySegmentDao(config);
@@ -44,7 +42,7 @@ public class TestDao implements Dao<String, Entry<String>> {
     }
 
     @Override
-    public void compact() throws IOException {
+    public void compact() {
         memorySegmentDao.compact();
     }
 

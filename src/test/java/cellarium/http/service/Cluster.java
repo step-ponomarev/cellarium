@@ -53,9 +53,8 @@ public class Cluster {
         }
     }
 
-    public Cluster setRequestTimeoutMs(int requestTimeoutMs) {
+    public void setRequestTimeoutMs(int requestTimeoutMs) {
         this.requestTimeoutMs = requestTimeoutMs;
-        return this;
     }
 
     public void start() throws IOException {

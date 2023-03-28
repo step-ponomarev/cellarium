@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.Objects;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -58,7 +59,7 @@ public abstract class ADaoTest {
             throw new AssertionError("Expected: " + expected + " actual " + actual);
         }
 
-        Assert.assertEquals(expected.getKey(), actual.getKey());
+        Assert.assertEquals(Objects.requireNonNull(expected).getKey(), Objects.requireNonNull(actual).getKey());
         Assert.assertEquals(expected.getValue(), actual.getValue());
     }
 

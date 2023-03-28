@@ -184,7 +184,7 @@ public class ClusterTest extends AHttpTest {
     }
 
     private static class ClearableCluster extends Cluster implements Closeable {
-        public ClearableCluster(Set<String> clusterUrls, Path baseDir) throws IOException {
+        public ClearableCluster(Set<String> clusterUrls, Path baseDir) {
             super(clusterUrls, baseDir);
         }
 
