@@ -12,8 +12,8 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.entry.EntryComparator;
+import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.iterators.MergeIterator;
 import cellarium.dao.iterators.TombstoneSkipIterator;
 import cellarium.dao.sstable.SSTable;
@@ -33,12 +33,12 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
     }
 
     @Override
-    public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) throws IOException {
+    public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) {
         return readFromDisk(from, to);
     }
 
     @Override
-    public MemorySegmentEntry get(MemorySegment key) throws IOException {
+    public MemorySegmentEntry get(MemorySegment key) {
         final Iterator<MemorySegmentEntry> data = readFromDisk(key, null);
         if (!data.hasNext()) {
             return null;
@@ -136,9 +136,12 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
     }
 
     private Iterator<MemorySegmentEntry> readFromDisk(MemorySegment from, MemorySegment to) {
-        return MergeIterator.of(
-                ssTables.stream().map(ssTable -> ssTable.get(from, to)).toList(),
-                EntryComparator::compareMemorySegmentEntryKeys
-        );
+        final List<Iterator<MemorySegmentEntry>> iterators = new ArrayList<>(ssTables.size());
+        for (SSTable ssTable : ssTables) {
+            iterators.add(ssTable.get(from, to));
+        }
+
+        return MergeIterator.of(iterators, EntryComparator::compareMemorySegmentEntryKeys);
     }
+
 }

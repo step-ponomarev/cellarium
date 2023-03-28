@@ -32,7 +32,6 @@ public final class TombstoneSkipIterator<E extends Entry<?>> implements Iterator
     }
 
     /**
-     * @throws TimeoutException
      */
     @Override
     public E next() {

@@ -15,7 +15,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.dao.disk.reader.MemorySegmentEntryReader;
-import cellarium.dao.disk.reader.Reader;
 import cellarium.dao.disk.writer.MemorySegmentEntryWriter;
 import cellarium.dao.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemoryAccess;
@@ -26,12 +25,9 @@ public final class SSTable implements Closeable {
     private static final long TOMBSTONE_TAG = -1;
     private static final String SSTABLE_FILE_NAME = "sstable.data";
     private static final String INDEX_FILE_NAME = "sstable.index";
-
-    private static final String TIMESTAMP_DELIM = "_T_";
-    private static final String SSTABLE_DIR_PREFIX = "SSTABLE";
+    private static final String SSTABLE_DIR_PREFIX = "SSTABLE_";
 
     private final Path path;
-    private final long createdTimeMs;
 
     private final Index index;
     private final MemorySegment tableMemorySegment;
@@ -44,8 +40,7 @@ public final class SSTable implements Closeable {
     private SSTable(
             Path path,
             MemorySegment indexMemorySegment,
-            MemorySegment tableMemorySegment,
-            long createdAt
+            MemorySegment tableMemorySegment
     ) {
         if (Files.notExists(path)) {
             throw new IllegalArgumentException("Path must exist");
@@ -58,8 +53,6 @@ public final class SSTable implements Closeable {
         this.path = path;
         this.index = new Index(tableMemorySegment, indexMemorySegment);
         this.tableMemorySegment = tableMemorySegment;
-
-        this.createdTimeMs = createdAt;
     }
 
     public static SSTable flushAndCreateSSTable(Path path,
@@ -93,8 +86,7 @@ public final class SSTable implements Closeable {
         return new SSTable(
                 ssTableDir,
                 mappedIndex.asReadOnly(),
-                mappedSsTable.asReadOnly(),
-                timestamp
+                mappedSsTable.asReadOnly()
         );
     }
 
@@ -125,7 +117,6 @@ public final class SSTable implements Closeable {
 
         try {
             tableMemorySegment.unload();
-            tableMemorySegment.force();
             tableMemorySegment.scope().close();
 
             index.close();
@@ -195,8 +186,7 @@ public final class SSTable implements Closeable {
         return new SSTable(
                 path,
                 mappedIndex.asReadOnly(),
-                mappedSsTable.asReadOnly(),
-                System.currentTimeMillis()
+                mappedSsTable.asReadOnly()
         );
     }
 
@@ -217,8 +207,13 @@ public final class SSTable implements Closeable {
     }
 
     public void removeSSTableFromDisk() throws IOException {
-        if (this.tableMemorySegment.scope().isAlive()) {
-            throw new IllegalStateException("Scope should be closed!");
+        readCloseLock.readLock().lock();
+        try {
+            if (tableMemorySegment.scope().isAlive()) {
+                throw new IllegalStateException("Scope should be closed!");
+            }
+        } finally {
+            readCloseLock.readLock().unlock();
         }
 
         DiskUtils.removeDir(this.path);
@@ -239,27 +234,13 @@ public final class SSTable implements Closeable {
     }
 
     private static String createHash(long timestamp) {
-        final int hashSize = 40;
-
-        final StringBuilder hash = new StringBuilder(createTimeMark(timestamp))
-                .append("_H_")
-                .append(System.nanoTime());
-
-        while (hash.length() < hashSize) {
-            hash.append(0);
-        }
-
-        return hash.substring(0, hashSize);
-    }
-
-    private static String createTimeMark(long timestamp) {
-        return TIMESTAMP_DELIM + timestamp;
+        return String.format("%016d", timestamp);
     }
 
     private final class MappedIterator implements Iterator<MemorySegmentEntry> {
-        private final Reader<MemorySegmentEntry> memorySegmentEntryReader;
+        private final MemorySegmentEntryReader memorySegmentEntryReader;
 
-        public MappedIterator(Reader<MemorySegmentEntry> memorySegmentEntryReader) {
+        public MappedIterator(MemorySegmentEntryReader memorySegmentEntryReader) {
             this.memorySegmentEntryReader = memorySegmentEntryReader;
         }
 

@@ -12,7 +12,7 @@ end
 
 function createRandomString(length)
     local res = ""
-    for i = 1, length do
+    for _ = 1, length do
         math.randomseed(os.clock() ^ 5)
         res = res .. string.char(math.random(97, 122));
     end
