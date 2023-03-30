@@ -22,18 +22,19 @@ public final class LocalRequestHandler extends AsyncRequestHandler {
     }
 
     @Override
-    protected void handleRequestAsync(Request request, HttpSession session, ExecutorService executorService) {
-        try {
-            executorService.execute(() -> {
-                final Response response = daoHttpService.handleRequest(request);
-                try {
-                    session.sendResponse(response);
-                } catch (IOException e) {
-                    sendErrorResponse(session, e);
-                }
-            });
-        } catch (RejectedExecutionException e) {
-            sendErrorResponse(session, e);
-        }
+    protected void handleRequestAsync(Request request, HttpSession session, ExecutorService executorService) throws RejectedExecutionException {
+        executorService.execute(() -> {
+            final Response response = daoHttpService.handleRequest(request);
+            try {
+                session.sendResponse(response);
+            } catch (IOException e) {
+                sendErrorResponse(session, e);
+            }
+        });
+    }
+
+    @Override
+    protected void handleClose() throws IOException {
+        daoHttpService.close();
     }
 }

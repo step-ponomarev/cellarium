@@ -121,6 +121,8 @@ public class ClusterTest extends AHttpTest {
         try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
             cluster.setRequestTimeoutMs(-1);
             cluster.start();
+            
+            cluster.stop();
         }
     }
 

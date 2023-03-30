@@ -37,49 +37,45 @@ public final class RemoteRequestHandler extends AsyncRequestHandler {
     }
 
     @Override
-    protected void handleRequestAsync(Request request, HttpSession session, ExecutorService executorService) {
+    protected void handleRequestAsync(Request request, HttpSession session, ExecutorService executorService) throws RejectedExecutionException {
         final String url = clusterClient.getClusterUrl(request.getParameter(QueryParam.ID));
         final HttpClient node = clusterClient.getNode(url);
         if (node == null) {
             throw new IllegalStateException("Cluster node does not exist: " + url);
         }
 
-        try {
-            final CompletableFuture<Response> responseFuture = CompletableFuture.supplyAsync(() -> {
-                        try {
-                            return node.invoke(request);
-                        } catch (HttpException | IOException | PoolException e) {
-                            throw new CompletionException(e);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            throw new CompletionException(e);
-                        }
-                    }, executorService)
-                    .orTimeout(requestTimeout, TimeUnit.MILLISECONDS);
-
-            responseFuture.handleAsync((response, e) -> {
-                try {
-                    if (e == null) {
-                        session.sendResponse(response);
-                        return null;
+        final CompletableFuture<Response> responseFuture = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return node.invoke(request);
+                    } catch (HttpException | IOException | PoolException e) {
+                        throw new CompletionException(e);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new CompletionException(e);
                     }
+                }, executorService)
+                .orTimeout(requestTimeout, TimeUnit.MILLISECONDS);
 
-                    if (e instanceof TimeoutException) {
-                        handleTimeoutException(session);
-                        return null;
-                    }
-
-                    sendErrorResponse(session, e.getCause());
-                    responseFuture.cancel(true);
-                } catch (IOException ex) {
-                    sendErrorResponse(session, ex);
+        responseFuture.handleAsync((response, e) -> {
+            try {
+                if (e == null) {
+                    session.sendResponse(response);
+                    return null;
                 }
 
-                return null;
-            }, executorService);
-        } catch (RejectedExecutionException e) {
-            sendErrorResponse(session, e);
-        }
+                if (e instanceof TimeoutException) {
+                    handleTimeoutException(session);
+                    return null;
+                }
+
+                sendErrorResponse(session, e.getCause());
+                responseFuture.cancel(true);
+            } catch (IOException ex) {
+                sendErrorResponse(session, ex);
+            }
+
+            return null;
+        }, executorService);
     }
 
     private void handleTimeoutException(HttpSession session) {

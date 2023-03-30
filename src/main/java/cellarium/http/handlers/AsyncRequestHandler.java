@@ -3,6 +3,7 @@ package cellarium.http.handlers;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,8 @@ import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 
 public abstract class AsyncRequestHandler implements RequestHandler, Closeable {
+    private final Object executorLock = new Object();
+
     private static final Logger log = LoggerFactory.getLogger(RemoteRequestHandler.class);
     private final ExecutorService executorService;
 
@@ -20,22 +23,35 @@ public abstract class AsyncRequestHandler implements RequestHandler, Closeable {
     }
 
     @Override
-    public final void handleRequest(Request request, HttpSession session) throws IOException {
-        handleRequestAsync(request, session, executorService);
+    public final void handleRequest(Request request, HttpSession session) {
+        try {
+            synchronized (executorLock) {
+                handleRequestAsync(request, session, executorService);
+            }
+        } catch (RejectedExecutionException e) {
+            sendErrorResponse(session, e);
+        }
     }
 
     @Override
     public final void close() throws IOException {
-        executorService.shutdown();
+        synchronized (executorLock) {
+            executorService.shutdown();
+        }
+
         try {
             executorService.awaitTermination(60, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException(e);
         }
+
+        handleClose();
     }
 
-    protected abstract void handleRequestAsync(Request request, HttpSession session, ExecutorService executorService);
+    protected abstract void handleRequestAsync(Request request, HttpSession session, ExecutorService executorService) throws RejectedExecutionException;
+
+    protected void handleClose() throws IOException {}
 
     protected static void sendErrorResponse(HttpSession session, Throwable e) {
         try {

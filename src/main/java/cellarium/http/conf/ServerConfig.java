@@ -7,6 +7,7 @@ import one.nio.http.HttpServerConfig;
 @Config
 public final class ServerConfig extends HttpServerConfig {
     public int selfPort;
+    //http://domain:port
     public String selfUrl;
     public Set<String> clusterUrls;
     public int localThreadCount = 1;
