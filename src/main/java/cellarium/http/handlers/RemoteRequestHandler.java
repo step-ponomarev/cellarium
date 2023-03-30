@@ -45,7 +45,7 @@ public final class RemoteRequestHandler extends AsyncRequestHandler {
         }
 
         try {
-            final CompletableFuture<Response> responseCompletableFuture = CompletableFuture.supplyAsync(() -> {
+            final CompletableFuture<Response> responseFuture = CompletableFuture.supplyAsync(() -> {
                         try {
                             return node.invoke(request);
                         } catch (HttpException | IOException | PoolException e) {
@@ -57,7 +57,7 @@ public final class RemoteRequestHandler extends AsyncRequestHandler {
                     }, executorService)
                     .orTimeout(requestTimeout, TimeUnit.MILLISECONDS);
 
-            responseCompletableFuture.handleAsync((response, e) -> {
+            responseFuture.handleAsync((response, e) -> {
                 try {
                     if (e == null) {
                         session.sendResponse(response);
@@ -70,7 +70,7 @@ public final class RemoteRequestHandler extends AsyncRequestHandler {
                     }
 
                     sendErrorResponse(session, e.getCause());
-                    responseCompletableFuture.cancel(true);
+                    responseFuture.cancel(true);
                 } catch (IOException ex) {
                     sendErrorResponse(session, ex);
                 }
