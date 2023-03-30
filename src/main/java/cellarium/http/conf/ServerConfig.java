@@ -9,6 +9,7 @@ public final class ServerConfig extends HttpServerConfig {
     public int selfPort;
     public String selfUrl;
     public Set<String> clusterUrls;
-    public int threadCount;
+    public int localThreadCount = 1;
+    public int remoteThreadCount = 1;
     public int requestTimeoutMs = 200;
 }
