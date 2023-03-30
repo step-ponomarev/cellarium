@@ -143,5 +143,4 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
 
         return MergeIterator.of(iterators, EntryComparator::compareMemorySegmentEntryKeys);
     }
-
 }
