@@ -13,11 +13,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Assert;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.http.service.Cluster;
 import cellarium.http.service.EndpointService;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusterTest extends AHttpTest {
     private static final String BASE_URL = "http://localhost:";
     private static final Set<Integer> PORTS = Set.of(8080, 8081, 8082, 8083, 8084);
@@ -115,18 +118,7 @@ public class ClusterTest extends AHttpTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public final void testNegativeTimeout() throws IOException {
-        final Path workDir = Files.createDirectory(DEFAULT_DIR);
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
-            cluster.setRequestTimeoutMs(-1);
-            cluster.start();
-            
-            cluster.stop();
-        }
-    }
-
-    //TODO: Тест говно, тест не работает, придумай что-то по-лучше
+    //TODO: Флакающий тест!
     @Test
     public final void testZeroTimeout() throws IOException, InterruptedException {
         final Path workDir = Files.createDirectory(DEFAULT_DIR);
@@ -182,6 +174,17 @@ public class ClusterTest extends AHttpTest {
 
                 Assert.assertFalse(isEmpty);
             }
+        }
+    }
+
+    //TODO: пофиксить
+    //Должен идти последним в классе т.к. не дает стартануть one-nio, а она порт занимает до старта...
+    @Test(expected = IllegalArgumentException.class)
+    public final void zzzzzzzz_last_test_execution_prefix_testNegativeTimeout() throws IOException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
+            cluster.setRequestTimeoutMs(-1);
+            cluster.start();
         }
     }
 

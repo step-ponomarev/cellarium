@@ -37,13 +37,13 @@ public final class Server extends HttpServer {
 
     @Override
     public synchronized void stop() {
-        super.stop();
-        
         try {
-            localRequestHandler.close();
             remoteRequestHandler.close();
+            localRequestHandler.close();
         } catch (IOException e) {
             throw new IllegalStateException(e);
+        } finally {
+            super.stop();
         }
     }
 

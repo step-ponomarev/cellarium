@@ -13,9 +13,9 @@ import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 
 public abstract class AsyncRequestHandler implements RequestHandler, Closeable {
-    private final Object executorLock = new Object();
+    private static final Logger log = LoggerFactory.getLogger(AsyncRequestHandler.class);
 
-    private static final Logger log = LoggerFactory.getLogger(RemoteRequestHandler.class);
+    private final Object executorLock = new Object();
     private final ExecutorService executorService;
 
     protected AsyncRequestHandler(ExecutorService executorService) {

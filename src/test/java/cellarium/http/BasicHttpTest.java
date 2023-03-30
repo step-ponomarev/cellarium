@@ -21,6 +21,10 @@ public class BasicHttpTest extends AHttpTest {
 
     @Before
     public void beforeEachTest() throws IOException {
+        if (Files.exists(DEFAULT_DIR)) {
+            DiskUtils.removeDir(DEFAULT_DIR);
+        }
+
         Files.createDirectory(DEFAULT_DIR);
 
         cluster = new Cluster(Collections.singleton(URL), DEFAULT_DIR);
