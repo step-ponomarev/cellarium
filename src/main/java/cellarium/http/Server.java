@@ -1,6 +1,9 @@
 package cellarium.http;
 
 import java.io.IOException;
+import org.apache.log4j.PropertyConfigurator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
@@ -15,6 +18,8 @@ import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 
 public final class Server extends HttpServer {
+    private static final Logger log = LoggerFactory.getLogger(Server.class);
+
     private final AsyncRequestHandler remoteRequestHandler;
     private final AsyncRequestHandler localRequestHandler;
 
@@ -28,8 +33,9 @@ public final class Server extends HttpServer {
             throw new NullPointerException("Dao cannot be null");
         }
 
+        PropertyConfigurator.configure("log4j.properties");
+        
         this.clusterClient = new ClusterClient(config.selfUrl, config.clusterUrls);
-
         this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao), config.localThreadCount);
         this.remoteRequestHandler = new RemoteRequestHandler(this.clusterClient, config.remoteThreadCount, config.requestTimeoutMs);
         this.selfUrl = config.selfUrl;
@@ -37,6 +43,8 @@ public final class Server extends HttpServer {
 
     @Override
     public synchronized void stop() {
+        log.info("Stopping server");
+
         try {
             remoteRequestHandler.close();
             localRequestHandler.close();

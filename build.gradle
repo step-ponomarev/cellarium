@@ -1,6 +1,11 @@
-plugins.apply('java')
-plugins.apply('application')
-repositories.mavenCentral()
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -8,30 +13,39 @@ java {
 }
 
 dependencies {
-    testImplementation("junit:junit:4.13.2")
-
-    implementation 'org.slf4j:slf4j-api:1.7.36'
-    implementation 'ch.qos.logback:logback-classic:1.2.11'
-
     implementation 'ru.odnoklassniki:one-nio:1.6.1'
-}
+    
+    implementation 'org.slf4j:slf4j-api:1.7.32'
+    implementation 'org.slf4j:slf4j-log4j12:1.7.32'
 
-final args = ["--add-modules", "jdk.incubator.foreign"]
-tasks.withType(JavaCompile) {
-    options.compilerArgs += args
-}
-
-tasks.withType(Test) {
-    jvmArgs += args
+    testImplementation 'junit:junit:4.13.2'
 }
 
 application {
     mainClass = 'cellarium.Main'
-    applicationDefaultJvmArgs = args + ["-XX:+PrintGC"]
+    applicationDefaultJvmArgs = ["--add-modules", "jdk.incubator.foreign"]
 }
 
 jar {
     manifest {
         attributes 'Main-Class': 'cellarium.Main'
     }
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+final args = ["--add-modules", "jdk.incubator.foreign"]
+
+tasks.all {
+    if (it instanceof JavaCompile) {
+        it.options.compilerArgs += args
+    } else if (it instanceof Test) {
+        it.jvmArgs += args
+    }
+}
+
+run {
+    jvmArgs += ["--add-modules", "jdk.incubator.foreign"]
 }

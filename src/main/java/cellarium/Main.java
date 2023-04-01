@@ -19,8 +19,10 @@ public class Main {
             Files.createDirectory(path);
         }
 
-        final MemorySegmentDao memorySegmentDao = new MemorySegmentDao(configReader.readDaoConfig());
-        final Server server = new Server(configReader.readServerConfig(), memorySegmentDao);
+        final Server server = new Server(
+                configReader.readServerConfig(),
+                new MemorySegmentDao(configReader.readDaoConfig())
+        );
         server.start();
     }
 }

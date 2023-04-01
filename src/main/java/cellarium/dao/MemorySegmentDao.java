@@ -37,6 +37,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     private final DiskStore diskStore;
 
     public MemorySegmentDao(DaoConfig config) throws IOException {
+        log.debug("hello!");
         final Path path = Path.of(config.path);
 
         if (Files.notExists(path)) {
@@ -121,11 +122,8 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
             }
 
             memoryStore.prepareFlushData();
-            try {
-                doFlush();
-            } finally {
-                memoryStore.clearFlushData();
-            }
+            doFlush();
+            memoryStore.clearFlushData();
         }
     }
 
@@ -172,11 +170,10 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
 
         try {
             doFlush();
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        } finally {
-            //TODO: Если не получилось - теряем данные?
             memoryStore.clearFlushData();
+        } catch (IOException e) {
+            log.error("Flush is failed", e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -194,7 +191,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
         if (sstablesLimit - 1 > diskStore.getSSTablesAmount()) {
             diskStore.flush(flushData);
         } else {
-            log.info("Reached compaction limit: " + diskStore.getSSTablesAmount());
+            log.info("SStables limit is reached: " + sstablesLimit);
             diskStore.compact(flushData);
         }
     }

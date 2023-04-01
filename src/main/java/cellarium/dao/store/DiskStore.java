@@ -12,6 +12,8 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cellarium.dao.entry.EntryComparator;
 import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.iterators.MergeIterator;
@@ -20,6 +22,8 @@ import cellarium.dao.sstable.SSTable;
 import jdk.incubator.foreign.MemorySegment;
 
 public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Closeable {
+    private static final Logger log = LoggerFactory.getLogger(DiskStore.class);
+
     private final Path path;
     private final CopyOnWriteArrayList<SSTable> ssTables;
 
@@ -53,6 +57,8 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
     }
 
     public synchronized void flush(FlushData flushData) throws IOException {
+        log.info("Flushing is started");
+
         if (flushData == null || !flushData.data.hasNext()) {
             throw new IllegalStateException("Flushing data is empty!");
         }
@@ -60,9 +66,13 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         ssTables.add(
                 SSTable.flushAndCreateSSTable(this.path, flushData.data, flushData.count, flushData.sizeBytes)
         );
+
+        log.info("Flushed " + flushData.sizeBytes + " bytes");
     }
 
     public synchronized void compact(FlushData flushData) throws IOException {
+        log.info("Compaction is started");
+
         final List<Iterator<MemorySegmentEntry>> data = ssTables.stream()
                 .map(table -> table.get(null, null))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -93,6 +103,8 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
 
         ssTables.removeAll(ssTablesToRemove);
         removeFromDisk(ssTablesToRemove);
+
+        log.info("Compacted " + compactedData.sizeBytes + " bytes");
     }
 
     public int getSSTablesAmount() {
