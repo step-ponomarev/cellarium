@@ -37,7 +37,6 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     private final DiskStore diskStore;
 
     public MemorySegmentDao(DaoConfig config) throws IOException {
-        log.debug("hello!");
         final Path path = Path.of(config.path);
 
         if (Files.notExists(path)) {
