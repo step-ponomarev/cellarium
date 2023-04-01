@@ -21,9 +21,10 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
 }
 
+final incubatorModules = ["--add-modules", "jdk.incubator.foreign"]
 application {
     mainClass = 'cellarium.Main'
-    applicationDefaultJvmArgs = ["--add-modules", "jdk.incubator.foreign"]
+    applicationDefaultJvmArgs = incubatorModules
 }
 
 jar {
@@ -36,15 +37,14 @@ jar {
     }
 }
 
-final args = ["--add-modules", "jdk.incubator.foreign"]
 tasks.all {
     if (it instanceof JavaCompile) {
-        it.options.compilerArgs += args
+        it.options.compilerArgs += incubatorModules
     } else if (it instanceof Test) {
-        it.jvmArgs += args
+        it.jvmArgs += incubatorModules
     }
 }
 
 run {
-    jvmArgs += ["--add-modules", "jdk.incubator.foreign"]
+    jvmArgs += incubatorModules
 }
