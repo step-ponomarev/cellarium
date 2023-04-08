@@ -46,6 +46,7 @@ public final class DaoHttpService implements HttpService, Closeable {
             final MemorySegmentEntry entry = dao.get(
                     Utils.stringToMemorySegment(id)
             );
+
             if (entry == null) {
                 return new Response(Response.NOT_FOUND, Response.EMPTY);
             }
