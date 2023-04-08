@@ -207,13 +207,13 @@ public final class SSTable implements Closeable {
     }
 
     public void removeSSTableFromDisk() throws IOException {
-        readCloseLock.readLock().lock();
+        readCloseLock.writeLock().lock();
         try {
             if (tableMemorySegment.scope().isAlive()) {
                 throw new IllegalStateException("Scope should be closed!");
             }
         } finally {
-            readCloseLock.readLock().unlock();
+            readCloseLock.writeLock().unlock();
         }
 
         DiskUtils.removeDir(this.path);
