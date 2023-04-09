@@ -69,7 +69,6 @@ public final class RemoteRequestHandler extends AsyncRequestHandler {
                 }
 
                 sendErrorResponse(session, e.getCause());
-                responseFuture.cancel(true);
             } catch (IOException ex) {
                 sendErrorResponse(session, ex);
             }

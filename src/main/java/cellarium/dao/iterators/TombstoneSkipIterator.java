@@ -48,7 +48,7 @@ public final class TombstoneSkipIterator<E extends Entry<?>> implements Iterator
     private E getNext(Iterator<E> iterator) throws TimeoutException {
         while (iterator.hasNext()) {
             if (timeoutMs != Integer.MAX_VALUE && System.currentTimeMillis() - createdMs > timeoutMs) {
-                throw new TimeoutException("Timeout while skipped tombstones");
+                throw new TimeoutException("Unable to complete within specified time limit: " + timeoutMs + "ms");
             }
 
             final E entry = iterator.next();
