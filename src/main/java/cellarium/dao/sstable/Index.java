@@ -2,8 +2,6 @@ package cellarium.dao.sstable;
 
 import java.io.Closeable;
 import cellarium.dao.entry.EntryComparator;
-import cellarium.dao.disk.reader.MemorySegmentEntryReader;
-import cellarium.dao.disk.writer.MemorySegmentEntryWriter;
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
 
@@ -29,9 +27,9 @@ final class Index implements Closeable {
 
             final long keyPosition = MemoryAccess.getLongAtIndex(indexMemorySegment, mid);
 
-            /**
-             * Специфика записи данных.
-             * см {@link MemorySegmentEntryWriter} и {@link MemorySegmentEntryReader}
+            /*
+              Специфика записи данных.
+              см {@link MemorySegmentEntryWriter} и {@link MemorySegmentEntryReader}
              */
             final long keySize = MemoryAccess.getLongAtOffset(tableMemorySegment, keyPosition);
             final MemorySegment current = tableMemorySegment.asSlice(keyPosition + Long.BYTES, keySize);
@@ -78,7 +76,6 @@ final class Index implements Closeable {
     @Override
     public void close() {
         indexMemorySegment.unload();
-        indexMemorySegment.force();
         indexMemorySegment.scope().close();
     }
 }

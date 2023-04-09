@@ -13,7 +13,7 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
     public void testConcurrentWrite() throws Exception {
         final int count = 10_000;
 
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
             runAsync(100, count, index -> dao.upsert(entries.get(index))).await();
 
@@ -29,7 +29,7 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
     public void testConcurrentWriteRead() throws Exception {
         final int count = 5_000;
 
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
             runAsync(100, count, index -> {
                 final Entry<String> addedEntry = entries.get(index);
@@ -45,7 +45,7 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
         final int count = 10_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             entries.forEach(dao::upsert);
 
             runAsync(100, count, index -> {
@@ -62,7 +62,7 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             entries.forEach(dao::upsert);
 
             runAsync(100, count, index -> {
@@ -78,12 +78,11 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
     public void testConcurrentRead() throws Exception {
         final int count = 2_500;
 
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
             entries.forEach(dao::upsert);
 
-            runAsync(
-                    100,
+            runAsync(100,
                     count,
                     index -> assertContains(dao.get(null, null), entries.get(index))
             ).await();

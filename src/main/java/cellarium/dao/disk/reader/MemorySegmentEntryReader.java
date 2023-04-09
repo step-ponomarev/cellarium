@@ -5,12 +5,11 @@ import cellarium.dao.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
 
-public class MemorySegmentEntryReader extends AMemorySegmentHandler implements Reader<MemorySegmentEntry> {
+public final class MemorySegmentEntryReader extends AMemorySegmentHandler {
     public MemorySegmentEntryReader(MemorySegment memorySegment, long tombstoneTag) {
         super(memorySegment, tombstoneTag);
     }
 
-    @Override
     public MemorySegmentEntry read() {
         final long keySize = MemoryAccess.getLongAtOffset(memorySegment, position);
         position += Long.BYTES;
@@ -39,7 +38,6 @@ public class MemorySegmentEntryReader extends AMemorySegmentHandler implements R
         return new MemorySegmentEntry(key, value, timestamp);
     }
 
-    @Override
     public boolean hasNext() {
         return memorySegment.byteSize() != position;
     }

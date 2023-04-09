@@ -2,6 +2,7 @@ package cellarium.dao;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -24,6 +25,8 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
 
     private final long memTableLimitBytes;
     private final int sstablesLimit;
+    private final int timeoutMs;
+
     private final ExecutorService executor;
 
     private final Object scheduleFlushLock = new Object();
@@ -34,16 +37,18 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     private final DiskStore diskStore;
 
     public MemorySegmentDao(DaoConfig config) throws IOException {
-        if (Files.notExists(config.path)) {
-            throw new IllegalArgumentException("Path: " + config.path + " is not exist");
+        final Path path = Path.of(config.path);
+
+        if (Files.notExists(path)) {
+            throw new IllegalArgumentException("Path: " + path + " does not exist");
         }
 
         this.executor = Executors.newSingleThreadExecutor();
-
         this.memTableLimitBytes = config.memtableLimitBytes;
         this.sstablesLimit = config.sstablesLimit;
+        this.timeoutMs = config.timeoutMs == null ? Integer.MAX_VALUE : config.timeoutMs;
 
-        this.diskStore = new DiskStore(config.path);
+        this.diskStore = new DiskStore(path);
         this.memoryStore = new MemoryStore();
     }
 
@@ -59,7 +64,9 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
                 new TombstoneSkipIterator<>(
                         MergeIterator.of(
                                 List.of(fromDisk, fromMemory),
-                                EntryComparator::compareMemorySegmentEntryKeys)
+                                EntryComparator::compareMemorySegmentEntryKeys
+                        ),
+                        timeoutMs
                 )
         );
     }

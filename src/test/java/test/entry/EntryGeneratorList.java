@@ -29,15 +29,7 @@ public class EntryGeneratorList extends AbstractList<Entry<String>> {
 
         final String key = TestUtils.generateKeyByIndex(index);
         return new AbstractEntry<>(keyPrefix + key, valuePrefix + key) {
-            @Override
-            public String getKey() {
-                return super.getKey();
-            }
 
-            @Override
-            public String getValue() {
-                return super.getValue();
-            }
         };
     }
 

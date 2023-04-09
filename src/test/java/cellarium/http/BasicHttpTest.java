@@ -21,9 +21,13 @@ public class BasicHttpTest extends AHttpTest {
 
     @Before
     public void beforeEachTest() throws IOException {
-        Files.createDirectory(TEST_DIR);
+        if (Files.exists(DEFAULT_DIR)) {
+            DiskUtils.removeDir(DEFAULT_DIR);
+        }
 
-        cluster = new Cluster(Collections.singleton(URL), TEST_DIR);
+        Files.createDirectory(DEFAULT_DIR);
+
+        cluster = new Cluster(Collections.singleton(URL), DEFAULT_DIR);
         cluster.start();
 
         endpointService = cluster.getRandomEndpoint();
@@ -34,8 +38,8 @@ public class BasicHttpTest extends AHttpTest {
         cluster.stop();
         endpointService = null;
 
-        if (Files.exists(TEST_DIR)) {
-            DiskUtils.removeDir(TEST_DIR);
+        if (Files.exists(DEFAULT_DIR)) {
+            DiskUtils.removeDir(DEFAULT_DIR);
         }
     }
 

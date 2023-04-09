@@ -24,8 +24,8 @@ public class DiskUtils {
     }
 
     public static void removeDir(Path path) throws IOException {
-        try (Stream<Path> ssTableFiles = Files.walk(path)) {
-            final Iterator<Path> filesToRemove = ssTableFiles.sorted(Comparator.reverseOrder()).iterator();
+        try (Stream<Path> files = Files.walk(path)) {
+            final Iterator<Path> filesToRemove = files.sorted(Comparator.reverseOrder()).iterator();
             while (filesToRemove.hasNext()) {
                 Files.delete(filesToRemove.next());
             }
@@ -44,7 +44,7 @@ public class DiskUtils {
 
     public static boolean isDirEmpty(Path dir) throws IOException {
         if (Files.notExists(dir)) {
-            throw new IllegalStateException("Dir is not exists: " + dir);
+            throw new IllegalStateException("Dir does not exist: " + dir);
         }
 
         if (!Files.isDirectory(dir)) {

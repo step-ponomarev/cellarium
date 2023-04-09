@@ -69,4 +69,52 @@ public class TombstoneSkipIteratorTest {
 
         Assert.assertFalse(iterator.hasNext());
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void negativeTimeoutTest() {
+        new TombstoneSkipIterator<>(Collections.emptyIterator(), -1);
+    }
+
+    @Test(expected = TombstoneSkipIterator.TimeoutException.class)
+    public void slowNextTest() {
+        final int entryCount = 10_000_000;
+        final int timeoutMs = 10;
+
+        final List<Iterator<Entry<String>>> iters = List.of(
+                new EntryGeneratorList(entryCount).iterator(),
+                new NullEntryGeneratorList(entryCount, "NULL_").iterator()
+        );
+
+        final Iterator<Entry<String>> mergeIterator = MergeIterator.of(
+                iters,
+                EntryComparator::compareStringEntries
+        );
+
+        final TombstoneSkipIterator<Entry<String>> iterator = new TombstoneSkipIterator<>(
+                new Iterator<>() {
+                    @Override
+                    public boolean hasNext() {
+                        return mergeIterator.hasNext();
+                    }
+
+                    @Override
+                    public Entry<String> next() {
+                        final Entry<String> next = mergeIterator.next();
+
+                        try {
+                            Thread.sleep(1);
+                        } catch (InterruptedException e) {
+                            Thread.interrupted();
+                        }
+
+                        return next;
+                    }
+                },
+                timeoutMs
+        );
+        
+        while (iterator.hasNext()) {
+            iterator.next();
+        }
+    }
 }

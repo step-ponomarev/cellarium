@@ -1,71 +1,49 @@
 package cellarium.http;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import cellarium.dao.DaoConfig;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
-import cellarium.http.handlers.CoordinatorRequestHandler;
-import cellarium.http.handlers.DaoRequestHandler;
+import cellarium.http.handlers.AsyncRequestHandler;
+import cellarium.http.handlers.LocalRequestHandler;
+import cellarium.http.handlers.RemoteRequestHandler;
+import cellarium.http.service.DaoHttpService;
 import one.nio.http.HttpServer;
-import one.nio.http.HttpServerConfig;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
 import one.nio.http.RequestHandler;
 import one.nio.http.Response;
-import one.nio.server.AcceptorConfig;
-
 
 public final class Server extends HttpServer {
-    private final MemorySegmentDao dao;
-    private final RequestHandler coordinator;
+    private final AsyncRequestHandler remoteRequestHandler;
+    private final AsyncRequestHandler localRequestHandler;
 
-    private final ExecutorService localExecutorService;
-    private final ExecutorService remoteExecutorService;
+    private final ClusterClient clusterClient;
+    private final String selfUrl;
 
-    public Server(ServerConfig config) throws IOException {
-        super(createServerConfig(config.selfPort));
+    public Server(ServerConfig config, MemorySegmentDao dao) throws IOException {
+        super(config);
 
-        final Path workingDir = config.workingDir;
-        if (Files.notExists(workingDir)) {
-            Files.createDirectory(workingDir);
+        if (dao == null) {
+            throw new NullPointerException("Dao cannot be null");
         }
 
-        //TODO: Сделать нормальное чтение конфига
-        this.dao = new MemorySegmentDao(new DaoConfig(workingDir, config.memTableSizeBytes, 500));
-        //TODO: Нормально настроить координатор(на каждый экзикьютор в конфиг количество тредов)
-        final int threadCount = config.threadCount == 1 ? 1 : config.threadCount / 2;
-        this.localExecutorService = Executors.newFixedThreadPool(threadCount);
-        this.remoteExecutorService = Executors.newFixedThreadPool(threadCount);
-        this.coordinator = new CoordinatorRequestHandler(
-                new Cluster(config.selfUrl, config.clusterUrls),
-                new DaoRequestHandler(this.dao),
-                this.localExecutorService,
-                this.remoteExecutorService
-        );
+        this.clusterClient = new ClusterClient(config.selfUrl, config.clusterUrls);
+
+        this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao), config.localThreadCount);
+        this.remoteRequestHandler = new RemoteRequestHandler(this.clusterClient, config.remoteThreadCount, config.requestTimeoutMs);
+        this.selfUrl = config.selfUrl;
     }
 
     @Override
     public synchronized void stop() {
-        localExecutorService.shutdown();
-        remoteExecutorService.shutdown();
-
         try {
-            localExecutorService.awaitTermination(60, TimeUnit.SECONDS);
-            remoteExecutorService.awaitTermination(60, TimeUnit.SECONDS);
-
-            super.stop();
-            dao.close();
+            remoteRequestHandler.close();
+            localRequestHandler.close();
         } catch (IOException e) {
             throw new IllegalStateException(e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(e);
+        } finally {
+            super.stop();
         }
     }
 
@@ -75,7 +53,10 @@ public final class Server extends HttpServer {
             return null;
         }
 
-        return coordinator;
+        final String id = request.getParameter(QueryParam.ID);
+        final String clusterUrl = clusterClient.getClusterUrl(id);
+
+        return selfUrl.equals(clusterUrl) ? localRequestHandler : remoteRequestHandler;
     }
 
     @Override
@@ -94,20 +75,5 @@ public final class Server extends HttpServer {
     private static boolean isValidRequest(Request request) {
         return ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())
                 && ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod());
-    }
-
-    private static HttpServerConfig createServerConfig(int port) {
-        final AcceptorConfig acceptor = new AcceptorConfig();
-        acceptor.port = port;
-        acceptor.reusePort = true;
-
-        final HttpServerConfig httpConfig = new HttpServerConfig();
-        httpConfig.acceptors = new AcceptorConfig[]{
-                acceptor
-        };
-
-        httpConfig.closeSessions = true;
-
-        return httpConfig;
     }
 }

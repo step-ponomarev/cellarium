@@ -13,11 +13,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Assert;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.http.service.Cluster;
 import cellarium.http.service.EndpointService;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusterTest extends AHttpTest {
     private static final String BASE_URL = "http://localhost:";
     private static final Set<Integer> PORTS = Set.of(8080, 8081, 8082, 8083, 8084);
@@ -27,7 +30,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test
     public final void testPutAndGetFromEachShard() throws IOException, InterruptedException {
-        try (final ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(TEST_DIR))) {
+        try (final ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(DEFAULT_DIR))) {
             cluster.start();
             final String id = generateId();
             final byte[] body = generateBody();
@@ -47,7 +50,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test(expected = ConnectException.class)
     public final void testClusterStop() throws IOException, InterruptedException {
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(TEST_DIR))) {
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(DEFAULT_DIR))) {
             cluster.start();
 
             final HttpResponse<byte[]> putResponse = cluster.getRandomEndpoint().put(generateId(), generateBody());
@@ -60,7 +63,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test()
     public final void testClusterKeepDataAfterRestart() throws IOException, InterruptedException {
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(TEST_DIR))) {
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, Files.createDirectory(DEFAULT_DIR))) {
             cluster.start();
 
             final String id = generateId();
@@ -84,7 +87,7 @@ public class ClusterTest extends AHttpTest {
 
     @Test()
     public final void testNotAllNodesKeepData() throws IOException, InterruptedException {
-        final Path workDir = Files.createDirectory(TEST_DIR);
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
 
         try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
             cluster.start();
@@ -115,9 +118,24 @@ public class ClusterTest extends AHttpTest {
         }
     }
 
+    //TODO: Флакающий тест!
+    @Test
+    public final void testZeroTimeout() throws IOException, InterruptedException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
+            cluster.setRequestTimeoutMs(0);
+            cluster.start();
+
+            HttpResponse<byte[]> put = cluster.getRandomEndpoint().put(generateId(), generateBody());
+            Assert.assertEquals(HttpURLConnection.HTTP_GATEWAY_TIMEOUT, put.statusCode());
+
+            cluster.stop();
+        }
+    }
+
     @Test
     public final void testEachNodeHasData() throws IOException, InterruptedException {
-        final Path workDir = Files.createDirectory(TEST_DIR);
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
 
         try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
             cluster.start();
@@ -159,8 +177,19 @@ public class ClusterTest extends AHttpTest {
         }
     }
 
+    //TODO: пофиксить
+    //Должен идти последним в классе т.к. не дает стартануть one-nio, а она порт занимает до старта...
+    @Test(expected = IllegalArgumentException.class)
+    public final void zzzzzzzz_last_test_execution_prefix_testNegativeTimeout() throws IOException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
+            cluster.setRequestTimeoutMs(-1);
+            cluster.start();
+        }
+    }
+
     private static class ClearableCluster extends Cluster implements Closeable {
-        public ClearableCluster(Set<String> clusterUrls, Path baseDir) throws IOException {
+        public ClearableCluster(Set<String> clusterUrls, Path baseDir) {
             super(clusterUrls, baseDir);
         }
 

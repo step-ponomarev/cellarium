@@ -15,7 +15,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 import cellarium.dao.disk.DiskUtils;
 import cellarium.dao.disk.reader.MemorySegmentEntryReader;
-import cellarium.dao.disk.reader.Reader;
 import cellarium.dao.disk.writer.MemorySegmentEntryWriter;
 import cellarium.dao.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemoryAccess;
@@ -26,12 +25,9 @@ public final class SSTable implements Closeable {
     private static final long TOMBSTONE_TAG = -1;
     private static final String SSTABLE_FILE_NAME = "sstable.data";
     private static final String INDEX_FILE_NAME = "sstable.index";
-
-    private static final String TIMESTAMP_DELIM = "_T_";
-    private static final String SSTABLE_DIR_PREFIX = "SSTABLE";
+    private static final String SSTABLE_DIR_PREFIX = "SSTABLE_";
 
     private final Path path;
-    private final long createdTimeMs;
 
     private final Index index;
     private final MemorySegment tableMemorySegment;
@@ -44,22 +40,19 @@ public final class SSTable implements Closeable {
     private SSTable(
             Path path,
             MemorySegment indexMemorySegment,
-            MemorySegment tableMemorySegment,
-            long createdAt
+            MemorySegment tableMemorySegment
     ) {
         if (Files.notExists(path)) {
             throw new IllegalArgumentException("Path must exist");
         }
 
         if (!indexMemorySegment.isReadOnly() || !tableMemorySegment.isReadOnly()) {
-            throw new IllegalArgumentException("Mapped segments must be read ondly!");
+            throw new IllegalArgumentException("Mapped segments must be read only!");
         }
 
         this.path = path;
         this.index = new Index(tableMemorySegment, indexMemorySegment);
         this.tableMemorySegment = tableMemorySegment;
-
-        this.createdTimeMs = createdAt;
     }
 
     public static SSTable flushAndCreateSSTable(Path path,
@@ -68,7 +61,7 @@ public final class SSTable implements Closeable {
                                                 long sizeBytes
     ) throws IOException {
         if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Dir is not exists: " + path);
+            throw new IllegalArgumentException("Dir does not exist: " + path);
         }
 
         if (!data.hasNext()) {
@@ -93,14 +86,13 @@ public final class SSTable implements Closeable {
         return new SSTable(
                 ssTableDir,
                 mappedIndex.asReadOnly(),
-                mappedSsTable.asReadOnly(),
-                timestamp
+                mappedSsTable.asReadOnly()
         );
     }
 
     public static List<SSTable> wakeUpSSTables(Path path) throws IOException {
         if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Dir is not exists: " + path);
+            throw new IllegalArgumentException("Dir does not exist: " + path);
         }
 
         try (Stream<Path> files = Files.list(path)) {
@@ -125,7 +117,6 @@ public final class SSTable implements Closeable {
 
         try {
             tableMemorySegment.unload();
-            tableMemorySegment.force();
             tableMemorySegment.scope().close();
 
             index.close();
@@ -167,13 +158,13 @@ public final class SSTable implements Closeable {
 
     private static SSTable upInstance(Path path) throws IOException {
         if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Dir is not exists");
+            throw new IllegalArgumentException("Dir does not exist");
         }
 
         final Path sstableFile = path.resolve(SSTABLE_FILE_NAME);
         final Path indexFile = path.resolve(INDEX_FILE_NAME);
         if (Files.notExists(path) || Files.notExists(indexFile)) {
-            throw new IllegalArgumentException("Files must exist.");
+            throw new IllegalArgumentException("File does not exist");
         }
 
         final MemorySegment mappedSsTable = MemorySegment.mapFile(
@@ -195,14 +186,13 @@ public final class SSTable implements Closeable {
         return new SSTable(
                 path,
                 mappedIndex.asReadOnly(),
-                mappedSsTable.asReadOnly(),
-                System.currentTimeMillis()
+                mappedSsTable.asReadOnly()
         );
     }
 
     private static void flush(Iterator<MemorySegmentEntry> data, MemorySegment sstable, MemorySegment index) {
         if (!data.hasNext()) {
-            throw new IllegalStateException("Flushing data is empty!");
+            throw new IllegalStateException("Flushing data is empty");
         }
 
         long indexOffset = 0;
@@ -217,8 +207,13 @@ public final class SSTable implements Closeable {
     }
 
     public void removeSSTableFromDisk() throws IOException {
-        if (this.tableMemorySegment.scope().isAlive()) {
-            throw new IllegalStateException("Scope should be closed!");
+        readCloseLock.writeLock().lock();
+        try {
+            if (tableMemorySegment.scope().isAlive()) {
+                throw new IllegalStateException("Scope should be closed!");
+            }
+        } finally {
+            readCloseLock.writeLock().unlock();
         }
 
         DiskUtils.removeDir(this.path);
@@ -226,7 +221,7 @@ public final class SSTable implements Closeable {
 
     private static MemorySegment mapFile(final Path path, long sizeBytes) throws IOException {
         if (Files.notExists(path)) {
-            throw new IllegalStateException("File is not exists " + path);
+            throw new IllegalStateException("File does not exist " + path);
         }
 
         return MemorySegment.mapFile(
@@ -239,27 +234,13 @@ public final class SSTable implements Closeable {
     }
 
     private static String createHash(long timestamp) {
-        final int hashSize = 40;
-
-        final StringBuilder hash = new StringBuilder(createTimeMark(timestamp))
-                .append("_H_")
-                .append(System.nanoTime());
-
-        while (hash.length() < hashSize) {
-            hash.append(0);
-        }
-
-        return hash.substring(0, hashSize);
-    }
-
-    private static String createTimeMark(long timestamp) {
-        return TIMESTAMP_DELIM + timestamp;
+        return String.format("%016d", timestamp);
     }
 
     private final class MappedIterator implements Iterator<MemorySegmentEntry> {
-        private final Reader<MemorySegmentEntry> memorySegmentEntryReader;
+        private final MemorySegmentEntryReader memorySegmentEntryReader;
 
-        public MappedIterator(Reader<MemorySegmentEntry> memorySegmentEntryReader) {
+        public MappedIterator(MemorySegmentEntryReader memorySegmentEntryReader) {
             this.memorySegmentEntryReader = memorySegmentEntryReader;
         }
 

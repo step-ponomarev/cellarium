@@ -1,16 +1,15 @@
 package cellarium.dao.disk.writer;
 
+import cellarium.dao.disk.AMemorySegmentHandler;
 import cellarium.dao.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
-import cellarium.dao.disk.AMemorySegmentHandler;
 
-public class MemorySegmentEntryWriter extends AMemorySegmentHandler implements Writer<MemorySegmentEntry> {
+public class MemorySegmentEntryWriter extends AMemorySegmentHandler {
     public MemorySegmentEntryWriter(MemorySegment memorySegment, long tombstoneTag) {
         super(memorySegment, tombstoneTag);
     }
 
-    @Override
     public long write(MemorySegmentEntry entry) {
         final MemorySegment key = entry.getKey();
         final long keySize = key.byteSize();

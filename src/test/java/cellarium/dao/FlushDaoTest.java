@@ -2,23 +2,19 @@ package cellarium.dao;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.dao.disk.DiskUtils;
 import cellarium.dao.entry.Entry;
 import test.entry.EntryGeneratorList;
 import test.entry.TestUtils;
 
 public class FlushDaoTest extends AConcurrentDaoTest {
     private static final long UNLIMITED_MEMORY_SIZE = Long.MAX_VALUE;
-    private static final String TEST_RESOURCES_DIR = Paths.get(".").toAbsolutePath().normalize().toString();
 
     @Test
     public void testReadEachAfterFlush() throws IOException {
         final int count = 10_000;
-        try (Dao<String, Entry<String>> dao = createDao(UNLIMITED_MEMORY_SIZE)) {
+        try (Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
             entries.forEach(dao::upsert);
             dao.flush();
@@ -34,7 +30,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
     @Test(timeout = 10_000)
     public void testReadAllAfterFlush() throws IOException {
         final int count = 5_000;
-        try (Dao<String, Entry<String>> dao = createDao(UNLIMITED_MEMORY_SIZE)) {
+        try (Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
             entries.forEach(dao::upsert);
             dao.flush();
@@ -52,7 +48,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
         final int count = 10_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (Dao<String, Entry<String>> dao = createDao(UNLIMITED_MEMORY_SIZE)) {
+        try (Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE))) {
             entries.forEach(dao::upsert);
             dao.flush();
 
@@ -72,17 +68,14 @@ public class FlushDaoTest extends AConcurrentDaoTest {
     public void testEveryFlushCreatesSSTable() throws IOException {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
-        final Path tmpDir = Files.createDirectory(Paths.get(TEST_RESOURCES_DIR).resolve("test_dir_tmp"));
 
-        try (Dao<String, Entry<String>> dao = createDao(tmpDir, UNLIMITED_MEMORY_SIZE, false)) {
+        try (Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE))) {
             for (Entry<String> entry : entries) {
                 dao.upsert(entry);
                 dao.flush();
             }
 
-            Assert.assertEquals(count, Files.list(tmpDir).count());
-        } finally {
-            DiskUtils.removeDir(tmpDir);
+            Assert.assertEquals(count, Files.list(DEFAULT_DIR).count());
         }
     }
 
@@ -91,7 +84,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
         final int count = 10_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (Dao<String, Entry<String>> dao = createDao(UNLIMITED_MEMORY_SIZE)) {
+        try (Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE))) {
             entries.forEach(dao::upsert);
             dao.flush();
 
@@ -119,7 +112,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
         final int count = 2_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (Dao<String, Entry<String>> dao = createDao(UNLIMITED_MEMORY_SIZE)) {
+        try (Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE))) {
             entries.forEach(dao::upsert);
             dao.flush();
 
@@ -135,7 +128,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
         final int count = 1_000_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (Dao<String, Entry<String>> dao = createDao(UNLIMITED_MEMORY_SIZE)) {
+        try (Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE))) {
             long entriesSizeBytes = 0;
             for (Entry<String> entry : entries) {
                 dao.upsert(entry);
@@ -157,29 +150,25 @@ public class FlushDaoTest extends AConcurrentDaoTest {
     @Test
     public void testReadEachAfterReopen() throws Exception {
         final int count = 5_000;
-        final Path tmpDir = Files.createDirectory(Paths.get(TEST_RESOURCES_DIR).resolve("test_dir_tmp"));
-        try {
-            Dao<String, Entry<String>> dao = createDao(tmpDir, UNLIMITED_MEMORY_SIZE, false);
-            final EntryGeneratorList entries = new EntryGeneratorList(count);
-            entries.forEach(dao::upsert);
 
-            dao.close();
-            dao = createDao(tmpDir, UNLIMITED_MEMORY_SIZE, false);
+        Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE));
+        final EntryGeneratorList entries = new EntryGeneratorList(count);
+        entries.forEach(dao::upsert);
 
-            for (Entry<String> entry : entries) {
-                assertEquals(entry, dao.get(entry.getKey()));
-            }
+        dao.close();
+        dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE));
 
-            dao.close();
-        } finally {
-            DiskUtils.removeDir(tmpDir);
+        for (Entry<String> entry : entries) {
+            assertEquals(entry, dao.get(entry.getKey()));
         }
+
+        dao.close();
     }
 
     @Test(timeout = 15_000)
     public void testWriteFlushReadConcurrent() throws Exception {
         final int count = 2_000;
-        try (Dao<String, Entry<String>> dao = createDao(UNLIMITED_MEMORY_SIZE)) {
+        try (Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
 
             runAsync(100, count, i -> {
@@ -196,7 +185,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
     @Test(timeout = 60_000)
     public void testFlushCompactionReadEachConcurrent() throws Exception {
         final int count = 2_000;
-        try (Dao<String, Entry<String>> dao = createDao(UNLIMITED_MEMORY_SIZE)) {
+        try (Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
 
             runAsync(100, count, i -> {

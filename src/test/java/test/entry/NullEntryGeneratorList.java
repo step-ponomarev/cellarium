@@ -20,11 +20,6 @@ public class NullEntryGeneratorList extends EntryGeneratorList {
 
         return new AbstractEntry<>(keyPrefix + TestUtils.generateKeyByIndex(index), null) {
             @Override
-            public String getKey() {
-                return super.getKey();
-            }
-
-            @Override
             public String getValue() {
                 return null;
             }

@@ -17,7 +17,7 @@ public class BasicDaoTest extends ADaoTest {
 
     @Test
     public void testEmptyDao() throws IOException {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             Iterator<Entry<String>> iterator = dao.get(null, null);
             Assert.assertFalse(iterator.hasNext());
         }
@@ -25,7 +25,7 @@ public class BasicDaoTest extends ADaoTest {
 
     @Test
     public void testSingleEntry() throws IOException {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
 
             final Entry<String> entry = createEntry("key", "value");
             dao.upsert(entry);
@@ -38,7 +38,7 @@ public class BasicDaoTest extends ADaoTest {
 
     @Test
     public void testSingleNullEntry() throws IOException {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final Entry<String> entry = createEntry("key", null);
             dao.upsert(entry);
 
@@ -49,7 +49,7 @@ public class BasicDaoTest extends ADaoTest {
 
     @Test
     public void testGetEntriesByKey() throws IOException {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final EntryGeneratorList entries = new EntryGeneratorList(10);
             entries.forEach(dao::upsert);
 
@@ -69,7 +69,7 @@ public class BasicDaoTest extends ADaoTest {
 
     @Test
     public void testGetAllEntries() throws IOException {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final List<Entry<String>> entries = new EntryGeneratorList(30_000);
             entries.forEach(dao::upsert);
 
@@ -92,7 +92,7 @@ public class BasicDaoTest extends ADaoTest {
     public void testGetAllManyTimes() throws Exception {
         final int count = 2_000;
 
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
             entries.forEach(dao::upsert);
 
@@ -110,7 +110,7 @@ public class BasicDaoTest extends ADaoTest {
 
     @Test(expected = IllegalStateException.class)
     public void testTooBigEntry() throws Exception {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final byte[] randomBytes = new byte[(int) (SIZE_BYTES + 1)];
             ThreadLocalRandom.current().nextBytes(randomBytes);
 
@@ -122,7 +122,7 @@ public class BasicDaoTest extends ADaoTest {
 
     @Test
     public void testGetSingleValueFromMiddle() throws Exception {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
 
 
             dao.upsert(createEntry("1", "a"));
@@ -135,7 +135,7 @@ public class BasicDaoTest extends ADaoTest {
 
     @Test
     public void testGetRangeFromMiddle() throws Exception {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             dao.upsert(createEntry("1", "a"));
             dao.upsert(createEntry("2", "b"));
             dao.upsert(createEntry("3", "c"));
@@ -151,7 +151,7 @@ public class BasicDaoTest extends ADaoTest {
         final int minKey = 0;
         final int maxKey = 9;
 
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             for (int i = minKey; i < maxKey; i++) {
                 dao.upsert(createEntryByIndex(i));
             }
@@ -170,7 +170,7 @@ public class BasicDaoTest extends ADaoTest {
 
     @Test
     public void testRemoveAndRead() throws IOException {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final Entry<String> entry = createEntry("KEY", "VALUE");
             dao.upsert(entry);
 
@@ -180,10 +180,10 @@ public class BasicDaoTest extends ADaoTest {
             Assert.assertNull(dao.get(entry.getKey()));
         }
     }
-    
+
     @Test
     public void testRemoveAndReplaceRemoved() throws IOException {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final Entry<String> entry = createEntry("KEY", "VALUE");
             dao.upsert(entry);
 
@@ -193,14 +193,14 @@ public class BasicDaoTest extends ADaoTest {
 
             final Entry<String> expected = createEntry(entry.getKey(), "NEW_VALUE");
             dao.upsert(expected);
-            
+
             assertEquals(expected, dao.get(entry.getKey()));
         }
     }
 
     @Test
     public void testRemoveAndReadAll() throws IOException {
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             final Entry<String> entry = createEntry("KEY", "VALUE");
             dao.upsert(entry);
 
@@ -217,7 +217,7 @@ public class BasicDaoTest extends ADaoTest {
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
         Iterator<Entry<String>> dataFromDao;
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             entries.forEach(dao::upsert);
 
             dataFromDao = dao.get(null, null);
@@ -231,7 +231,7 @@ public class BasicDaoTest extends ADaoTest {
         final int count = 30_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
-        try (final Dao<String, Entry<String>> dao = createDao(SIZE_BYTES)) {
+        try (final Dao<String, Entry<String>> dao = new TestDao(createConfig(SIZE_BYTES))) {
             entries.forEach(dao::upsert);
 
             for (int i = 0; i < count; i++) {

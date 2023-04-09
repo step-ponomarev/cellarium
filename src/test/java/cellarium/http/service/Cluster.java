@@ -11,9 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import cellarium.dao.DaoConfig;
+import cellarium.dao.MemorySegmentDao;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import one.nio.http.HttpServer;
+import one.nio.server.AcceptorConfig;
 
 public class Cluster {
     private static final String DIR_PREFIX = "CLUSTER_";
@@ -24,6 +27,8 @@ public class Cluster {
     private final List<HttpServer> instances;
     private final Map<String, EndpointService> urlToEndpoint;
     protected final Path baseDir;
+
+    private int requestTimeoutMs = Integer.MAX_VALUE;
 
     public Cluster(Set<String> clusterUrls, Path baseDir) {
         if (clusterUrls == null || clusterUrls.isEmpty()) {
@@ -48,6 +53,10 @@ public class Cluster {
         }
     }
 
+    public void setRequestTimeoutMs(int requestTimeoutMs) {
+        this.requestTimeoutMs = requestTimeoutMs;
+    }
+
     public void start() throws IOException {
         for (String url : clusterUrls) {
             final URI uri = URI.create(url);
@@ -60,7 +69,8 @@ public class Cluster {
             }
 
             final cellarium.http.Server server = new cellarium.http.Server(
-                    createServerConfig(uri, clusterUrls, instanceDir)
+                    createServerConfig(uri, clusterUrls),
+                    createDao(instanceDir)
             );
 
             instances.add(server);
@@ -90,14 +100,33 @@ public class Cluster {
         return urlToEndpoint.get(iterator.next());
     }
 
-    private static ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls, Path instanceDir) {
-        return new ServerConfig(
-                currentUrl.getPort(),
-                currentUrl.toString(),
-                clusterUrls,
-                instanceDir,
-                1024 * 1024 * 1,
-                Math.max(1, clusterUrls.size() / (Runtime.getRuntime().availableProcessors() - 2))
-        );
+    private static MemorySegmentDao createDao(Path instanceDir) throws IOException {
+        final DaoConfig daoConfig = new DaoConfig();
+        daoConfig.path = instanceDir.toString();
+        daoConfig.memtableLimitBytes = 1024 * 1024;
+
+        return new MemorySegmentDao(daoConfig);
+    }
+
+    private ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls) {
+        final ServerConfig serverConfig = new ServerConfig();
+        serverConfig.selfPort = currentUrl.getPort();
+        serverConfig.selfUrl = currentUrl.toString();
+        serverConfig.clusterUrls = clusterUrls;
+        serverConfig.localThreadCount = Runtime.getRuntime().availableProcessors() - 2;
+        serverConfig.remoteThreadCount = Runtime.getRuntime().availableProcessors() - 2;
+
+        final AcceptorConfig acceptor = new AcceptorConfig();
+        acceptor.port = serverConfig.selfPort;
+        acceptor.reusePort = true;
+
+        serverConfig.acceptors = new AcceptorConfig[]{
+                acceptor
+        };
+
+        serverConfig.closeSessions = true;
+        serverConfig.requestTimeoutMs = this.requestTimeoutMs;
+
+        return serverConfig;
     }
 }

@@ -1,21 +1,19 @@
-package cellarium.http.handlers;
+package cellarium.http.service;
 
+import java.io.Closeable;
 import java.io.IOException;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.utils.Utils;
-import cellarium.http.conf.ServerConfiguration;
+import cellarium.http.QueryParam;
 import jdk.incubator.foreign.MemorySegment;
-import one.nio.http.HttpSession;
-import one.nio.http.Path;
 import one.nio.http.Request;
-import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 
-public final class DaoRequestHandler implements RequestHandler {
+public final class DaoHttpService implements HttpService, Closeable {
     private final MemorySegmentDao dao;
 
-    public DaoRequestHandler(MemorySegmentDao dao) {
+    public DaoHttpService(MemorySegmentDao dao) {
         if (dao == null) {
             throw new NullPointerException("Dao cannot be null");
         }
@@ -24,18 +22,18 @@ public final class DaoRequestHandler implements RequestHandler {
     }
 
     @Override
-    @Path(ServerConfiguration.V_0_ENTITY_ENDPOINT)
-    public void handleRequest(Request request, HttpSession session) throws IOException {
-        session.sendResponse(handleRequest(request));
-    }
-
-    private Response handleRequest(Request request) {
+    public Response handleRequest(Request request) {
         return switch (request.getMethod()) {
             case Request.METHOD_GET -> getById(request);
             case Request.METHOD_PUT -> put(request);
             case Request.METHOD_DELETE -> delete(request);
             default -> new Response(Response.BAD_REQUEST);
         };
+    }
+
+    @Override
+    public void close() throws IOException {
+        dao.close();
     }
 
     private Response getById(Request request) {
@@ -48,6 +46,7 @@ public final class DaoRequestHandler implements RequestHandler {
             final MemorySegmentEntry entry = dao.get(
                     Utils.stringToMemorySegment(id)
             );
+
             if (entry == null) {
                 return new Response(Response.NOT_FOUND, Response.EMPTY);
             }

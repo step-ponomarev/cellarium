@@ -1,19 +1,26 @@
 package cellarium.dao;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Iterator;
-
+import cellarium.dao.conf.TestDaoConfig;
 import cellarium.dao.entry.AbstractEntry;
 import cellarium.dao.entry.Entry;
 import cellarium.dao.entry.MemorySegmentEntry;
-import jdk.incubator.foreign.MemorySegment;
 import cellarium.dao.utils.Utils;
+import jdk.incubator.foreign.MemorySegment;
 
 public class TestDao implements Dao<String, Entry<String>> {
     private final MemorySegmentDao memorySegmentDao;
 
-    public TestDao(MemorySegmentDao memorySegmentDao) {
-        this.memorySegmentDao = memorySegmentDao;
+    public TestDao(TestDaoConfig config) throws IOException {
+        Path path = Path.of(config.path);
+        if (Files.notExists(path)) {
+            throw new IllegalStateException("File does not exist: " + path);
+        }
+
+        this.memorySegmentDao = new MemorySegmentDao(config);
     }
 
     @Override
@@ -35,7 +42,7 @@ public class TestDao implements Dao<String, Entry<String>> {
     }
 
     @Override
-    public void compact() throws IOException {
+    public void compact() {
         memorySegmentDao.compact();
     }
 

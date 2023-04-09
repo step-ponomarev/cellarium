@@ -10,7 +10,7 @@ public interface Dao<T, E extends Entry<T>> extends Store<T, E>, Closeable {
         throw new UnsupportedOperationException("Unsupported method");
     }
 
-    default void compact() throws IOException {
+    default void compact() {
         throw new UnsupportedOperationException("Unsupported method");
     }
 }

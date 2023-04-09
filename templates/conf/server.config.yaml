@@ -1,0 +1,13 @@
+# cellarium.http.conf.ServerConfig
+
+selfPort: 8080
+selfUrl: http://localhost:8080
+clusterUrls:
+  - http://localhost:8080
+threadCount: 6
+closeSessions: true
+
+
+acceptors:
+  - port: 8080
+    reusePort: true

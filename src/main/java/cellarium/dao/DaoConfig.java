@@ -1,15 +1,8 @@
 package cellarium.dao;
 
-import java.nio.file.Path;
-
-public final class DaoConfig {
-    public final Path path;
-    public final long memtableLimitBytes;
-    public final int sstablesLimit;
-
-    public DaoConfig(Path path, long memtableLimitBytes, int sstablesLimit) {
-        this.path = path;
-        this.memtableLimitBytes = memtableLimitBytes;
-        this.sstablesLimit = sstablesLimit;
-    }
+public class DaoConfig {
+    public String path;
+    public long memtableLimitBytes = 4L * 1024 * 1024 * 1024;
+    public int sstablesLimit = 500;
+    public Integer timeoutMs;
 }
