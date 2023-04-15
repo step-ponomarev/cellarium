@@ -8,7 +8,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import cellarium.http.ClusterClient;
+import cellarium.http.cluster.ClusterClient;
 import cellarium.http.QueryParam;
 import one.nio.http.HttpClient;
 import one.nio.http.HttpException;

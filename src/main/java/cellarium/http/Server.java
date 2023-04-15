@@ -5,6 +5,7 @@ import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
+import cellarium.http.cluster.ClusterClient;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.handlers.AsyncRequestHandler;
@@ -36,8 +37,8 @@ public final class Server extends HttpServer {
         PropertyConfigurator.configure("log4j.properties");
         
         this.clusterClient = new ClusterClient(config.selfUrl, config.clusterUrls);
-        this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao), config.localThreadCount);
-        this.remoteRequestHandler = new RemoteRequestHandler(this.clusterClient, config.remoteThreadCount, config.requestTimeoutMs);
+        this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao), config.localThreadAmount);
+        this.remoteRequestHandler = new RemoteRequestHandler(this.clusterClient, config.remoteThreadAmount, config.requestTimeoutMs);
         this.selfUrl = config.selfUrl;
     }
 
