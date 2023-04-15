@@ -1,1 +1,5 @@
+#cellarium.dao.DaoConfig
+
 path: dao
+memtableLimitBytes: 1000000
+sstablesLimit: 3

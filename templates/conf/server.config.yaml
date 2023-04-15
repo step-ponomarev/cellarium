@@ -4,7 +4,8 @@ selfPort: 8080
 selfUrl: http://localhost:8080
 clusterUrls:
   - http://localhost:8080
-threadCount: 6
+localThreadCount: 6
+remoteThreadCount: 6
 closeSessions: true
 
 

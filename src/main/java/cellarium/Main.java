@@ -7,6 +7,7 @@ import cellarium.conf.AnnotatedDaoConfig;
 import cellarium.conf.ConfigReader;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.http.Server;
+import sun.misc.Signal;
 
 public class Main {
     public static final ConfigReader configReader = new ConfigReader();
@@ -19,8 +20,13 @@ public class Main {
             Files.createDirectory(path);
         }
 
-        final MemorySegmentDao memorySegmentDao = new MemorySegmentDao(configReader.readDaoConfig());
-        final Server server = new Server(configReader.readServerConfig(), memorySegmentDao);
+        final Server server = new Server(
+                configReader.readServerConfig(),
+                new MemorySegmentDao(configReader.readDaoConfig())
+        );
         server.start();
+
+        // handle kill <PID>
+        Signal.handle(new Signal("TERM"), (Signal signal) -> server.stop());
     }
 }
