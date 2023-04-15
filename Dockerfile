@@ -1,7 +1,10 @@
 FROM openjdk:17-jdk
-COPY ./build/libs/cellarium.jar app.jar
+
+WORKDIR /app
+
+COPY ./build/libs/cellarium.jar cellarium.jar
 COPY log4j.properties log4j.properties
 
-RUN mkdir /conf
+RUN mkdir conf
 
-CMD ["java", "--add-modules", "jdk.incubator.foreign", "-jar", "app.jar"]
+CMD ["java", "--add-modules", "jdk.incubator.foreign", "-jar", "cellarium.jar"]
