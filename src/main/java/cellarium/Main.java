@@ -27,9 +27,6 @@ public class Main {
         server.start();
 
         // handle kill <PID>
-        Signal.handle(new Signal("TERM"), (Signal signal) -> {
-            System.out.println("here");
-            server.stop();
-        });
+        Signal.handle(new Signal("TERM"), (Signal signal) -> server.stop());
     }
 }
