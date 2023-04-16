@@ -1,27 +1,19 @@
 package cellarium.http.handlers;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import cellarium.http.cluster.ClusterClient;
-import cellarium.http.QueryParam;
-import one.nio.http.HttpClient;
-import one.nio.http.HttpException;
+import cellarium.http.cluster.ConsistentHashingCluster;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
 import one.nio.http.Response;
-import one.nio.pool.PoolException;
 
 public final class RemoteRequestHandler extends AsyncRequestHandler {
-    private final ClusterClient clusterClient;
+    private final ConsistentHashingCluster consistentHashingCluster;
     private final long requestTimeout;
 
-    public RemoteRequestHandler(ClusterClient clusterClient, int threadCount, long requestTimeout) {
+    public RemoteRequestHandler(ConsistentHashingCluster consistentHashingCluster, int threadCount, long requestTimeout) {
         super(Executors.newFixedThreadPool(threadCount));
 
         if (threadCount < 1) {
@@ -32,49 +24,49 @@ public final class RemoteRequestHandler extends AsyncRequestHandler {
             throw new IllegalArgumentException("Timeout is negative: " + requestTimeout);
         }
 
-        this.clusterClient = clusterClient;
+        this.consistentHashingCluster = consistentHashingCluster;
         this.requestTimeout = requestTimeout;
     }
 
     @Override
     protected void handleRequestAsync(Request request, HttpSession session, ExecutorService executorService) throws RejectedExecutionException {
-        final String url = clusterClient.getClusterUrl(request.getParameter(QueryParam.ID));
-        final HttpClient node = clusterClient.getNode(url);
-        if (node == null) {
-            throw new IllegalStateException("Cluster node does not exist: " + url);
-        }
-
-        final CompletableFuture<Response> responseFuture = CompletableFuture.supplyAsync(() -> {
-                    try {
-                        return node.invoke(request);
-                    } catch (HttpException | IOException | PoolException e) {
-                        throw new CompletionException(e);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new CompletionException(e);
-                    }
-                }, executorService)
-                .orTimeout(requestTimeout, TimeUnit.MILLISECONDS);
-
-        responseFuture.handleAsync((response, e) -> {
-            try {
-                if (e == null) {
-                    session.sendResponse(response);
-                    return null;
-                }
-
-                if (e instanceof TimeoutException) {
-                    handleTimeoutException(session);
-                    return null;
-                }
-
-                sendErrorResponse(session, e.getCause());
-            } catch (IOException ex) {
-                sendErrorResponse(session, ex);
-            }
-
-            return null;
-        }, executorService);
+//        final String url = clusterClient.getClusterUrl(request.getParameter(QueryParam.ID));
+//        final HttpClient node = clusterClient.getNode(url);
+//        if (node == null) {
+//            throw new IllegalStateException("Cluster node does not exist: " + url);
+//        }
+//
+//        final CompletableFuture<Response> responseFuture = CompletableFuture.supplyAsync(() -> {
+//                    try {
+//                        return node.invoke(request);
+//                    } catch (HttpException | IOException | PoolException e) {
+//                        throw new CompletionException(e);
+//                    } catch (InterruptedException e) {
+//                        Thread.currentThread().interrupt();
+//                        throw new CompletionException(e);
+//                    }
+//                }, executorService)
+//                .orTimeout(requestTimeout, TimeUnit.MILLISECONDS);
+//
+//        responseFuture.handleAsync((response, e) -> {
+//            try {
+//                if (e == null) {
+//                    session.sendResponse(response);
+//                    return null;
+//                }
+//
+//                if (e instanceof TimeoutException) {
+//                    handleTimeoutException(session);
+//                    return null;
+//                }
+//
+//                sendErrorResponse(session, e.getCause());
+//            } catch (IOException ex) {
+//                sendErrorResponse(session, ex);
+//            }
+//
+//            return null;
+//        }, executorService);
     }
 
     private void handleTimeoutException(HttpSession session) {

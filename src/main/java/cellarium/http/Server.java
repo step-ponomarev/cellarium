@@ -5,7 +5,7 @@ import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
-import cellarium.http.cluster.ClusterClient;
+import cellarium.http.cluster.ConsistentHashingCluster;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.handlers.AsyncRequestHandler;
@@ -15,7 +15,6 @@ import cellarium.http.service.DaoHttpService;
 import one.nio.http.HttpServer;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
-import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 
 public final class Server extends HttpServer {
@@ -24,7 +23,7 @@ public final class Server extends HttpServer {
     private final AsyncRequestHandler remoteRequestHandler;
     private final AsyncRequestHandler localRequestHandler;
 
-    private final ClusterClient clusterClient;
+    private final ConsistentHashingCluster consistentHashingCluster;
     private final String selfUrl;
 
     public Server(ServerConfig config, MemorySegmentDao dao) throws IOException {
@@ -36,9 +35,9 @@ public final class Server extends HttpServer {
 
         PropertyConfigurator.configure("log4j.properties");
         
-        this.clusterClient = new ClusterClient(config.selfUrl, config.clusterUrls);
+        this.consistentHashingCluster = new ConsistentHashingCluster(config.selfUrl, config.clusterUrls, config.virtualNodeAmount);
         this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao), config.localThreadAmount);
-        this.remoteRequestHandler = new RemoteRequestHandler(this.clusterClient, config.remoteThreadAmount, config.requestTimeoutMs);
+        this.remoteRequestHandler = new RemoteRequestHandler(this.consistentHashingCluster, config.remoteThreadAmount, config.requestTimeoutMs);
         this.selfUrl = config.selfUrl;
     }
 
@@ -56,17 +55,17 @@ public final class Server extends HttpServer {
         }
     }
 
-    @Override
-    protected RequestHandler findHandlerByHost(Request request) {
-        if (!isValidRequest(request)) {
-            return null;
-        }
-
-        final String id = request.getParameter(QueryParam.ID);
-        final String clusterUrl = clusterClient.getClusterUrl(id);
-
-        return selfUrl.equals(clusterUrl) ? localRequestHandler : remoteRequestHandler;
-    }
+//    @Override
+//    protected RequestHandler findHandlerByHost(Request request) {
+//        if (!isValidRequest(request)) {
+//            return null;
+//        }
+//
+//        final String id = request.getParameter(QueryParam.ID);
+//        final String clusterUrl = clusterClient.getClusterUrl(id);
+//
+//        return selfUrl.equals(clusterUrl) ? localRequestHandler : remoteRequestHandler;
+//    }
 
     @Override
     public void handleDefault(Request request, HttpSession session) throws IOException {
