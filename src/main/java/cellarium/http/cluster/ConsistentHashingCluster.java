@@ -1,5 +1,6 @@
 package cellarium.http.cluster;
 
+import java.util.Comparator;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -36,6 +37,7 @@ public final class ConsistentHashingCluster {
 
         return clusterUrls.stream()
                 .flatMap(url -> IntStream.range(0, virtualNodesCount).mapToObj(i -> new VirtualNode(url, url.equals(selfUrl), Hash.murmur3(url + "_" + i))))
+                .sorted(Comparator.comparingInt(VirtualNode::hashCode))
                 .toArray(VirtualNode[]::new);
     }
 
