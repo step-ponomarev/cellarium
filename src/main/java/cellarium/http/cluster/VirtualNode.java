@@ -2,23 +2,12 @@ package cellarium.http.cluster;
 
 import java.util.Objects;
 
-public final class VirtualNode {
-    private final String nodeUrl;
-    private final boolean localNode;
+final class VirtualNode extends Node {
     private final int hash;
 
     public VirtualNode(String nodeUrl, boolean localNode, int hash) {
-        this.nodeUrl = nodeUrl;
-        this.localNode = localNode;
+        super(nodeUrl, localNode);
         this.hash = hash;
-    }
-
-    public String getNodeUrl() {
-        return nodeUrl;
-    }
-
-    public boolean isLocalNode() {
-        return localNode;
     }
 
     @Override

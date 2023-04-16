@@ -13,7 +13,7 @@ public class ConsistentHashingClusterTest {
         final int virtualNodePerRealNodeAmount = 3;
         final Set<String> clusterUrls = IntStream.range(0, 9000).mapToObj(i -> "http://localhost:" + i).collect(Collectors.toSet());
 
-        final VirtualNode[] sortedVirtualNodes = ConsistentHashingCluster.createSortedVirtualNodes("http://localhost:0", clusterUrls, virtualNodePerRealNodeAmount);
+        final Node[] sortedVirtualNodes = ConsistentHashingCluster.createSortedVirtualNodes("http://localhost:0", clusterUrls, virtualNodePerRealNodeAmount);
         Assert.assertEquals(clusterUrls.size() * virtualNodePerRealNodeAmount, sortedVirtualNodes.length);
 
         for (int i = 1; i < sortedVirtualNodes.length; i++) {
@@ -41,14 +41,14 @@ public class ConsistentHashingClusterTest {
         final int virtualNodePerRealNodeAmount = 3;
         final Set<String> clusterUrls = IntStream.range(0, 9000).mapToObj(i -> "http://localhost:" + i).collect(Collectors.toSet());
 
-        final VirtualNode[] virtualNodes = ConsistentHashingCluster.createSortedVirtualNodes("http://localhost:0", clusterUrls, virtualNodePerRealNodeAmount);
+        final Node[] virtualNodes = ConsistentHashingCluster.createSortedVirtualNodes("http://localhost:0", clusterUrls, virtualNodePerRealNodeAmount);
         final int firstNodeHash = virtualNodes[0].hashCode();
 
         final int step = 65536;
         for (int hash = Integer.MIN_VALUE; true; hash += step) {
             final int nodeIndexForHash = ConsistentHashingCluster.getNodeIndexForHash(virtualNodes, hash);
 
-            VirtualNode virtualNode = virtualNodes[nodeIndexForHash];
+            Node virtualNode = virtualNodes[nodeIndexForHash];
             final int currentNodeHashCode = virtualNode.hashCode();
 
             Assert.assertTrue(currentNodeHashCode >= hash || currentNodeHashCode == firstNodeHash);

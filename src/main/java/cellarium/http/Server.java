@@ -1,11 +1,11 @@
 package cellarium.http;
 
 import java.io.IOException;
-import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.http.cluster.ConsistentHashingCluster;
+import cellarium.http.cluster.Node;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.handlers.AsyncRequestHandler;
@@ -15,6 +15,7 @@ import cellarium.http.service.DaoHttpService;
 import one.nio.http.HttpServer;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
+import one.nio.http.RequestHandler;
 import one.nio.http.Response;
 
 public final class Server extends HttpServer {
@@ -24,7 +25,6 @@ public final class Server extends HttpServer {
     private final AsyncRequestHandler localRequestHandler;
 
     private final ConsistentHashingCluster consistentHashingCluster;
-    private final String selfUrl;
 
     public Server(ServerConfig config, MemorySegmentDao dao) throws IOException {
         super(config);
@@ -32,13 +32,10 @@ public final class Server extends HttpServer {
         if (dao == null) {
             throw new NullPointerException("Dao cannot be null");
         }
-
-        PropertyConfigurator.configure("log4j.properties");
         
         this.consistentHashingCluster = new ConsistentHashingCluster(config.selfUrl, config.clusterUrls, config.virtualNodeAmount);
         this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao), config.localThreadAmount);
         this.remoteRequestHandler = new RemoteRequestHandler(this.consistentHashingCluster, config.remoteThreadAmount, config.requestTimeoutMs);
-        this.selfUrl = config.selfUrl;
     }
 
     @Override
@@ -55,17 +52,18 @@ public final class Server extends HttpServer {
         }
     }
 
-//    @Override
-//    protected RequestHandler findHandlerByHost(Request request) {
-//        if (!isValidRequest(request)) {
-//            return null;
-//        }
-//
-//        final String id = request.getParameter(QueryParam.ID);
-//        final String clusterUrl = clusterClient.getClusterUrl(id);
-//
-//        return selfUrl.equals(clusterUrl) ? localRequestHandler : remoteRequestHandler;
-//    }
+    //TODO: Дважды ищем ноду - плохо.
+    @Override
+    protected RequestHandler findHandlerByHost(Request request) {
+        if (!isValidRequest(request)) {
+            return null;
+        }
+
+        final String id = request.getParameter(QueryParam.ID);
+        final Node nodeByKey = consistentHashingCluster.getNodeByKey(id);
+
+        return nodeByKey.isLocalNode() ? localRequestHandler : remoteRequestHandler;
+    }
 
     @Override
     public void handleDefault(Request request, HttpSession session) throws IOException {
@@ -78,9 +76,18 @@ public final class Server extends HttpServer {
             session.sendResponse(new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY));
             return;
         }
+
+        if (request.getParameter(QueryParam.ID) == null) {
+            session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
+            return;
+        }
     }
 
     private static boolean isValidRequest(Request request) {
+        if (request.getParameter(QueryParam.ID) == null) {
+            return false;
+        }
+
         return ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())
                 && ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod());
     }

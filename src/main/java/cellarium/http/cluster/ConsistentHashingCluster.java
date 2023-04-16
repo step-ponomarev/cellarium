@@ -3,16 +3,30 @@ package cellarium.http.cluster;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import one.nio.util.Hash;
 
 public final class ConsistentHashingCluster {
-    private final VirtualNode[] nodes;
+    private final Node[] nodes;
 
     public ConsistentHashingCluster(String selfUrl, Set<String> clusterUrls, int virtualNodesCount) {
         this.nodes = createSortedVirtualNodes(selfUrl, clusterUrls, virtualNodesCount);
     }
 
-    static VirtualNode[] createSortedVirtualNodes(String selfUrl, Set<String> clusterUrls, int virtualNodesCount) {
+    public Node getNodeByKey(String key) {
+        if (key == null || key.isBlank()) {
+            throw new IllegalArgumentException("Empty key");
+        }
+
+        return nodes[getNodeIndexForHash(nodes, Hash.murmur3(key))];
+    }
+    
+    public Set<String> getNodeUrls() {
+        return Stream.of(nodes).map(Node::getNodeUrl).collect(Collectors.toSet());
+    }
+
+    static Node[] createSortedVirtualNodes(String selfUrl, Set<String> clusterUrls, int virtualNodesCount) {
         if (clusterUrls == null || clusterUrls.isEmpty()) {
             throw new IllegalArgumentException("No urls provided");
         }
@@ -33,11 +47,11 @@ public final class ConsistentHashingCluster {
         }
 
         return nodes.stream()
-                .sorted(Comparator.comparingInt(VirtualNode::hashCode))
+                .sorted(Comparator.comparingInt(Node::hashCode))
                 .toArray(VirtualNode[]::new);
     }
 
-    static int getNodeIndexForHash(VirtualNode[] nodes, int hash) {
+    static int getNodeIndexForHash(Node[] nodes, int hash) {
         if (nodes == null || nodes.length == 0) {
             throw new IllegalArgumentException("No nodes provided");
         }
@@ -58,7 +72,7 @@ public final class ConsistentHashingCluster {
         int right = nodes.length - 1;
         int i;
 
-        VirtualNode currentNode = null;
+        Node currentNode = null;
         while (left <= right) {
             i = (right + left) >>> 1;
 
