@@ -1,9 +1,8 @@
 package cellarium.http.cluster;
 
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import one.nio.util.Hash;
 
@@ -21,7 +20,7 @@ public final class ConsistentHashingCluster {
 
         return nodes[getNodeIndexForHash(nodes, Hash.murmur3(key))];
     }
-    
+
     public Set<String> getNodeUrls() {
         return Stream.of(nodes).map(Node::getNodeUrl).collect(Collectors.toSet());
     }
@@ -35,19 +34,8 @@ public final class ConsistentHashingCluster {
             throw new IllegalArgumentException("Virtual nodes count cannot be 0");
         }
 
-        final Set<VirtualNode> nodes = new HashSet<>();
-        for (String url : clusterUrls) {
-            final boolean nodeIsLocal = url.equals(selfUrl);
-            for (int i = 0; i < virtualNodesCount; i++) {
-                final String virtualUrl = url + "_" + i;
-                nodes.add(
-                        new VirtualNode(url, nodeIsLocal, Hash.murmur3(virtualUrl))
-                );
-            }
-        }
-
-        return nodes.stream()
-                .sorted(Comparator.comparingInt(Node::hashCode))
+        return clusterUrls.stream()
+                .flatMap(url -> IntStream.range(0, virtualNodesCount).mapToObj(i -> new VirtualNode(url, url.equals(selfUrl), Hash.murmur3(url + "_" + i))))
                 .toArray(VirtualNode[]::new);
     }
 
