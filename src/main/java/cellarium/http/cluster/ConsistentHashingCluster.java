@@ -1,7 +1,9 @@
 package cellarium.http.cluster;
 
+import java.util.Comparator;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import one.nio.util.Hash;
 
@@ -9,7 +11,7 @@ public final class ConsistentHashingCluster {
     private final Node[] nodes;
 
     public ConsistentHashingCluster(String selfUrl, Set<String> clusterUrls, int virtualNodesCount) {
-        this.nodes = createVirtualNodes(selfUrl, clusterUrls, virtualNodesCount);
+        this.nodes = createSortedVirtualNodes(selfUrl, clusterUrls, virtualNodesCount);
     }
 
     public Node getNodeByKey(String key) {
@@ -17,14 +19,14 @@ public final class ConsistentHashingCluster {
             throw new IllegalArgumentException("Empty key");
         }
 
-        return nodes[getNodeIndexForHash(Hash.murmur3(key), nodes.length)];
+        return nodes[getNodeIndexForHash(nodes, Hash.murmur3(key))];
     }
 
     public Set<String> getNodeUrls() {
         return Stream.of(nodes).map(Node::getNodeUrl).collect(Collectors.toSet());
     }
 
-    static Node[] createVirtualNodes(String selfUrl, Set<String> clusterUrls, int virtualNodesCount) {
+    static Node[] createSortedVirtualNodes(String selfUrl, Set<String> clusterUrls, int virtualNodesCount) {
         if (clusterUrls == null || clusterUrls.isEmpty()) {
             throw new IllegalArgumentException("No urls provided");
         }
@@ -33,34 +35,59 @@ public final class ConsistentHashingCluster {
             throw new IllegalArgumentException("Virtual nodes count cannot be 0");
         }
 
-        final String[] urls = clusterUrls.toArray(String[]::new);
-        final Node[] nodes = new Node[urls.length * virtualNodesCount];
-
-        for (int i = 0; i < nodes.length; i++) {
-            final String url = urls[i % urls.length];
-            nodes[i] = new Node(url, url.equals(selfUrl));
-        }
-
-        return nodes;
+        return clusterUrls.stream()
+                .flatMap(url -> IntStream.range(0, virtualNodesCount).mapToObj(i -> new VirtualNode(url, url.equals(selfUrl), Hash.murmur3(url + "_" + i))))
+                .sorted(Comparator.comparingInt(VirtualNode::hashCode))
+                .toArray(VirtualNode[]::new);
     }
 
-    private static final long MAGIC_NUMBER = 2862933555777941757L;
+    static int getNodeIndexForHash(Node[] nodes, int hash) {
+        if (nodes == null || nodes.length == 0) {
+            throw new IllegalArgumentException("No nodes provided");
+        }
 
-    // Jump Consistent Hash Algorithm
-    static int getNodeIndexForHash(long hash, int nodeAmount) {
-        if (nodeAmount == 1) {
+        if (nodes.length == 1) {
             return 0;
         }
-        
-        long b = -1;
-        long j = 0;
 
-        while (j < nodeAmount) {
-            b = j;
-            hash = hash * MAGIC_NUMBER + 1;
-            j = (long) ((b + 1) * (double) (1L << 31) / ((hash >>> 33) + 1));
+        if (nodes.length == 2) {
+            return nodes[0].hashCode() >= hash ? 0 : 1;
         }
 
-        return (int) b;
+        if (nodes[nodes.length - 1].hashCode() < hash) {
+            return 0;
+        }
+
+        int left = 0;
+        int right = nodes.length - 1;
+        int i;
+
+        Node currentNode = null;
+        while (left <= right) {
+            i = (right + left) >>> 1;
+
+            currentNode = nodes[i];
+            final int currentNodeHash = currentNode.hashCode();
+
+            if (currentNodeHash == hash) {
+                return i;
+            }
+
+            if (currentNodeHash < hash) {
+                left = i + 1;
+                continue;
+            }
+
+            if (i == 0) {
+                return i;
+            }
+
+            right = i - 1;
+            if (nodes[i - 1].hashCode() < hash) {
+                return i;
+            }
+        }
+
+        throw new IllegalStateException("Node is not found");
     }
 }
