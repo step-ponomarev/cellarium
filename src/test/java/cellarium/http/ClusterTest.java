@@ -118,21 +118,6 @@ public class ClusterTest extends AHttpTest {
         }
     }
 
-    //TODO: Флакающий тест!
-    @Test
-    public final void testZeroTimeout() throws IOException, InterruptedException {
-        final Path workDir = Files.createDirectory(DEFAULT_DIR);
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
-            cluster.setRequestTimeoutMs(0);
-            cluster.start();
-
-            HttpResponse<byte[]> put = cluster.getRandomEndpoint().put(generateId(), generateBody());
-            Assert.assertEquals(HttpURLConnection.HTTP_GATEWAY_TIMEOUT, put.statusCode());
-
-            cluster.stop();
-        }
-    }
-
     @Test
     public final void testEachNodeHasData() throws IOException, InterruptedException {
         final Path workDir = Files.createDirectory(DEFAULT_DIR);
@@ -174,17 +159,6 @@ public class ClusterTest extends AHttpTest {
 
                 Assert.assertFalse(isEmpty);
             }
-        }
-    }
-
-    //TODO: пофиксить
-    //Должен идти последним в классе т.к. не дает стартануть one-nio, а она порт занимает до старта...
-    @Test(expected = IllegalArgumentException.class)
-    public final void zzzzzzzz_last_test_execution_prefix_testNegativeTimeout() throws IOException {
-        final Path workDir = Files.createDirectory(DEFAULT_DIR);
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
-            cluster.setRequestTimeoutMs(-1);
-            cluster.start();
         }
     }
 

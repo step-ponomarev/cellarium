@@ -5,12 +5,10 @@ import java.io.IOException;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.utils.Utils;
-import cellarium.http.QueryParam;
 import jdk.incubator.foreign.MemorySegment;
-import one.nio.http.Request;
 import one.nio.http.Response;
 
-public final class DaoHttpService implements HttpService, Closeable {
+public final class DaoHttpService implements Closeable {
     private final MemorySegmentDao dao;
 
     public DaoHttpService(MemorySegmentDao dao) {
@@ -22,22 +20,11 @@ public final class DaoHttpService implements HttpService, Closeable {
     }
 
     @Override
-    public Response handleRequest(Request request) {
-        return switch (request.getMethod()) {
-            case Request.METHOD_GET -> getById(request);
-            case Request.METHOD_PUT -> put(request);
-            case Request.METHOD_DELETE -> delete(request);
-            default -> new Response(Response.BAD_REQUEST);
-        };
-    }
-
-    @Override
     public void close() throws IOException {
         dao.close();
     }
 
-    private Response getById(Request request) {
-        final String id = request.getParameter(QueryParam.ID);
+    public Response getById(String id) {
         if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
@@ -59,14 +46,12 @@ public final class DaoHttpService implements HttpService, Closeable {
         }
     }
 
-    private Response put(Request request) {
-        final String id = request.getParameter(QueryParam.ID);
+    public Response put(String id, byte[] body) {
         if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
 
         try {
-            final byte[] body = request.getBody();
             if (body == null || body.length == 0) {
                 return new Response(Response.BAD_REQUEST, Response.EMPTY);
             }
@@ -85,8 +70,7 @@ public final class DaoHttpService implements HttpService, Closeable {
         }
     }
 
-    private Response delete(Request request) {
-        final String id = request.getParameter(QueryParam.ID);
+    public Response delete(String id) {
         if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
