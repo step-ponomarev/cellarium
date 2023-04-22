@@ -33,7 +33,7 @@ public final class Server extends HttpServer {
         }
 
         this.cluster = new Cluster(config.selfUrl, config.clusterUrls, config.virtualNodeAmount, new DaoHttpService(dao));
-        this.loadBalancer = new LoadBalancer(config.clusterUrls, 1, 1);
+        this.loadBalancer = new LoadBalancer(config.clusterUrls, config.requestHandlerThreadCount, config.nodeTaskLimit);
     }
 
     @Override

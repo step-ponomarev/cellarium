@@ -113,7 +113,7 @@ public class Cluster {
         serverConfig.selfPort = currentUrl.getPort();
         serverConfig.selfUrl = currentUrl.toString();
         serverConfig.clusterUrls = clusterUrls;
-        serverConfig.localThreadAmount = Runtime.getRuntime().availableProcessors() - 2;
+        serverConfig.requestHandlerThreadCount = Runtime.getRuntime().availableProcessors() - 2;
         serverConfig.remoteThreadAmount = Runtime.getRuntime().availableProcessors() - 2;
 
         final AcceptorConfig acceptor = new AcceptorConfig();
