@@ -31,18 +31,18 @@ public final class LoadBalancer implements Closeable {
     public void scheduleTask(String url, Runnable task, Consumer<Throwable> onError) {
         final BlockingDeque<CancelableTask> nodeTasks = nodeUrlToTasks.get(url);
 
-        boolean limitIsReached = false;
+        boolean threadLimitIsReached = false;
         final CancelableTask cancelableTask = new CancelableTask(task, onError);
 
         while (!nodeTasks.offer(cancelableTask)) {
-            limitIsReached = true;
+            threadLimitIsReached = true;
             final CancelableTask currentTask = nodeTasks.poll();
             if (currentTask != null) {
                 currentTask.cancel();
             }
         }
 
-        if (limitIsReached) {
+        if (threadLimitIsReached) {
             return;
         }
 
