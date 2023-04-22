@@ -5,18 +5,22 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class LoadBalancer implements Closeable {
-    private final Map<String, BlockingDeque<CancelableTask>> nodeUrlToTasks;
+    private static final Logger log = LoggerFactory.getLogger(LoadBalancer.class); 
+    
+    private final Map<String, BlockingQueue<CancelableTask>> nodeUrlToTasks;
     private final ExecutorService executorService;
 
     public LoadBalancer(Set<String> clusterUrls, int threadCount, int executingTaskPerNode) {
@@ -24,38 +28,25 @@ public final class LoadBalancer implements Closeable {
         this.executorService = Executors.newFixedThreadPool(threadCount);
 
         for (String url : clusterUrls) {
-            this.nodeUrlToTasks.put(url, new LinkedBlockingDeque<>(executingTaskPerNode));
+            this.nodeUrlToTasks.put(url, new LinkedBlockingQueue<>(executingTaskPerNode));
         }
     }
 
     public void scheduleTask(String url, Runnable task, Consumer<Throwable> onError) {
-        final BlockingDeque<CancelableTask> nodeTasks = nodeUrlToTasks.get(url);
+        final BlockingQueue<CancelableTask> nodeTasks = nodeUrlToTasks.get(url);
 
-        boolean threadLimitIsReached = false;
         final CancelableTask cancelableTask = new CancelableTask(task, onError);
-
-        while (!nodeTasks.offer(cancelableTask)) {
-            threadLimitIsReached = true;
-            final CancelableTask currentTask = nodeTasks.poll();
-            if (currentTask != null) {
-                currentTask.cancel();
-            }
-        }
-
-        if (threadLimitIsReached) {
+        if (!nodeTasks.offer(cancelableTask)) {
+            cancelableTask.cancel();
             return;
         }
 
         try {
             CompletableFuture.runAsync(() -> {
-                        final CancelableTask currentTask = nodeTasks.poll();
-                        if (currentTask == null) {
-                            return;
-                        }
-
-                        currentTask.run();
+                        nodeTasks.poll().run();
                     }, executorService)
                     .exceptionallyAsync(e -> {
+                        log.error("Request is failed", e);
                         onError.accept(e);
                         return null;
                     }, executorService);

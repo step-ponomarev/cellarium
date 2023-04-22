@@ -1,7 +1,6 @@
 package cellarium.http;
 
 import java.io.IOException;
-import java.util.concurrent.CompletionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
@@ -10,6 +9,7 @@ import cellarium.http.cluster.ConsistentHashing;
 import cellarium.http.cluster.LoadBalancer;
 import cellarium.http.cluster.Node;
 import cellarium.http.cluster.request.NodeRequest;
+import cellarium.http.cluster.request.RequestInvokeException;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.service.DaoHttpService;
@@ -75,8 +75,8 @@ public final class Server extends HttpServer {
                                 new NodeRequest(request, id)
                         )
                 );
-            } catch (Exception e) {
-                throw new CompletionException(e);
+            } catch (IOException | RequestInvokeException e) {
+                sendErrorResponse(session, e);
             }
         };
 

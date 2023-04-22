@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import cellarium.http.cluster.request.LocalRequestHandler;
 import cellarium.http.cluster.request.RemoteRequestHandler;
 import cellarium.http.service.DaoHttpService;
@@ -31,10 +30,6 @@ public final class Cluster implements Closeable {
 
     public int getNodeAmount() {
         return nodes.length;
-    }
-
-    public Set<String> getNodeUrls() {
-        return Stream.of(nodes).map(Node::getNodeUrl).collect(Collectors.toSet());
     }
 
     private static Node[] createVirtualNodes(String selfUrl, Set<String> clusterUrls, int virtualNodesCount, LocalRequestHandler localRequestHandler) {
