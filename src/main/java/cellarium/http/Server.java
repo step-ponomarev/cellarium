@@ -80,7 +80,7 @@ public final class Server extends HttpServer {
             }
         };
 
-        loadBalancer.scheduleTask(node.getNodeUrl(), task, e -> sendErrorResponse(session, e));
+        loadBalancer.scheduleTask(node.getNodeUrl(), new LoadBalancer.CancelableTask(task, e -> sendErrorResponse(session, e)));
     }
 
     @Override
