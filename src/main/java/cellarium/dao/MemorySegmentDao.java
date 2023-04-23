@@ -187,11 +187,15 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
             return;
         }
 
-        if (sstablesLimit - 1 > diskStore.getSSTablesAmount()) {
-            diskStore.flush(flushData);
-        } else {
-            log.info("SStables limit is reached: " + sstablesLimit);
-            diskStore.compact(flushData);
+        try {
+            if (sstablesLimit - 1 > diskStore.getSSTablesAmount()) {
+                diskStore.flush(flushData);
+            } else {
+                log.info("SStables limit is reached: " + sstablesLimit);
+                diskStore.compact(flushData);
+            }
+        } catch (Exception e) {
+            log.error("Flush is failed", e);
         }
     }
 }
