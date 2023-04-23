@@ -18,8 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class LoadBalancer implements Closeable {
-    private static final Logger log = LoggerFactory.getLogger(LoadBalancer.class); 
-    
+    private static final Logger log = LoggerFactory.getLogger(LoadBalancer.class);
+
     private final Map<String, BlockingQueue<CancelableTask>> nodeUrlToTasks;
     private final ExecutorService executorService;
 
@@ -42,9 +42,7 @@ public final class LoadBalancer implements Closeable {
         }
 
         try {
-            CompletableFuture.runAsync(() -> {
-                        nodeTasks.poll().run();
-                    }, executorService)
+            CompletableFuture.runAsync(() -> nodeTasks.poll().run(), executorService)
                     .exceptionallyAsync(e -> {
                         log.error("Request is failed", e);
                         onError.accept(e);
