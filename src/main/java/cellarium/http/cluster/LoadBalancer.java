@@ -60,9 +60,7 @@ public final class LoadBalancer implements Closeable {
         }
 
         try {
-            executorService.execute(() -> {
-                nodeTasks.poll().run();
-            });
+            executorService.execute(() -> nodeTasks.poll().run());
         } catch (RejectedExecutionException e) {
             cancelableTask.onCancel.accept(e);
         }
