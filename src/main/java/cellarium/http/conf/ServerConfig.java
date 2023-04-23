@@ -10,7 +10,8 @@ public final class ServerConfig extends HttpServerConfig {
     //http://domain:port
     public String selfUrl;
     public Set<String> clusterUrls;
-    public int localThreadCount = 1;
-    public int remoteThreadCount = 1;
+    public int localThreadAmount = 1;
+    public int remoteThreadAmount = 1;
     public int requestTimeoutMs = 200;
+    public int virtualNodeAmount = 10;
 }

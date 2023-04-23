@@ -4,9 +4,10 @@ selfPort: 8080
 selfUrl: http://localhost:8080
 clusterUrls:
   - http://localhost:8080
-localThreadCount: 6
-remoteThreadCount: 6
+localThreadAmount: 6
+remoteThreadAmount: 6
 closeSessions: true
+virtualNodeAmount: 10;
 
 
 acceptors:

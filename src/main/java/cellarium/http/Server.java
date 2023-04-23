@@ -1,10 +1,11 @@
 package cellarium.http;
 
 import java.io.IOException;
-import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cellarium.dao.MemorySegmentDao;
+import cellarium.http.cluster.ConsistentHashingCluster;
+import cellarium.http.cluster.Node;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.handlers.AsyncRequestHandler;
@@ -23,8 +24,7 @@ public final class Server extends HttpServer {
     private final AsyncRequestHandler remoteRequestHandler;
     private final AsyncRequestHandler localRequestHandler;
 
-    private final ClusterClient clusterClient;
-    private final String selfUrl;
+    private final ConsistentHashingCluster consistentHashingCluster;
 
     public Server(ServerConfig config, MemorySegmentDao dao) throws IOException {
         super(config);
@@ -32,13 +32,10 @@ public final class Server extends HttpServer {
         if (dao == null) {
             throw new NullPointerException("Dao cannot be null");
         }
-
-        PropertyConfigurator.configure("log4j.properties");
         
-        this.clusterClient = new ClusterClient(config.selfUrl, config.clusterUrls);
-        this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao), config.localThreadCount);
-        this.remoteRequestHandler = new RemoteRequestHandler(this.clusterClient, config.remoteThreadCount, config.requestTimeoutMs);
-        this.selfUrl = config.selfUrl;
+        this.consistentHashingCluster = new ConsistentHashingCluster(config.selfUrl, config.clusterUrls, config.virtualNodeAmount);
+        this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao), config.localThreadAmount);
+        this.remoteRequestHandler = new RemoteRequestHandler(this.consistentHashingCluster, config.remoteThreadAmount, config.requestTimeoutMs);
     }
 
     @Override
@@ -55,6 +52,7 @@ public final class Server extends HttpServer {
         }
     }
 
+    //TODO: Дважды ищем ноду - плохо.
     @Override
     protected RequestHandler findHandlerByHost(Request request) {
         if (!isValidRequest(request)) {
@@ -62,9 +60,9 @@ public final class Server extends HttpServer {
         }
 
         final String id = request.getParameter(QueryParam.ID);
-        final String clusterUrl = clusterClient.getClusterUrl(id);
+        final Node nodeByKey = consistentHashingCluster.getNodeByKey(id);
 
-        return selfUrl.equals(clusterUrl) ? localRequestHandler : remoteRequestHandler;
+        return nodeByKey.isLocalNode() ? localRequestHandler : remoteRequestHandler;
     }
 
     @Override
@@ -78,9 +76,18 @@ public final class Server extends HttpServer {
             session.sendResponse(new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY));
             return;
         }
+
+        if (request.getParameter(QueryParam.ID) == null) {
+            session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
+            return;
+        }
     }
 
     private static boolean isValidRequest(Request request) {
+        if (request.getParameter(QueryParam.ID) == null) {
+            return false;
+        }
+
         return ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())
                 && ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod());
     }

@@ -1,6 +1,7 @@
 package cellarium.http.handlers;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
@@ -8,20 +9,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import cellarium.http.ClusterClient;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import cellarium.http.QueryParam;
+import cellarium.http.cluster.ConsistentHashingCluster;
 import one.nio.http.HttpClient;
 import one.nio.http.HttpException;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
 import one.nio.http.Response;
+import one.nio.net.ConnectionString;
 import one.nio.pool.PoolException;
 
 public final class RemoteRequestHandler extends AsyncRequestHandler {
-    private final ClusterClient clusterClient;
+    private final ConsistentHashingCluster consistentHashingCluster;
+    private final Map<String, HttpClient> nodeClients;
     private final long requestTimeout;
 
-    public RemoteRequestHandler(ClusterClient clusterClient, int threadCount, long requestTimeout) {
+    public RemoteRequestHandler(ConsistentHashingCluster consistentHashingCluster, int threadCount, long requestTimeout) {
         super(Executors.newFixedThreadPool(threadCount));
 
         if (threadCount < 1) {
@@ -32,14 +37,19 @@ public final class RemoteRequestHandler extends AsyncRequestHandler {
             throw new IllegalArgumentException("Timeout is negative: " + requestTimeout);
         }
 
-        this.clusterClient = clusterClient;
+        this.consistentHashingCluster = consistentHashingCluster;
         this.requestTimeout = requestTimeout;
+        this.nodeClients = consistentHashingCluster.getNodeUrls()
+                .stream()
+                .collect(
+                        Collectors.toMap(UnaryOperator.identity(), u -> new HttpClient(new ConnectionString(u)))
+                );
     }
 
     @Override
     protected void handleRequestAsync(Request request, HttpSession session, ExecutorService executorService) throws RejectedExecutionException {
-        final String url = clusterClient.getClusterUrl(request.getParameter(QueryParam.ID));
-        final HttpClient node = clusterClient.getNode(url);
+        final String url = consistentHashingCluster.getNodeByKey(request.getParameter(QueryParam.ID)).getNodeUrl();
+        final HttpClient node = nodeClients.get(url);
         if (node == null) {
             throw new IllegalStateException("Cluster node does not exist: " + url);
         }
