@@ -14,5 +14,5 @@ public final class ServerConfig extends HttpServerConfig {
     public int remoteThreadAmount = 1;
     public int requestTimeoutMs = 200;
     public int virtualNodeAmount = 10;
-    public int nodeTaskLimit = 1;
+    public int maxTasksPerNode = 1;
 }

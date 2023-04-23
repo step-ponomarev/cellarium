@@ -6,7 +6,7 @@ clusterUrls:
   - http://localhost:8080
 requestHandlerThreadCount: 6
 closeSessions: true
-nodeTaskLimit: 1
+maxTasksPerNode: 1
 
 acceptors:
   - port: 8080
