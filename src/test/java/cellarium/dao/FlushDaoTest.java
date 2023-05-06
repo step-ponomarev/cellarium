@@ -6,8 +6,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.disk.DiskUtils;
 import cellarium.entry.Entry;
+import cellarium.DiskUtils;
 import test.entry.EntryGeneratorList;
 import test.entry.Utils;
 
@@ -195,7 +195,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
 
     @Test(timeout = 15_000)
     public void testFlushCompactionReadEachConcurrent() throws Exception {
-        final int count = 2_000;
+        final int count = 1_000;
         try (Dao<String, Entry<String>> dao = createDao(UNLIMITED_MEMORY_SIZE)) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
 

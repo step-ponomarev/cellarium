@@ -1,22 +1,30 @@
 package cellarium.sstable;
 
 import java.io.Closeable;
-import cellarium.disk.reader.MemorySegmentEntryReader;
-import cellarium.disk.writer.MemorySegmentEntryWriter;
+import java.nio.ByteOrder;
 import cellarium.entry.EntryComparator;
+import cellarium.sstable.read.MappedEntryIterator;
+import cellarium.sstable.write.entry.MemorySegmentEntryWriter;
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
 
 final class Index implements Closeable {
-    private final MemorySegment tableMemorySegment;
     private final MemorySegment indexMemorySegment;
+    private final ByteOrder byteOrder;
 
-    public Index(MemorySegment tableMemorySegment, MemorySegment indexMemorySegment) {
-        this.tableMemorySegment = tableMemorySegment;
+    private final int maxIndex;
+
+    public Index(MemorySegment indexMemorySegment, ByteOrder byteOrder) {
         this.indexMemorySegment = indexMemorySegment;
+        this.byteOrder = byteOrder;
+        this.maxIndex = (int) (indexMemorySegment.byteSize() / Long.BYTES) - 1;
     }
 
-    public int findIndexOfKey(MemorySegment key) {
+    public long getEntryOffsetByIndex(int index) {
+        return MemoryAccess.getLongAtIndex(indexMemorySegment, index, byteOrder);
+    }
+
+    public int findIndexOfKey(MemorySegment key, MemorySegment tableMemorySegment) {
         if (indexMemorySegment == null || tableMemorySegment == null || key == null) {
             throw new NullPointerException("Arguments cannot be null!");
         }
@@ -26,14 +34,13 @@ final class Index implements Closeable {
 
         while (low <= high) {
             int mid = (low + high) >>> 1;
-
-            final long keyPosition = MemoryAccess.getLongAtIndex(indexMemorySegment, mid);
+            final long keyPosition = MemoryAccess.getLongAtIndex(indexMemorySegment, mid, byteOrder);
 
             /**
              * Специфика записи данных.
-             * см {@link MemorySegmentEntryWriter} и {@link MemorySegmentEntryReader}
+             * см {@link MemorySegmentEntryWriter} и {@link MappedEntryIterator}
              */
-            final long keySize = MemoryAccess.getLongAtOffset(tableMemorySegment, keyPosition);
+            final long keySize = MemoryAccess.getLongAtOffset(tableMemorySegment, keyPosition, byteOrder);
             final MemorySegment current = tableMemorySegment.asSlice(keyPosition + Long.BYTES, keySize);
 
             final int compareResult = EntryComparator.compareMemorySegments(current, key);
@@ -50,35 +57,11 @@ final class Index implements Closeable {
     }
 
     public int getMaxIndex() {
-        return (int) (indexMemorySegment.byteSize() / Long.BYTES) - 1;
-    }
-
-    public int getFromIndex(MemorySegment from) {
-        if (from == null) {
-            return 0;
-        }
-
-        return Math.abs(
-                findIndexOfKey(from)
-        );
-    }
-
-    public int getToIndex(MemorySegment to) {
-        if (to == null) {
-            return getMaxIndex() + 1;
-        }
-
-        return Math.abs(findIndexOfKey(to));
-    }
-
-    public long getEntryPositionByIndex(int index) {
-        return MemoryAccess.getLongAtIndex(indexMemorySegment, index);
+        return maxIndex;
     }
 
     @Override
     public void close() {
-        indexMemorySegment.unload();
-        indexMemorySegment.force();
         indexMemorySegment.scope().close();
     }
 }
