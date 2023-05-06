@@ -6,8 +6,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.disk.DiskUtils;
 import cellarium.entry.Entry;
+import cellarium.DiskUtils;
 import test.entry.EntryGeneratorList;
 import test.entry.Utils;
 

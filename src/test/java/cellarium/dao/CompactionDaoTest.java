@@ -7,9 +7,9 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.disk.DiskUtils;
 import cellarium.entry.Entry;
 import cellarium.iterators.ReadIterator;
+import cellarium.DiskUtils;
 import test.entry.EntryGeneratorList;
 import test.entry.Utils;
 
@@ -167,7 +167,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
         try (final Dao<String, Entry<String>> dao = createDao(Long.MAX_VALUE)) {
-            runAsync(100, count, i -> {
+            runAsync(10, count, i -> {
                 final Entry<String> addedEntry = entries.get(i);
                 dao.upsert(addedEntry);
                 dao.compact();

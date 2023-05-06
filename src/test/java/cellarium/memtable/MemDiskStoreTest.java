@@ -10,10 +10,10 @@ import cellarium.EntryConverter;
 import cellarium.entry.MemorySegmentEntry;
 import test.entry.EntryGeneratorList;
 
-public class MemTableTest {
+public class MemDiskStoreTest {
     public final ExecutorService executorService;
 
-    public MemTableTest() {
+    public MemDiskStoreTest() {
         this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     }
 

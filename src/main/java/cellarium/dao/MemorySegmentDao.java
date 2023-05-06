@@ -37,7 +37,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
         if (Files.notExists(config.path)) {
             throw new IllegalArgumentException("Path: " + config.path + " is not exist");
         }
-        
+
         this.executor = Executors.newSingleThreadExecutor();
 
         this.memTableLimitBytes = config.memtableLimitBytes;

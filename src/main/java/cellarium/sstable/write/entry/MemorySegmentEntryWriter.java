@@ -1,13 +1,16 @@
-package cellarium.disk.writer;
+package cellarium.sstable.write.entry;
 
-import cellarium.disk.AMemorySegmentHandler;
+import java.nio.ByteOrder;
 import cellarium.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
 
-public class MemorySegmentEntryWriter extends AMemorySegmentHandler implements Writer<MemorySegmentEntry> {
-    public MemorySegmentEntryWriter(MemorySegment memorySegment, long tombstoneTag) {
-        super(memorySegment, tombstoneTag);
+public final class MemorySegmentEntryWriter extends AMemorySegmentEntryWriter {
+    private final MemorySegment memorySegment;
+
+    public MemorySegmentEntryWriter(MemorySegment memorySegment, long tombstoneTag, ByteOrder byteOrder) {
+        super(tombstoneTag, byteOrder);
+        this.memorySegment = memorySegment;
     }
 
     @Override
@@ -16,24 +19,24 @@ public class MemorySegmentEntryWriter extends AMemorySegmentHandler implements W
         final long keySize = key.byteSize();
 
         final long startOffset = position;
-        MemoryAccess.setLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER, keySize);
+        MemoryAccess.setLongAtOffset(memorySegment, position, byteOrder, keySize);
         position += Long.BYTES;
 
         memorySegment.asSlice(position, keySize).copyFrom(key);
         position += keySize;
 
-        MemoryAccess.setLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER, entry.getTimestamp());
+        MemoryAccess.setLongAtOffset(memorySegment, position, byteOrder, entry.getTimestamp());
         position += Long.BYTES;
 
         final MemorySegment value = entry.getValue();
         if (value == null) {
-            MemoryAccess.setLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER, this.tombstoneTag);
+            MemoryAccess.setLongAtOffset(memorySegment, position, byteOrder, this.tombstoneTag);
             position += Long.BYTES;
             return position - startOffset;
         }
 
         final long valueSize = value.byteSize();
-        MemoryAccess.setLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER, valueSize);
+        MemoryAccess.setLongAtOffset(memorySegment, position, byteOrder, valueSize);
         position += Long.BYTES;
 
         memorySegment.asSlice(position, valueSize).copyFrom(value);

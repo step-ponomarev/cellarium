@@ -13,12 +13,14 @@ import cellarium.entry.EntryComparator;
 import cellarium.entry.MemorySegmentEntry;
 import cellarium.iterators.MergeIterator;
 import cellarium.iterators.TombstoneSkipIterator;
-import cellarium.sstable.SSTable;
+import cellarium.DiskUtils;
+import cellarium.sstable.SSTableFactory;
+import cellarium.sstable.SSTableWithMeta;
 import jdk.incubator.foreign.MemorySegment;
 
 public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Closeable {
     private final Path path;
-    private final CopyOnWriteArrayList<SSTable> ssTables;
+    private final CopyOnWriteArrayList<SSTableWithMeta> ssTables;
 
     public DiskStore(Path path) throws IOException {
         if (Files.notExists(path)) {
@@ -26,7 +28,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         }
 
         this.path = path;
-        this.ssTables = new CopyOnWriteArrayList<>(SSTable.wakeUpSSTables(path));
+        this.ssTables = new CopyOnWriteArrayList<>(SSTableFactory.wakeUpSSTables(path));
     }
 
     @Override
@@ -46,7 +48,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
 
     @Override
     public void close() {
-        ssTables.forEach(SSTable::close);
+        ssTables.forEach(s -> s.ssTable.close());
     }
 
     public synchronized void flush(FlushData flushData) throws IOException {
@@ -55,13 +57,13 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         }
 
         ssTables.add(
-                SSTable.flush(this.path, flushData.data, flushData.count, flushData.sizeBytes)
+                SSTableFactory.flush(this.path, flushData.data, flushData.count, flushData.sizeBytes)
         );
     }
 
     public synchronized void compact(FlushData flushData) throws IOException {
         final List<Iterator<MemorySegmentEntry>> data = ssTables.stream()
-                .map(table -> table.get(null, null))
+                .map(table -> table.ssTable.get(null, null))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         if (flushData != null) {
@@ -75,7 +77,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
                 )
         );
 
-        final List<SSTable> ssTablesToRemove = new ArrayList<>(ssTables);
+        final List<SSTableWithMeta> ssTablesToRemove = new ArrayList<>(ssTables);
         if (!compactedData.hasNext()) {
             ssTables.clear();
             removeFromDisk(ssTablesToRemove);
@@ -83,7 +85,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         }
 
         ssTables.add(
-                SSTable.flush(this.path, compactedData)
+                SSTableFactory.flush(this.path, compactedData)
         );
 
         ssTables.removeAll(ssTablesToRemove);
@@ -94,19 +96,19 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         return ssTables.size();
     }
 
-    private static void removeFromDisk(final List<SSTable> ssTables) throws IOException {
+    private static void removeFromDisk(final List<SSTableWithMeta> ssTables) throws IOException {
         if (ssTables == null || ssTables.isEmpty()) {
             return;
         }
-        for (SSTable removed : ssTables) {
-            removed.close();
-            removed.removeSSTableFromDisk();
+        for (SSTableWithMeta removed : ssTables) {
+            removed.ssTable.close();
+            DiskUtils.removeDir(removed.sstableDir);
         }
     }
 
     private Iterator<MemorySegmentEntry> readFromDisk(MemorySegment from, MemorySegment to) {
         return MergeIterator.of(
-                ssTables.stream().map(ssTable -> ssTable.get(from, to)).toList(),
+                ssTables.stream().map(ssTable -> ssTable.ssTable.get(from, to)).toList(),
                 EntryComparator::compareMemorySegmentEntryKeys
         );
     }

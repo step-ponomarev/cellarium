@@ -1,4 +1,4 @@
-package cellarium.disk.writer;
+package cellarium.sstable.write;
 
 import java.io.IOException;
 

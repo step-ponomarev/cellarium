@@ -1,42 +1,19 @@
 package cellarium.sstable;
 
 import java.io.Closeable;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Stream;
-import cellarium.disk.DiskUtils;
-import cellarium.disk.reader.MemorySegmentEntryReader;
-import cellarium.disk.reader.Reader;
-import cellarium.disk.writer.MemorySegmentEntryWriter;
-import cellarium.disk.writer.MemorySegmentFileChannelWriter;
 import cellarium.entry.MemorySegmentEntry;
-import jdk.incubator.foreign.MemoryAccess;
+import cellarium.sstable.read.LockedEntryIterator;
+import cellarium.sstable.read.MappedEntryIterator;
 import jdk.incubator.foreign.MemorySegment;
-import jdk.incubator.foreign.ResourceScope;
 
 public final class SSTable implements Closeable {
-    public static final long TOMBSTONE_TAG = -1;
-
-    private static final String SSTABLE_FILE_NAME = "sstable.data";
-    private static final String INDEX_FILE_NAME = "sstable.index";
-
-    private static final String TIMESTAMP_DELIM = "_T_";
-    private static final String SSTABLE_DIR_PREFIX = "SSTABLE";
-
-    private final Path path;
-    private final long createdTimeMs;
+    static final long TOMBSTONE_TAG = -1;
+    static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
     private final Index index;
     private final MemorySegment tableMemorySegment;
@@ -46,136 +23,13 @@ public final class SSTable implements Closeable {
      */
     private final ReadWriteLock readCloseLock = new ReentrantReadWriteLock();
 
-    private SSTable(
-            Path path,
-            MemorySegment indexMemorySegment,
-            MemorySegment tableMemorySegment,
-            long createdAt
-    ) {
-        if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Path must exist");
-        }
-
+    SSTable(MemorySegment indexMemorySegment, MemorySegment tableMemorySegment) {
         if (!indexMemorySegment.isReadOnly() || !tableMemorySegment.isReadOnly()) {
             throw new IllegalArgumentException("Mapped segments must be read ondly!");
         }
 
-        this.path = path;
-        this.index = new Index(tableMemorySegment, indexMemorySegment);
+        this.index = new Index(indexMemorySegment, BYTE_ORDER);
         this.tableMemorySegment = tableMemorySegment;
-
-        this.createdTimeMs = createdAt;
-    }
-
-    public static SSTable flush(Path path, Iterator<MemorySegmentEntry> data) throws IOException {
-        if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Dir is not exists: " + path);
-        }
-
-        if (!data.hasNext()) {
-            throw new IllegalStateException("Data is empty");
-        }
-
-        final long timestamp = System.currentTimeMillis();
-        final Path ssTableDir = Files.createDirectory(path.resolve(SSTABLE_DIR_PREFIX + createHash(timestamp)));
-
-        final Path dataFile = Files.createFile(ssTableDir.resolve(SSTABLE_FILE_NAME));
-        final Path indexFile = Files.createFile(ssTableDir.resolve(INDEX_FILE_NAME));
-
-        long dataFileOffset = 0;
-        long indexFileOffset = 0;
-
-        try (final FileChannel dataFileChannel = FileChannel.open(dataFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
-             final FileChannel indexFileChannel = FileChannel.open(indexFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
-            final MemorySegmentFileChannelWriter writer = new MemorySegmentFileChannelWriter(dataFileChannel, TOMBSTONE_TAG);
-            while (data.hasNext()) {
-                final MemorySegmentEntry next = data.next();
-
-                indexFileChannel.write(
-                        ByteBuffer.allocate(Long.BYTES).putLong(dataFileOffset).flip()
-                );
-
-                indexFileOffset += Long.BYTES;
-                dataFileOffset += writer.write(next);
-            }
-        } catch (IOException exception) {
-            // TODO: ДОбавить логи
-            DiskUtils.removeDir(ssTableDir);
-        }
-
-        final MemorySegment mappedSsTable = mapFile(
-                dataFile,
-                dataFileOffset
-        );
-
-        final MemorySegment mappedIndex = mapFile(
-                indexFile,
-                indexFileOffset
-        );
-
-        return new SSTable(
-                ssTableDir,
-                mappedIndex.asReadOnly(),
-                mappedSsTable.asReadOnly(),
-                timestamp
-        );
-    }
-
-    public static SSTable flush(Path path,
-                                Iterator<MemorySegmentEntry> data,
-                                int count,
-                                long sizeBytes
-    ) throws IOException {
-        if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Dir is not exists: " + path);
-        }
-
-        if (!data.hasNext()) {
-            throw new IllegalStateException("Data is empty");
-        }
-
-        final long timestamp = System.currentTimeMillis();
-        final Path ssTableDir = Files.createDirectory(path.resolve(SSTABLE_DIR_PREFIX + createHash(timestamp)));
-
-        final MemorySegment mappedSsTable = mapFile(
-                Files.createFile(ssTableDir.resolve(SSTABLE_FILE_NAME)),
-                // key + value sizes * data count + data sizeBytes
-                (long) Long.BYTES * 2 * count + sizeBytes);
-
-        final MemorySegment mappedIndex = mapFile(
-                Files.createFile(ssTableDir.resolve(INDEX_FILE_NAME)),
-                //data offsets
-                (long) Long.BYTES * count);
-
-        flush(data, mappedSsTable, mappedIndex);
-
-        return new SSTable(
-                ssTableDir,
-                mappedIndex.asReadOnly(),
-                mappedSsTable.asReadOnly(),
-                timestamp
-        );
-    }
-
-    public static List<SSTable> wakeUpSSTables(Path path) throws IOException {
-        if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Dir is not exists: " + path);
-        }
-
-        try (Stream<Path> files = Files.list(path)) {
-            final List<String> tableDirNames = files
-                    .map(f -> f.getFileName().toString())
-                    .filter(n -> n.contains(SSTABLE_DIR_PREFIX))
-                    .sorted()
-                    .toList();
-
-            final List<SSTable> tables = new ArrayList<>();
-            for (String name : tableDirNames) {
-                tables.add(SSTable.upInstance(path.resolve(name)));
-            }
-
-            return tables;
-        }
     }
 
     @Override
@@ -183,11 +37,8 @@ public final class SSTable implements Closeable {
         readCloseLock.writeLock().lock();
 
         try {
-            tableMemorySegment.unload();
-            tableMemorySegment.force();
-            tableMemorySegment.scope().close();
-
             index.close();
+            tableMemorySegment.scope().close();
         } finally {
             readCloseLock.writeLock().unlock();
         }
@@ -195,154 +46,36 @@ public final class SSTable implements Closeable {
 
     public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) {
         if (from == null && to == null) {
-            return new MappedIterator(
-                    new MemorySegmentEntryReader(
+            return new LockedEntryIterator(
+                    new MappedEntryIterator(
                             tableMemorySegment,
-                            TOMBSTONE_TAG
-                    )
+                            TOMBSTONE_TAG,
+                            BYTE_ORDER
+                    ),
+                    readCloseLock.readLock()
             );
         }
 
         final int maxIndex = index.getMaxIndex();
-        final int fromIndex = index.getFromIndex(from);
+        final int fromIndex = Math.abs(from == null ? 0 : index.findIndexOfKey(from, tableMemorySegment));
 
         if (fromIndex > maxIndex) {
             return Collections.emptyIterator();
         }
 
-        final int toIndex = index.getToIndex(to);
-        final long fromPosition = index.getEntryPositionByIndex(fromIndex);
+        final int toIndex = Math.abs(to == null ? index.getMaxIndex() + 1 : index.findIndexOfKey(to, tableMemorySegment));
+        final long fromPosition = index.getEntryOffsetByIndex(fromIndex);
         final long toPosition = toIndex > maxIndex
                 ? tableMemorySegment.byteSize()
-                : index.getEntryPositionByIndex(toIndex);
+                : index.getEntryOffsetByIndex(toIndex);
 
-        return new MappedIterator(
-                new MemorySegmentEntryReader(
+        return new LockedEntryIterator(
+                new MappedEntryIterator(
                         tableMemorySegment.asSlice(fromPosition, toPosition - fromPosition),
-                        TOMBSTONE_TAG
-                )
+                        TOMBSTONE_TAG,
+                        BYTE_ORDER
+                ),
+                readCloseLock.readLock()
         );
-    }
-
-    private static SSTable upInstance(Path path) throws IOException {
-        if (Files.notExists(path)) {
-            throw new IllegalArgumentException("Dir is not exists");
-        }
-
-        final Path sstableFile = path.resolve(SSTABLE_FILE_NAME);
-        final Path indexFile = path.resolve(INDEX_FILE_NAME);
-        if (Files.notExists(path) || Files.notExists(indexFile)) {
-            throw new IllegalArgumentException("Files must exist.");
-        }
-
-        final MemorySegment mappedSsTable = MemorySegment.mapFile(
-                sstableFile,
-                0,
-                Files.size(sstableFile),
-                FileChannel.MapMode.READ_ONLY,
-                ResourceScope.newSharedScope()
-        );
-
-        final MemorySegment mappedIndex = MemorySegment.mapFile(
-                indexFile,
-                0,
-                Files.size(indexFile),
-                FileChannel.MapMode.READ_ONLY,
-                ResourceScope.newSharedScope()
-        );
-
-        return new SSTable(
-                path,
-                mappedIndex.asReadOnly(),
-                mappedSsTable.asReadOnly(),
-                System.currentTimeMillis()
-        );
-    }
-
-    private static void flush(Iterator<MemorySegmentEntry> data, MemorySegment sstable, MemorySegment index) {
-        if (!data.hasNext()) {
-            throw new IllegalStateException("Flushing data is empty!");
-        }
-
-        long indexOffset = 0;
-        long sstableOffset = 0;
-
-        final MemorySegmentEntryWriter entryWriter = new MemorySegmentEntryWriter(sstable, TOMBSTONE_TAG);
-        while (data.hasNext()) {
-            indexOffset += Index.write(index, indexOffset, sstableOffset);
-            sstableOffset += entryWriter.write(data.next());
-        }
-    }
-
-    public void removeSSTableFromDisk() throws IOException {
-        if (this.tableMemorySegment.scope().isAlive()) {
-            throw new IllegalStateException("Scope should be closed!");
-        }
-
-        DiskUtils.removeDir(this.path);
-    }
-
-    private static MemorySegment mapFile(final Path path, long sizeBytes) throws IOException {
-        if (Files.notExists(path)) {
-            throw new IllegalStateException("File is not exists " + path);
-        }
-
-        return MemorySegment.mapFile(
-                path,
-                0,
-                sizeBytes,
-                FileChannel.MapMode.READ_WRITE,
-                ResourceScope.newSharedScope()
-        );
-    }
-
-    private static String createHash(long timestamp) {
-        final int hashSize = 40;
-
-        final StringBuilder hash = new StringBuilder(createTimeMark(timestamp))
-                .append("_H_")
-                .append(System.nanoTime());
-
-        while (hash.length() < hashSize) {
-            hash.append(0);
-        }
-
-        return hash.substring(0, hashSize);
-    }
-
-    private static String createTimeMark(long timestamp) {
-        return TIMESTAMP_DELIM + timestamp;
-    }
-
-    private final class MappedIterator implements Iterator<MemorySegmentEntry> {
-        private final Reader<MemorySegmentEntry> memorySegmentEntryReader;
-
-        public MappedIterator(Reader<MemorySegmentEntry> memorySegmentEntryReader) {
-            this.memorySegmentEntryReader = memorySegmentEntryReader;
-        }
-
-        @Override
-        public boolean hasNext() {
-            readCloseLock.readLock().lock();
-            try {
-                return memorySegmentEntryReader.hasNext();
-            } finally {
-                readCloseLock.readLock().unlock();
-            }
-        }
-
-        @Override
-        public MemorySegmentEntry next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-
-            readCloseLock.readLock().lock();
-            try {
-                return memorySegmentEntryReader.read();
-            } finally {
-                readCloseLock.readLock().unlock();
-            }
-        }
     }
 }
