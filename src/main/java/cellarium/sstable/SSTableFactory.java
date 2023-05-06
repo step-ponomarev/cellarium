@@ -19,8 +19,8 @@ import jdk.incubator.foreign.MemorySegment;
 import jdk.incubator.foreign.ResourceScope;
 
 public final class SSTableFactory {
-    private static final String DATA_FILE_NAME = "sstable.data";
-    private static final String INDEX_FILE_NAME = "sstable.index";
+    private static final String DATA_FILE_NAME = "sstable.db";
+    private static final String INDEX_FILE_NAME = "index.db";
     private static final String TIMESTAMP_DELIM = "_";
 
     private SSTableFactory() {}
@@ -38,7 +38,6 @@ public final class SSTableFactory {
         try {
             final Path dataFile = Files.createFile(ssTableDir.resolve(DATA_FILE_NAME));
             final Path indexFile = Files.createFile(ssTableDir.resolve(INDEX_FILE_NAME));
-
             try (final FileChannel dataFileChannel = FileChannel.open(dataFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
                  final FileChannel indexFileChannel = FileChannel.open(indexFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
                 final SSTableEntryWriter entryWriter = new SSTableEntryWriter(
