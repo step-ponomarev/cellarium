@@ -18,7 +18,7 @@ public class MemDiskStoreTest {
     }
 
     @Test
-    public void testConcurrencySizeCountingWorksCorrect() throws InterruptedException {
+    public void testConcurrencySizeBytesCountingWorksCorrect() throws InterruptedException {
         final MemTable memTable = new MemTable();
         final AtomicLong totalSize = new AtomicLong(0);
 
