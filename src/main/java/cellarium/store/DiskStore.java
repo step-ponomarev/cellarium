@@ -33,12 +33,12 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
 
     @Override
     public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) throws IOException {
-        return readFromDisk(from, to);
+        return readFromSSTables(from, to);
     }
 
     @Override
     public MemorySegmentEntry get(MemorySegment key) throws IOException {
-        final Iterator<MemorySegmentEntry> data = readFromDisk(key, null);
+        final Iterator<MemorySegmentEntry> data = readFromSSTables(key, null);
         if (!data.hasNext()) {
             return null;
         }
@@ -80,7 +80,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         final List<SSTableWithMeta> ssTablesToRemove = new ArrayList<>(ssTables);
         if (!compactedData.hasNext()) {
             ssTables.clear();
-            removeFromDisk(ssTablesToRemove);
+            removeSSTables(ssTablesToRemove);
             return;
         }
 
@@ -89,14 +89,14 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         );
 
         ssTables.removeAll(ssTablesToRemove);
-        removeFromDisk(ssTablesToRemove);
+        removeSSTables(ssTablesToRemove);
     }
 
     public int getSSTablesAmount() {
         return ssTables.size();
     }
 
-    private static void removeFromDisk(final List<SSTableWithMeta> ssTables) throws IOException {
+    private static void removeSSTables(final List<SSTableWithMeta> ssTables) throws IOException {
         if (ssTables == null || ssTables.isEmpty()) {
             return;
         }
@@ -106,7 +106,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         }
     }
 
-    private Iterator<MemorySegmentEntry> readFromDisk(MemorySegment from, MemorySegment to) {
+    private Iterator<MemorySegmentEntry> readFromSSTables(MemorySegment from, MemorySegment to) {
         return MergeIterator.of(
                 ssTables.stream().map(ssTable -> ssTable.ssTable.get(from, to)).toList(),
                 EntryComparator::compareMemorySegmentEntryKeys
