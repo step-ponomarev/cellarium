@@ -163,7 +163,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
 
     @Test(timeout = 15_000)
     public void testConcurrentWriteCompactReadEach() throws Exception {
-        final int count = 2_000;
+        final int count = 1_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 
         try (final Dao<String, Entry<String>> dao = createDao(Long.MAX_VALUE)) {

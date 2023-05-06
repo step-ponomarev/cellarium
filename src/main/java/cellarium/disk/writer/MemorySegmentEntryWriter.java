@@ -1,9 +1,9 @@
 package cellarium.disk.writer;
 
-import jdk.incubator.foreign.MemoryAccess;
-import jdk.incubator.foreign.MemorySegment;
 import cellarium.disk.AMemorySegmentHandler;
 import cellarium.entry.MemorySegmentEntry;
+import jdk.incubator.foreign.MemoryAccess;
+import jdk.incubator.foreign.MemorySegment;
 
 public class MemorySegmentEntryWriter extends AMemorySegmentHandler implements Writer<MemorySegmentEntry> {
     public MemorySegmentEntryWriter(MemorySegment memorySegment, long tombstoneTag) {
@@ -16,24 +16,24 @@ public class MemorySegmentEntryWriter extends AMemorySegmentHandler implements W
         final long keySize = key.byteSize();
 
         final long startOffset = position;
-        MemoryAccess.setLongAtOffset(memorySegment, position, keySize);
+        MemoryAccess.setLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER, keySize);
         position += Long.BYTES;
 
         memorySegment.asSlice(position, keySize).copyFrom(key);
         position += keySize;
 
-        MemoryAccess.setLongAtOffset(memorySegment, position, entry.getTimestamp());
+        MemoryAccess.setLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER, entry.getTimestamp());
         position += Long.BYTES;
 
         final MemorySegment value = entry.getValue();
         if (value == null) {
-            MemoryAccess.setLongAtOffset(memorySegment, position, this.tombstoneTag);
+            MemoryAccess.setLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER, this.tombstoneTag);
             position += Long.BYTES;
             return position - startOffset;
         }
 
         final long valueSize = value.byteSize();
-        MemoryAccess.setLongAtOffset(memorySegment, position, valueSize);
+        MemoryAccess.setLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER, valueSize);
         position += Long.BYTES;
 
         memorySegment.asSlice(position, valueSize).copyFrom(value);

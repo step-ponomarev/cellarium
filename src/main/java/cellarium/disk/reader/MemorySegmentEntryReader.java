@@ -1,9 +1,9 @@
 package cellarium.disk.reader;
 
 import cellarium.disk.AMemorySegmentHandler;
+import cellarium.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
-import cellarium.entry.MemorySegmentEntry;
 
 public class MemorySegmentEntryReader extends AMemorySegmentHandler implements Reader<MemorySegmentEntry> {
     public MemorySegmentEntryReader(MemorySegment memorySegment, long tombstoneTag) {
@@ -12,18 +12,18 @@ public class MemorySegmentEntryReader extends AMemorySegmentHandler implements R
 
     @Override
     public MemorySegmentEntry read() {
-        final long keySize = MemoryAccess.getLongAtOffset(memorySegment, position);
+        final long keySize = MemoryAccess.getLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER);
         position += Long.BYTES;
 
-        //TODO: Можно ли эффективнее?
-        // Делается это для того чтобы при дальнейшем взаимодействии с entry не было привязки к первичному scope
-        final MemorySegment key = MemorySegment.ofByteBuffer(memorySegment.asSlice(position, keySize).asByteBuffer());
+        final MemorySegment key = MemorySegment.ofByteBuffer(
+                memorySegment.asSlice(position, keySize).asByteBuffer()
+        ).asReadOnly();
         position += keySize;
 
-        final long timestamp = MemoryAccess.getLongAtOffset(memorySegment, position);
+        final long timestamp = MemoryAccess.getLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER);
         position += Long.BYTES;
 
-        final long valueSize = MemoryAccess.getLongAtOffset(memorySegment, position);
+        final long valueSize = MemoryAccess.getLongAtOffset(memorySegment, position, STANDART_BYTE_OREDER);
         position += Long.BYTES;
 
         final boolean entryIsTombstone = valueSize == this.tombstoneTag;
@@ -31,11 +31,9 @@ public class MemorySegmentEntryReader extends AMemorySegmentHandler implements R
             return new MemorySegmentEntry(key, null, timestamp);
         }
 
-        //TODO: Можно ли эффективнее?
-        // Делается это для того чтобы при дальнейшем взаимодействии с entry не было привязки к первичному scope
         final MemorySegment value = MemorySegment.ofByteBuffer(
                 memorySegment.asSlice(position, valueSize).asByteBuffer()
-        );
+        ).asReadOnly();
         position += valueSize;
 
         return new MemorySegmentEntry(key, value, timestamp);

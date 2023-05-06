@@ -1,6 +1,7 @@
 package cellarium.sstable;
 
 import java.io.Closeable;
+import java.nio.ByteOrder;
 import cellarium.disk.reader.MemorySegmentEntryReader;
 import cellarium.disk.writer.MemorySegmentEntryWriter;
 import cellarium.entry.EntryComparator;
@@ -16,6 +17,11 @@ final class Index implements Closeable {
         this.indexMemorySegment = indexMemorySegment;
     }
 
+    public static int write(MemorySegment segment, long offset, long data) {
+        MemoryAccess.setLongAtOffset(segment, offset, data);
+        return Long.BYTES;
+    }
+
     public int findIndexOfKey(MemorySegment key) {
         if (indexMemorySegment == null || tableMemorySegment == null || key == null) {
             throw new NullPointerException("Arguments cannot be null!");
@@ -27,13 +33,13 @@ final class Index implements Closeable {
         while (low <= high) {
             int mid = (low + high) >>> 1;
 
-            final long keyPosition = MemoryAccess.getLongAtIndex(indexMemorySegment, mid);
+            final long keyPosition = MemoryAccess.getLongAtIndex(indexMemorySegment, mid, ByteOrder.BIG_ENDIAN);
 
             /**
              * Специфика записи данных.
              * см {@link MemorySegmentEntryWriter} и {@link MemorySegmentEntryReader}
              */
-            final long keySize = MemoryAccess.getLongAtOffset(tableMemorySegment, keyPosition);
+            final long keySize = MemoryAccess.getLongAtOffset(tableMemorySegment, keyPosition, ByteOrder.BIG_ENDIAN);
             final MemorySegment current = tableMemorySegment.asSlice(keyPosition + Long.BYTES, keySize);
 
             final int compareResult = EntryComparator.compareMemorySegments(current, key);
@@ -72,7 +78,7 @@ final class Index implements Closeable {
     }
 
     public long getEntryPositionByIndex(int index) {
-        return MemoryAccess.getLongAtIndex(indexMemorySegment, index);
+        return MemoryAccess.getLongAtIndex(indexMemorySegment, index, ByteOrder.BIG_ENDIAN);
     }
 
     @Override

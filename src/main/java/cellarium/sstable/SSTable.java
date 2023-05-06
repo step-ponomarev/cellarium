@@ -2,9 +2,12 @@ package cellarium.sstable;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -17,6 +20,7 @@ import cellarium.disk.DiskUtils;
 import cellarium.disk.reader.MemorySegmentEntryReader;
 import cellarium.disk.reader.Reader;
 import cellarium.disk.writer.MemorySegmentEntryWriter;
+import cellarium.disk.writer.MemorySegmentFileChannelWriter;
 import cellarium.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
@@ -24,6 +28,7 @@ import jdk.incubator.foreign.ResourceScope;
 
 public final class SSTable implements Closeable {
     public static final long TOMBSTONE_TAG = -1;
+
     private static final String SSTABLE_FILE_NAME = "sstable.data";
     private static final String INDEX_FILE_NAME = "sstable.index";
 
@@ -62,10 +67,64 @@ public final class SSTable implements Closeable {
         this.createdTimeMs = createdAt;
     }
 
-    public static SSTable flushAndCreateSSTable(Path path,
-                                                Iterator<MemorySegmentEntry> data,
-                                                int count,
-                                                long sizeBytes
+    public static SSTable flush(Path path, Iterator<MemorySegmentEntry> data) throws IOException {
+        if (Files.notExists(path)) {
+            throw new IllegalArgumentException("Dir is not exists: " + path);
+        }
+
+        if (!data.hasNext()) {
+            throw new IllegalStateException("Data is empty");
+        }
+
+        final long timestamp = System.currentTimeMillis();
+        final Path ssTableDir = Files.createDirectory(path.resolve(SSTABLE_DIR_PREFIX + createHash(timestamp)));
+
+        final Path dataFile = Files.createFile(ssTableDir.resolve(SSTABLE_FILE_NAME));
+        final Path indexFile = Files.createFile(ssTableDir.resolve(INDEX_FILE_NAME));
+
+        long dataFileOffset = 0;
+        long indexFileOffset = 0;
+
+        try (final FileChannel dataFileChannel = FileChannel.open(dataFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+             final FileChannel indexFileChannel = FileChannel.open(indexFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
+            final MemorySegmentFileChannelWriter writer = new MemorySegmentFileChannelWriter(dataFileChannel, TOMBSTONE_TAG);
+            while (data.hasNext()) {
+                final MemorySegmentEntry next = data.next();
+
+                indexFileChannel.write(
+                        ByteBuffer.allocate(Long.BYTES).putLong(dataFileOffset).flip()
+                );
+
+                indexFileOffset += Long.BYTES;
+                dataFileOffset += writer.write(next);
+            }
+        } catch (IOException exception) {
+            // TODO: ДОбавить логи
+            DiskUtils.removeDir(ssTableDir);
+        }
+
+        final MemorySegment mappedSsTable = mapFile(
+                dataFile,
+                dataFileOffset
+        );
+
+        final MemorySegment mappedIndex = mapFile(
+                indexFile,
+                indexFileOffset
+        );
+
+        return new SSTable(
+                ssTableDir,
+                mappedIndex.asReadOnly(),
+                mappedSsTable.asReadOnly(),
+                timestamp
+        );
+    }
+
+    public static SSTable flush(Path path,
+                                Iterator<MemorySegmentEntry> data,
+                                int count,
+                                long sizeBytes
     ) throws IOException {
         if (Files.notExists(path)) {
             throw new IllegalArgumentException("Dir is not exists: " + path);
@@ -208,11 +267,10 @@ public final class SSTable implements Closeable {
         long indexOffset = 0;
         long sstableOffset = 0;
 
-        final MemorySegmentEntryWriter writer = new MemorySegmentEntryWriter(sstable, TOMBSTONE_TAG);
+        final MemorySegmentEntryWriter entryWriter = new MemorySegmentEntryWriter(sstable, TOMBSTONE_TAG);
         while (data.hasNext()) {
-            MemoryAccess.setLongAtOffset(index, indexOffset, sstableOffset);
-            indexOffset += Long.BYTES;
-            sstableOffset += writer.write(data.next());
+            indexOffset += Index.write(index, indexOffset, sstableOffset);
+            sstableOffset += entryWriter.write(data.next());
         }
     }
 
