@@ -1,5 +1,6 @@
 package cellarium.memtable;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -11,18 +12,16 @@ import cellarium.entry.MemorySegmentEntry;
 import test.entry.EntryGeneratorList;
 
 public class MemDiskStoreTest {
-    public final ExecutorService executorService;
 
-    public MemDiskStoreTest() {
-        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    }
-
-    @Test
-    public void testConcurrencySizeBytesCountingWorksCorrect() throws InterruptedException {
+    @Test(timeout = 5_000)
+    public void testConcurrencySizeBytesCountingWorksCorrect() throws InterruptedException, ExecutionException {
         final MemTable memTable = new MemTable();
         final AtomicLong totalSize = new AtomicLong(0);
 
-        executorService.execute(
+        final ExecutorService executorService = Executors.newSingleThreadExecutor();
+        final ExecutorService multiThreadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+        executorService.submit(
                 () -> {
                     final EntryGeneratorList entries = new EntryGeneratorList(5000);
                     for (int j = 0; j < 5000; j++) {
@@ -31,15 +30,22 @@ public class MemDiskStoreTest {
                         memTable.upsert(entry);
                         totalSize.addAndGet(entry.getSizeBytes());
 
-                        executorService.execute(() -> {
+                        multiThreadExecutor.execute(() -> {
                             memTable.upsert(new MemorySegmentEntry(entry.getKey(), null, System.currentTimeMillis()));
                             totalSize.addAndGet(-(entry.getValue().byteSize()));
                         });
                     }
-                }
-        );
 
-        executorService.awaitTermination(3, TimeUnit.SECONDS);
+                    multiThreadExecutor.shutdown();
+                    try {
+                        multiThreadExecutor.awaitTermination(10, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
+                    }
+                }
+        ).get();
+
         Assert.assertEquals(totalSize.get(), memTable.getSizeBytes());
     }
 }
