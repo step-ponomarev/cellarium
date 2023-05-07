@@ -23,8 +23,7 @@ public final class SSTableFactory {
     private static final String INDEX_FILE_NAME = "index.db";
     private static final String TIMESTAMP_DELIM = "_";
 
-    private SSTableFactory() {
-    }
+    private SSTableFactory() {}
 
     public static SSTableWithMeta flush(Path tableDir, Iterator<MemorySegmentEntry> data) throws IOException {
         if (Files.notExists(tableDir)) {
