@@ -4,7 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import cellarium.dao.MemorySegmentDao;
 import cellarium.dao.entry.MemorySegmentEntry;
-import cellarium.dao.utils.Utils;
+import cellarium.dao.utils.MemorySegmentUtils;
 import cellarium.http.QueryParam;
 import jdk.incubator.foreign.MemorySegment;
 import one.nio.http.Request;
@@ -44,7 +44,7 @@ public final class DaoHttpService implements HttpService, Closeable {
 
         try {
             final MemorySegmentEntry entry = dao.get(
-                    Utils.stringToMemorySegment(id)
+                    MemorySegmentUtils.stringToMemorySegment(id)
             );
 
             if (entry == null) {
@@ -73,7 +73,7 @@ public final class DaoHttpService implements HttpService, Closeable {
 
             dao.upsert(
                     new MemorySegmentEntry(
-                            Utils.stringToMemorySegment(id),
+                            MemorySegmentUtils.stringToMemorySegment(id),
                             MemorySegment.ofArray(body),
                             System.currentTimeMillis()
                     )
@@ -94,7 +94,7 @@ public final class DaoHttpService implements HttpService, Closeable {
         try {
             dao.upsert(
                     new MemorySegmentEntry(
-                            Utils.stringToMemorySegment(id),
+                            MemorySegmentUtils.stringToMemorySegment(id),
                             null,
                             System.currentTimeMillis()
                     )

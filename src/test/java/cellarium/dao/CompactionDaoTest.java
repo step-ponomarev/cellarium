@@ -8,6 +8,7 @@ import org.junit.Test;
 import cellarium.dao.conf.TestDaoConfig;
 import cellarium.dao.entry.Entry;
 import cellarium.dao.iterators.ReadIterator;
+import cellarium.dao.utils.DiskUtils;
 import test.entry.EntryGeneratorList;
 import test.entry.TestUtils;
 

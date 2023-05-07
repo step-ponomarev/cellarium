@@ -1,14 +1,14 @@
 package test.entry;
 
 import cellarium.dao.entry.Entry;
-import cellarium.dao.utils.Utils;
+import cellarium.dao.utils.MemorySegmentUtils;
 
 public class TestUtils {
     private TestUtils() {}
 
     public static long getSizeBytesOf(Entry<String> entry) {
-        return Utils.stringToMemorySegment(entry.getKey()).byteSize() +
-                (entry.getValue() == null ? 0 : Utils.stringToMemorySegment(entry.getValue()).byteSize());
+        return MemorySegmentUtils.stringToMemorySegment(entry.getKey()).byteSize() +
+                (entry.getValue() == null ? 0 : MemorySegmentUtils.stringToMemorySegment(entry.getValue()).byteSize());
     }
 
     public static String generateKeyByIndex(int index) {

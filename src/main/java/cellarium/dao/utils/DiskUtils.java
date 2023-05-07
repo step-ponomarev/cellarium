@@ -1,4 +1,4 @@
-package cellarium.dao;
+package cellarium.dao.utils;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;

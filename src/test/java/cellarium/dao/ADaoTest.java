@@ -11,6 +11,7 @@ import org.junit.Before;
 import cellarium.dao.conf.TestDaoConfig;
 import cellarium.dao.entry.AbstractEntry;
 import cellarium.dao.entry.Entry;
+import cellarium.dao.utils.DiskUtils;
 
 public abstract class ADaoTest {
     public static final Path DEFAULT_DIR = Path.of("tmp");

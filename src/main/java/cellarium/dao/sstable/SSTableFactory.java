@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
-import cellarium.dao.DiskUtils;
+import cellarium.dao.utils.DiskUtils;
 import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.sstable.write.entry.FileChannelEntryWriter;
 import cellarium.dao.sstable.write.entry.MemorySegmentEntryWriter;

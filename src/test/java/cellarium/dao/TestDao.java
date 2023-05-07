@@ -4,11 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
-import cellarium.EntryConverter;
 import cellarium.dao.conf.TestDaoConfig;
 import cellarium.dao.entry.Entry;
 import cellarium.dao.entry.MemorySegmentEntry;
-import cellarium.dao.utils.Utils;
+import cellarium.dao.utils.MemorySegmentUtils;
 import jdk.incubator.foreign.MemorySegment;
 
 public class TestDao implements Dao<String, Entry<String>> {
@@ -25,15 +24,15 @@ public class TestDao implements Dao<String, Entry<String>> {
 
     @Override
     public Iterator<Entry<String>> get(String fromStr, String toStr) throws IOException {
-        final MemorySegment from = Utils.stringToMemorySegment(fromStr);
-        final MemorySegment to = Utils.stringToMemorySegment(toStr);
+        final MemorySegment from = MemorySegmentUtils.stringToMemorySegment(fromStr);
+        final MemorySegment to = MemorySegmentUtils.stringToMemorySegment(toStr);
 
         return new ConverterIterator(memorySegmentDao.get(from, to));
     }
 
     @Override
     public void upsert(Entry<String> entry) {
-        memorySegmentDao.upsert(EntryConverter.convert(entry));
+        memorySegmentDao.upsert(MemorySegmentUtils.convert(entry));
     }
 
     @Override
@@ -53,7 +52,7 @@ public class TestDao implements Dao<String, Entry<String>> {
 
     @Override
     public Entry<String> get(String key) throws IOException {
-        return EntryConverter.convert(memorySegmentDao.get(Utils.stringToMemorySegment(key)));
+        return MemorySegmentUtils.convert(memorySegmentDao.get(MemorySegmentUtils.stringToMemorySegment(key)));
     }
 
     private static class ConverterIterator implements Iterator<Entry<String>> {
@@ -70,7 +69,7 @@ public class TestDao implements Dao<String, Entry<String>> {
 
         @Override
         public Entry<String> next() {
-            return EntryConverter.convert(iterator.next());
+            return MemorySegmentUtils.convert(iterator.next());
         }
     }
 }

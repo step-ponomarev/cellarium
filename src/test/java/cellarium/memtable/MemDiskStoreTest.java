@@ -7,9 +7,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.EntryConverter;
 import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.memtable.MemTable;
+import cellarium.dao.utils.MemorySegmentUtils;
 import test.entry.EntryGeneratorList;
 
 public class MemDiskStoreTest {
@@ -26,7 +26,7 @@ public class MemDiskStoreTest {
                 () -> {
                     final EntryGeneratorList entries = new EntryGeneratorList(5000);
                     for (int j = 0; j < 5000; j++) {
-                        final MemorySegmentEntry entry = EntryConverter.convert(entries.get(j));
+                        final MemorySegmentEntry entry = MemorySegmentUtils.convert(entries.get(j));
 
                         memTable.upsert(entry);
                         totalSize.addAndGet(entry.getSizeBytes());
