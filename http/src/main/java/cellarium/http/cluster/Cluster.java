@@ -42,19 +42,20 @@ public final class Cluster implements Closeable {
         }
 
         final String[] urls = clusterUrls.toArray(String[]::new);
-        final Node[] nodes = new Node[urls.length * virtualNodesCount];
+        final Node[] virtualNodes = new Node[urls.length * virtualNodesCount];
 
         final Map<String, RemoteRequestHandler> remoteHandlers = clusterUrls.stream()
                 .filter(u -> !selfUrl.equals(u))
                 .collect(Collectors.toMap(UnaryOperator.identity(), RemoteRequestHandler::new));
 
-        for (int i = 0; i < nodes.length; i++) {
-            final String url = urls[i % urls.length];
+        // node order for 3 nodes and 2 virual for each: [1, 2, 3, 1, 2, 3]
+        for (int i = 0; i < virtualNodes.length; i++) {
+            final String nodeUrl = urls[i % urls.length];
 
-            final boolean localNode = url.equals(selfUrl);
-            nodes[i] = new Node(url, localNode ? localRequestHandler : remoteHandlers.get(url));
+            final boolean localNode = nodeUrl.equals(selfUrl);
+            virtualNodes[i] = new Node(nodeUrl, localNode ? localRequestHandler : remoteHandlers.get(nodeUrl));
         }
 
-        return nodes;
+        return virtualNodes;
     }
 }
