@@ -3,7 +3,7 @@ plugins {
     id 'java-library'
 }
 
-version '1'
+version '1.0.0'
 dependencies {
     api 'ru.odnoklassniki:one-nio:1.6.1'
     implementation project(':db')
