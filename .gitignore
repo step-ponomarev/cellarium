@@ -4,6 +4,7 @@
 
 .gradle
 /build/
+*/build/
 /logs/
 
 # Ignore Gradle GUI config
@@ -25,3 +26,4 @@ gradle-app.setting
 /dao/
 /conf/
 /tmp/
+*/tmp/

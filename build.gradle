@@ -3,46 +3,43 @@ plugins {
     id 'application'
 }
 
-repositories {
-    mavenCentral()
-}
-
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {
-    implementation 'ru.odnoklassniki:one-nio:1.6.1'
-
-    implementation 'org.slf4j:slf4j-api:1.7.32'
-    implementation 'org.slf4j:slf4j-log4j12:1.7.32'
-
-    testImplementation 'junit:junit:4.13.2'
+    implementation project(':db')
+    implementation project(':http')
 }
 
 final incubatorModules = ["--add-modules", "jdk.incubator.foreign"]
+allprojects {
+    apply plugin: 'java'
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        implementation 'org.slf4j:slf4j-api:1.7.32'
+        implementation 'org.slf4j:slf4j-log4j12:1.7.32'
+
+        testImplementation 'junit:junit:4.13.2'
+    }
+
+    tasks.all {
+        if (it instanceof JavaCompile) {
+            it.options.compilerArgs += incubatorModules
+        } else if (it instanceof Test) {
+            it.jvmArgs += incubatorModules
+        }
+    }
+}
+
 application {
     mainClass = 'cellarium.Main'
     applicationDefaultJvmArgs = incubatorModules
-}
-
-jar {
-    manifest {
-        attributes 'Main-Class': 'cellarium.Main'
-    }
-
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-}
-
-tasks.all {
-    if (it instanceof JavaCompile) {
-        it.options.compilerArgs += incubatorModules
-    } else if (it instanceof Test) {
-        it.jvmArgs += incubatorModules
-    }
 }
 
 run {
