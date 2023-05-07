@@ -1,4 +1,4 @@
-package cellarium.dao;
+package cellarium.db;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -8,7 +8,7 @@ import java.util.Objects;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import cellarium.dao.conf.TestDaoConfig;
+import cellarium.db.conf.TestDaoConfig;
 import cellarium.db.entry.AbstractEntry;
 import cellarium.db.entry.Entry;
 import cellarium.db.utils.DiskUtils;

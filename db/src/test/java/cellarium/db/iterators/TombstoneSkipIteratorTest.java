@@ -1,4 +1,4 @@
-package ceallrium.db.iterators;
+package cellarium.db.iterators;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -9,8 +9,8 @@ import cellarium.db.entry.Entry;
 import cellarium.db.entry.EntryComparator;
 import cellarium.db.iterators.MergeIterator;
 import cellarium.db.iterators.TombstoneSkipIterator;
-import test.entry.EntryGeneratorList;
-import test.entry.NullEntryGeneratorList;
+import entry.generator.EntryGeneratorList;
+import entry.generator.NullEntryGeneratorList;
 
 public class TombstoneSkipIteratorTest {
     @Test
@@ -112,7 +112,7 @@ public class TombstoneSkipIteratorTest {
                 },
                 timeoutMs
         );
-        
+
         while (iterator.hasNext()) {
             iterator.next();
         }

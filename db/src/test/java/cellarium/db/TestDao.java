@@ -1,10 +1,10 @@
-package cellarium.dao;
+package cellarium.db;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
-import cellarium.dao.conf.TestDaoConfig;
+import cellarium.db.conf.TestDaoConfig;
 import cellarium.db.entry.Entry;
 import cellarium.db.entry.MemorySegmentEntry;
 import cellarium.db.utils.MemorySegmentUtils;

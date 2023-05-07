@@ -1,4 +1,4 @@
-package cellarium.dao;
+package cellarium.db;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -10,7 +10,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import cellarium.db.entry.Entry;
 import cellarium.db.iterators.ReadIterator;
-import test.entry.EntryGeneratorList;
+import entry.generator.EntryGeneratorList;
 
 public class BasicDaoTest extends ADaoTest {
     private static final Long SIZE_BYTES = 1024 * 4L; // 4KB
@@ -227,7 +227,7 @@ public class BasicDaoTest extends ADaoTest {
     }
 
     @Test(timeout = 60_000)
-    public void testReadHugeData() throws Exception {
+    public void testReadHugeReadEach() throws Exception {
         final int count = 30_000;
         final EntryGeneratorList entries = new EntryGeneratorList(count);
 

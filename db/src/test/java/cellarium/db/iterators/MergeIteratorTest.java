@@ -1,4 +1,4 @@
-package ceallrium.db.iterators;
+package cellarium.db.iterators;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,9 +11,9 @@ import cellarium.db.entry.Entry;
 import cellarium.db.entry.EntryComparator;
 import cellarium.db.entry.MemorySegmentEntry;
 import cellarium.db.iterators.MergeIterator;
-import test.entry.EntryGeneratorList;
-import test.entry.NullEntryGeneratorList;
-import test.entry.TestUtils;
+import entry.TestUtils;
+import entry.generator.EntryGeneratorList;
+import entry.generator.NullEntryGeneratorList;
 
 public class MergeIteratorTest {
     @Test

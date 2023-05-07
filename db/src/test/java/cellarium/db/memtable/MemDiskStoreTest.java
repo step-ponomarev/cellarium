@@ -1,4 +1,4 @@
-package cellarium.memtable;
+package cellarium.db.memtable;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -8,9 +8,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Assert;
 import org.junit.Test;
 import cellarium.db.entry.MemorySegmentEntry;
-import cellarium.db.memtable.MemTable;
 import cellarium.db.utils.MemorySegmentUtils;
-import test.entry.EntryGeneratorList;
+import entry.generator.EntryGeneratorList;
 
 public class MemDiskStoreTest {
 

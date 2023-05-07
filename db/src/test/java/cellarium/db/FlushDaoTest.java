@@ -1,12 +1,12 @@
-package cellarium.dao;
+package cellarium.db;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import org.junit.Assert;
 import org.junit.Test;
 import cellarium.db.entry.Entry;
-import test.entry.EntryGeneratorList;
-import test.entry.TestUtils;
+import entry.TestUtils;
+import entry.generator.EntryGeneratorList;
 
 public class FlushDaoTest extends AConcurrentDaoTest {
     private static final long UNLIMITED_MEMORY_SIZE = Long.MAX_VALUE;

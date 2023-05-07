@@ -1,4 +1,4 @@
-package test.entry;
+package entry;
 
 import cellarium.db.entry.Entry;
 import cellarium.db.utils.MemorySegmentUtils;

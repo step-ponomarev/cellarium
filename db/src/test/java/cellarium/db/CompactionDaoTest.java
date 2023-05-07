@@ -1,16 +1,16 @@
-package cellarium.dao;
+package cellarium.db;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.dao.conf.TestDaoConfig;
+import cellarium.db.conf.TestDaoConfig;
 import cellarium.db.entry.Entry;
 import cellarium.db.iterators.ReadIterator;
 import cellarium.db.utils.DiskUtils;
-import test.entry.EntryGeneratorList;
-import test.entry.TestUtils;
+import entry.TestUtils;
+import entry.generator.EntryGeneratorList;
 
 public class CompactionDaoTest extends AConcurrentDaoTest {
     private static final long SIZE_BYTES = 1024 * 4; //4KB

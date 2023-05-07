@@ -1,9 +1,10 @@
-package test.entry;
+package entry.test;
 
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
 import cellarium.db.entry.Entry;
+import entry.generator.NullEntryGeneratorList;
 
 public class NullEntryGeneratorListTest {
     @Test

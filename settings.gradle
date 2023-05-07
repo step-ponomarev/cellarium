@@ -10,5 +10,3 @@
 rootProject.name = 'cellarium'
 include 'db'
 include 'http'
-include 'common'
-

@@ -1,10 +1,10 @@
-package cellarium.dao;
+package cellarium.db;
 
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
 import cellarium.db.entry.Entry;
-import test.entry.EntryGeneratorList;
+import entry.generator.EntryGeneratorList;
 
 public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
     private static final long SIZE_BYTES = 1024 * 4; //4KB

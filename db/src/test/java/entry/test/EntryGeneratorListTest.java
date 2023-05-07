@@ -1,7 +1,8 @@
-package test.entry;
+package entry.test;
 
 import org.junit.Assert;
 import org.junit.Test;
+import entry.generator.EntryGeneratorList;
 
 public class EntryGeneratorListTest {
     @Test(expected = IndexOutOfBoundsException.class)

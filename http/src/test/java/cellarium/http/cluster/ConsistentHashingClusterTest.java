@@ -45,13 +45,13 @@ public class ConsistentHashingClusterTest {
         Assert.assertTrue(nodeIndexForHash < virtualNodes.length);
         Assert.assertTrue(nodeIndexForHash >= 0);
     }
-    
+
     @Test
     public void testCheckNodeUsing() {
         final int virtualNodePerRealNodeAmount = 3;
         final Set<String> clusterUrls = IntStream.range(0, 3).mapToObj(i -> "http://localhost:" + i).collect(Collectors.toSet());
         final Node[] virtualNodes = ConsistentHashingCluster.createVirtualNodes("http://localhost:0", clusterUrls, virtualNodePerRealNodeAmount);
-        
+
         final int[] nodeIndexes = new int[virtualNodes.length];
 
         final int step = 100;
@@ -67,8 +67,8 @@ public class ConsistentHashingClusterTest {
 
         final int nodeIndexForHash = ConsistentHashingCluster.getNodeIndexForHash(Integer.MAX_VALUE, virtualNodes.length);
         nodeIndexes[nodeIndexForHash]++;
-        
-        for (int i = 0; i< nodeIndexes.length; i++) {
+
+        for (int i = 0; i < nodeIndexes.length; i++) {
             System.out.println(i + " : " + nodeIndexes[i]);
         }
     }

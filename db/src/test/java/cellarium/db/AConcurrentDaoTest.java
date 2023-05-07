@@ -1,4 +1,4 @@
-package cellarium.dao;
+package cellarium.db;
 
 import java.util.List;
 import java.util.concurrent.Callable;
