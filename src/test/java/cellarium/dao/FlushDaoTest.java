@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.dao.entry.Entry;
+import db.entry.Entry;
 import test.entry.EntryGeneratorList;
 import test.entry.TestUtils;
 

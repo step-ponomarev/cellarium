@@ -3,7 +3,7 @@ package test.entry;
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.dao.entry.Entry;
+import db.entry.Entry;
 
 public class NullEntryGeneratorListTest {
     @Test

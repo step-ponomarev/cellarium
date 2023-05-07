@@ -5,10 +5,10 @@ import java.util.Iterator;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.dao.entry.Entry;
-import cellarium.dao.entry.EntryComparator;
-import cellarium.dao.iterators.MergeIterator;
-import cellarium.dao.iterators.TombstoneSkipIterator;
+import db.entry.Entry;
+import db.entry.EntryComparator;
+import db.iterators.MergeIterator;
+import db.iterators.TombstoneSkipIterator;
 import test.entry.EntryGeneratorList;
 import test.entry.NullEntryGeneratorList;
 

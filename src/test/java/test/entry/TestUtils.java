@@ -1,7 +1,7 @@
 package test.entry;
 
-import cellarium.dao.entry.Entry;
-import cellarium.dao.utils.MemorySegmentUtils;
+import db.entry.Entry;
+import db.utils.MemorySegmentUtils;
 
 public class TestUtils {
     private TestUtils() {}
