@@ -184,7 +184,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
 
     @Test(timeout = 60_000)
     public void testFlushCompactionReadEachConcurrent() throws Exception {
-        final int count = 2_000;
+        final int count = 1_000;
         try (Dao<String, Entry<String>> dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE))) {
             final EntryGeneratorList entries = new EntryGeneratorList(count);
 

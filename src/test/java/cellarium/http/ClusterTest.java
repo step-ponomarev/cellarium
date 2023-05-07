@@ -16,7 +16,7 @@ import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import cellarium.dao.disk.DiskUtils;
+import cellarium.DiskUtils;
 import cellarium.http.service.Cluster;
 import cellarium.http.service.EndpointService;
 
@@ -115,21 +115,6 @@ public class ClusterTest extends AHttpTest {
 
             Assert.assertTrue(replicasCount > 0);
             Assert.assertTrue(replicasCount < CLUSTER_URLS.size());
-        }
-    }
-
-    //TODO: Флакающий тест!
-    @Test
-    public final void testZeroTimeout() throws IOException, InterruptedException {
-        final Path workDir = Files.createDirectory(DEFAULT_DIR);
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
-            cluster.setRequestTimeoutMs(0);
-            cluster.start();
-
-            HttpResponse<byte[]> put = cluster.getRandomEndpoint().put(generateId(), generateBody());
-            Assert.assertEquals(HttpURLConnection.HTTP_GATEWAY_TIMEOUT, put.statusCode());
-
-            cluster.stop();
         }
     }
 

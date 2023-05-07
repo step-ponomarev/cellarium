@@ -1,27 +1,15 @@
-package cellarium.dao.disk;
+package cellarium;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
-public class DiskUtils {
+public final class DiskUtils {
     private DiskUtils() {}
-
-    public static void removeFiles(Collection<Path> files) throws IOException {
-        for (Path file : files) {
-            if (Files.isDirectory(file)) {
-                removeDir(file);
-                continue;
-            }
-
-            Files.delete(file);
-        }
-    }
 
     public static void removeDir(Path path) throws IOException {
         try (Stream<Path> files = Files.walk(path)) {

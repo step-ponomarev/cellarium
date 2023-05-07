@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
+import cellarium.EntryConverter;
 import cellarium.dao.conf.TestDaoConfig;
-import cellarium.dao.entry.AbstractEntry;
 import cellarium.dao.entry.Entry;
 import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.utils.Utils;
@@ -33,7 +33,7 @@ public class TestDao implements Dao<String, Entry<String>> {
 
     @Override
     public void upsert(Entry<String> entry) {
-        memorySegmentDao.upsert(convert(entry));
+        memorySegmentDao.upsert(EntryConverter.convert(entry));
     }
 
     @Override
@@ -53,7 +53,7 @@ public class TestDao implements Dao<String, Entry<String>> {
 
     @Override
     public Entry<String> get(String key) throws IOException {
-        return convert(memorySegmentDao.get(Utils.stringToMemorySegment(key)));
+        return EntryConverter.convert(memorySegmentDao.get(Utils.stringToMemorySegment(key)));
     }
 
     private static class ConverterIterator implements Iterator<Entry<String>> {
@@ -70,29 +70,7 @@ public class TestDao implements Dao<String, Entry<String>> {
 
         @Override
         public Entry<String> next() {
-            return convert(iterator.next());
+            return EntryConverter.convert(iterator.next());
         }
-    }
-
-    private static MemorySegmentEntry convert(Entry<String> entry) {
-        if (entry == null) {
-            return null;
-        }
-
-        return new MemorySegmentEntry(
-                Utils.stringToMemorySegment(entry.getKey()),
-                entry.getValue() == null ? null : Utils.stringToMemorySegment(entry.getValue()),
-                System.currentTimeMillis());
-    }
-
-    private static Entry<String> convert(MemorySegmentEntry entry) {
-        if (entry == null) {
-            return null;
-        }
-
-        return new AbstractEntry<>(
-                Utils.memorySegmentToString(entry.getKey()),
-                Utils.memorySegmentToString(entry.getValue())) {
-        };
     }
 }

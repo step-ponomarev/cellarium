@@ -8,8 +8,8 @@ import java.util.Objects;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import cellarium.DiskUtils;
 import cellarium.dao.conf.TestDaoConfig;
-import cellarium.dao.disk.DiskUtils;
 import cellarium.dao.entry.AbstractEntry;
 import cellarium.dao.entry.Entry;
 
