@@ -1,7 +1,7 @@
 package test.entry;
 
-import db.entry.Entry;
-import db.utils.MemorySegmentUtils;
+import cellarium.db.entry.Entry;
+import cellarium.db.utils.MemorySegmentUtils;
 
 public class TestUtils {
     private TestUtils() {}

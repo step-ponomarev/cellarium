@@ -5,9 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
 import cellarium.dao.conf.TestDaoConfig;
-import db.entry.Entry;
-import db.entry.MemorySegmentEntry;
-import db.utils.MemorySegmentUtils;
+import cellarium.db.entry.Entry;
+import cellarium.db.entry.MemorySegmentEntry;
+import cellarium.db.utils.MemorySegmentUtils;
 import jdk.incubator.foreign.MemorySegment;
 
 public class TestDao implements Dao<String, Entry<String>> {

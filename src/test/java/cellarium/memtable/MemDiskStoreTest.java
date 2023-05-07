@@ -7,9 +7,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Assert;
 import org.junit.Test;
-import db.entry.MemorySegmentEntry;
-import db.memtable.MemTable;
-import db.utils.MemorySegmentUtils;
+import cellarium.db.entry.MemorySegmentEntry;
+import cellarium.db.memtable.MemTable;
+import cellarium.db.utils.MemorySegmentUtils;
 import test.entry.EntryGeneratorList;
 
 public class MemDiskStoreTest {

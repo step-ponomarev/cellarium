@@ -6,9 +6,9 @@ import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
 import cellarium.dao.conf.TestDaoConfig;
-import db.entry.Entry;
-import db.iterators.ReadIterator;
-import db.utils.DiskUtils;
+import cellarium.db.entry.Entry;
+import cellarium.db.iterators.ReadIterator;
+import cellarium.db.utils.DiskUtils;
 import test.entry.EntryGeneratorList;
 import test.entry.TestUtils;
 

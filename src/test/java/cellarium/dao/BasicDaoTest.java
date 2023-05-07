@@ -8,8 +8,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 import org.junit.Assert;
 import org.junit.Test;
-import db.entry.Entry;
-import db.iterators.ReadIterator;
+import cellarium.db.entry.Entry;
+import cellarium.db.iterators.ReadIterator;
 import test.entry.EntryGeneratorList;
 
 public class BasicDaoTest extends ADaoTest {

@@ -1,8 +1,8 @@
 package test.entry;
 
 import java.util.AbstractList;
-import db.entry.AbstractEntry;
-import db.entry.Entry;
+import cellarium.db.entry.AbstractEntry;
+import cellarium.db.entry.Entry;
 
 public class EntryGeneratorList extends AbstractList<Entry<String>> {
     protected final int count;

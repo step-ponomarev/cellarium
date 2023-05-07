@@ -3,7 +3,7 @@ package cellarium.dao;
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
-import db.entry.Entry;
+import cellarium.db.entry.Entry;
 import test.entry.EntryGeneratorList;
 
 public class BasicConcurrentDaoTest extends AConcurrentDaoTest {

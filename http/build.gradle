@@ -4,14 +4,7 @@ plugins {
 }
 
 version '1'
-
 dependencies {
     api 'ru.odnoklassniki:one-nio:1.6.1'
     implementation project(':db')
-}
-
-jar {
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
 }

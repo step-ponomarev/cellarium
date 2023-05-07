@@ -1,7 +1,7 @@
 package test.entry;
 
-import db.entry.AbstractEntry;
-import db.entry.Entry;
+import cellarium.db.entry.AbstractEntry;
+import cellarium.db.entry.Entry;
 
 public class NullEntryGeneratorList extends EntryGeneratorList {
     public NullEntryGeneratorList(int count) {

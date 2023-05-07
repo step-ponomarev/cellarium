@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.apache.log4j.PropertyConfigurator;
-import db.MemorySegmentDao;
-import http.Server;
-import http.conf.AnnotatedDaoConfig;
-import http.conf.ConfigReader;
+import cellarium.db.MemorySegmentDao;
+import cellarium.http.Server;
+import cellarium.http.conf.AnnotatedDaoConfig;
+import cellarium.http.conf.ConfigReader;
 import sun.misc.Signal;
 
 public class Main {

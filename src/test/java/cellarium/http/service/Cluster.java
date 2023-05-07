@@ -11,8 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import cellarium.dao.DaoConfig;
-import cellarium.dao.MemorySegmentDao;
+import cellarium.db.DaoConfig;
+import cellarium.db.MemorySegmentDao;
+import cellarium.http.Server;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import one.nio.http.HttpServer;
@@ -68,7 +69,7 @@ public class Cluster {
                 Files.createDirectory(instanceDir);
             }
 
-            final cellarium.http.Server server = new cellarium.http.Server(
+            final Server server = new Server(
                     createServerConfig(uri, clusterUrls),
                     createDao(instanceDir)
             );
@@ -95,7 +96,8 @@ public class Cluster {
         Iterator<String> iterator = clusterUrls.iterator();
 
         final int index = ThreadLocalRandom.current().nextInt(0, clusterUrls.size());
-        for (int i = 0; i < index; i++, iterator.next()) {}
+        for (int i = 0; i < index; i++, iterator.next()) {
+        }
 
         return urlToEndpoint.get(iterator.next());
     }
