@@ -1,6 +1,7 @@
-plugins.apply('java')
-plugins.apply('checkstyle')
-repositories.mavenCentral()
+plugins {
+    id 'java'
+    id 'application'
+}
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -8,23 +9,39 @@ java {
 }
 
 dependencies {
-    testImplementation("junit:junit:4.13.2")
-
-    implementation 'org.slf4j:slf4j-api:1.7.36'
-    implementation 'ch.qos.logback:logback-classic:1.2.11'
-
-    checkstyle 'com.puppycrawl.tools:checkstyle:10.6.0'
+    implementation project(':db')
+    implementation project(':http')
 }
 
-final args = ["--add-modules", "jdk.incubator.foreign"]
-tasks.withType(JavaCompile) {
-    options.compilerArgs += args
+final incubatorModules = ["--add-modules", "jdk.incubator.foreign"]
+allprojects {
+    apply plugin: 'java'
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        implementation 'org.slf4j:slf4j-api:1.7.32'
+        implementation 'org.slf4j:slf4j-log4j12:1.7.32'
+
+        testImplementation 'junit:junit:4.13.2'
+    }
+
+    tasks.all {
+        if (it instanceof JavaCompile) {
+            it.options.compilerArgs += incubatorModules
+        } else if (it instanceof Test) {
+            it.jvmArgs += incubatorModules
+        }
+    }
 }
 
-tasks.withType(Test) {
-    jvmArgs += args
+application {
+    mainClass = 'cellarium.Main'
+    applicationDefaultJvmArgs = incubatorModules
 }
 
-checkstyle {
-    configFile = new File('checkstyle.xml')
+run {
+    jvmArgs += incubatorModules
 }

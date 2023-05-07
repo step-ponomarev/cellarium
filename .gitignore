@@ -1,5 +1,11 @@
+/src/test/.DS_Store
+/src/test/resources/.DS_Store
+.DS_Store
+
 .gradle
 /build/
+*/build/
+/logs/
 
 # Ignore Gradle GUI config
 gradle-app.setting
@@ -12,10 +18,12 @@ gradle-app.setting
 
 # # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
 # gradle/wrapper/gradle-wrapper.properties
-.idea
+/.idea/
 # Ignore Gradle build output directory
-build
 
-bin
-
+/bin/
 .vscode
+/dao/
+/conf/
+/tmp/
+*/tmp/
