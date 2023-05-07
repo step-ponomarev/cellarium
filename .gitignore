@@ -26,4 +26,4 @@ gradle-app.setting
 /dao/
 /conf/
 /tmp/
-/http/tmp/
+*/tmp/

@@ -28,10 +28,6 @@ allprojects {
         testImplementation 'junit:junit:4.13.2'
     }
 
-    application {
-        applicationDefaultJvmArgs = incubatorModules
-    }
-
     tasks.all {
         if (it instanceof JavaCompile) {
             it.options.compilerArgs += incubatorModules
@@ -43,12 +39,7 @@ allprojects {
 
 application {
     mainClass = 'cellarium.Main'
-}
-
-jar {
-    manifest {
-        attributes 'Main-Class': 'cellarium.Main'
-    }
+    applicationDefaultJvmArgs = incubatorModules
 }
 
 run {
