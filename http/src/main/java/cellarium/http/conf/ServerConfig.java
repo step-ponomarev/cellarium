@@ -11,8 +11,6 @@ public final class ServerConfig extends HttpServerConfig {
     public String selfUrl;
     public Set<String> clusterUrls;
     public int requestHandlerThreadCount = 1;
-    public int remoteThreadAmount = 1;
-    public int requestTimeoutMs = 200;
     public int virtualNodeAmount = 10;
     public int maxTasksPerNode = 1;
 }

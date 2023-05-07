@@ -116,7 +116,6 @@ public class Cluster {
         serverConfig.selfUrl = currentUrl.toString();
         serverConfig.clusterUrls = clusterUrls;
         serverConfig.requestHandlerThreadCount = Runtime.getRuntime().availableProcessors() - 2;
-        serverConfig.remoteThreadAmount = Runtime.getRuntime().availableProcessors() - 2;
 
         final AcceptorConfig acceptor = new AcceptorConfig();
         acceptor.port = serverConfig.selfPort;
@@ -127,7 +126,6 @@ public class Cluster {
         };
 
         serverConfig.closeSessions = true;
-        serverConfig.requestTimeoutMs = this.requestTimeoutMs;
 
         return serverConfig;
     }
