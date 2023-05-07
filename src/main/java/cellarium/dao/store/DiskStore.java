@@ -11,7 +11,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cellarium.DiskUtils;
+import cellarium.dao.DiskUtils;
 import cellarium.dao.entry.EntryComparator;
 import cellarium.dao.entry.MemorySegmentEntry;
 import cellarium.dao.iterators.MergeIterator;

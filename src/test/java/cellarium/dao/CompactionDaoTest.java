@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.DiskUtils;
 import cellarium.dao.conf.TestDaoConfig;
 import cellarium.dao.entry.Entry;
 import cellarium.dao.iterators.ReadIterator;

@@ -9,7 +9,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import cellarium.DiskUtils;
+import cellarium.dao.DiskUtils;
 import cellarium.http.service.Cluster;
 import cellarium.http.service.EndpointService;
 
