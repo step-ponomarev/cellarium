@@ -6,6 +6,7 @@ clusterUrls:
   - http://localhost:8080
 requestHandlerThreadCount: 6
 closeSessions: true
+virtualNodeAmount: 10
 maxTasksPerNode: 1
 
 acceptors:
