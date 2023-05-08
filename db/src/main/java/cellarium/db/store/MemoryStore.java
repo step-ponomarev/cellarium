@@ -9,41 +9,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import cellarium.db.entry.EntryComparator;
 import cellarium.db.entry.MemorySegmentEntry;
 import cellarium.db.iterators.MergeIterator;
-import cellarium.db.memtable.MemTable;
 import jdk.incubator.foreign.MemorySegment;
 
 public final class MemoryStore implements Store<MemorySegment, MemorySegmentEntry> {
     private final ReadWriteLock swapLock = new ReentrantReadWriteLock();
     private volatile CompositeMemTable compositeMemTable;
-
-    private static final class CompositeMemTable {
-        private final MemTable memTable;
-        private final MemTable flushTable;
-
-        public CompositeMemTable() {
-            this.memTable = new MemTable();
-            this.flushTable = null;
-        }
-
-        public CompositeMemTable(MemTable memTable, MemTable flushTable) {
-            this.memTable = memTable;
-            this.flushTable = flushTable;
-        }
-
-        public static CompositeMemTable prepareToFlush(CompositeMemTable store) {
-            return new CompositeMemTable(
-                    new MemTable(),
-                    store.memTable
-            );
-        }
-
-        public static CompositeMemTable cleanFlushData(CompositeMemTable store) {
-            return new CompositeMemTable(
-                    store.memTable,
-                    null
-            );
-        }
-    }
 
     public MemoryStore() {
         this.compositeMemTable = new CompositeMemTable();
@@ -97,15 +67,30 @@ public final class MemoryStore implements Store<MemorySegment, MemorySegmentEntr
     }
 
     public long getSizeBytes() {
-        return compositeMemTable.memTable.getSizeBytes();
+        swapLock.readLock().lock();
+        try {
+            return compositeMemTable.memTable.getSizeBytes();
+        } finally {
+            swapLock.readLock().unlock();
+        }
     }
 
-    public boolean hasFlushData() {
-        return compositeMemTable.flushTable != null;
+    public boolean flushIsPending() {
+        swapLock.readLock().lock();
+        try {
+            return compositeMemTable.flushTable != null;
+        } finally {
+            swapLock.readLock().unlock();
+        }
     }
 
     public int getCount() {
-        return compositeMemTable.memTable.getEntryCount();
+        swapLock.readLock().lock();
+        try {
+            return compositeMemTable.memTable.getEntryCount();
+        } finally {
+            swapLock.readLock().unlock();
+        }
     }
 
     public FlushData createFlushData() {

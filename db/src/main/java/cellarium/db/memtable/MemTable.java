@@ -5,9 +5,9 @@ import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
-import cellarium.db.store.Store;
 import cellarium.db.entry.EntryComparator;
 import cellarium.db.entry.MemorySegmentEntry;
+import cellarium.db.store.Store;
 import jdk.incubator.foreign.MemorySegment;
 
 public class MemTable implements Store<MemorySegment, MemorySegmentEntry> {
@@ -31,15 +31,20 @@ public class MemTable implements Store<MemorySegment, MemorySegmentEntry> {
 
     @Override
     public void upsert(MemorySegmentEntry entry) {
-        entries.compute(entry.getKey(), (k, prev) -> {
-            if (prev == null) {
-                sizeBytes.addAndGet(entry.getSizeBytes());
-            } else if (!EntryComparator.areEquals(prev, entry)) {
-                sizeBytes.addAndGet(entry.getSizeBytes() - prev.getSizeBytes());
+        final long[] sizeDelta = new long[1];
+        entries.compute(entry.getKey(), (k, oldValue) -> {
+            if (oldValue == null) {
+                sizeDelta[0] = entry.getSizeBytes();
+            } else {
+                sizeDelta[0] = entry.getSizeBytes() - oldValue.getSizeBytes();
             }
 
             return entry;
         });
+
+        if (sizeDelta[0] != 0) {
+            sizeBytes.addAndGet(sizeDelta[0]);
+        }
     }
 
     public int getEntryCount() {

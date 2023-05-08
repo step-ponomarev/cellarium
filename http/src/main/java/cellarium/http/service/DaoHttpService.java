@@ -2,6 +2,8 @@ package cellarium.http.service;
 
 import java.io.Closeable;
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cellarium.db.MemorySegmentDao;
 import cellarium.db.entry.MemorySegmentEntry;
 import cellarium.db.utils.MemorySegmentUtils;
@@ -9,6 +11,8 @@ import jdk.incubator.foreign.MemorySegment;
 import one.nio.http.Response;
 
 public final class DaoHttpService implements Closeable {
+    private static final Logger log = LoggerFactory.getLogger(DaoHttpService.class);
+
     private final MemorySegmentDao dao;
 
     public DaoHttpService(MemorySegmentDao dao) {
@@ -42,6 +46,7 @@ public final class DaoHttpService implements Closeable {
                     entry.getValue().toByteArray()
             );
         } catch (Exception e) {
+            log.error("Get by id is failed, id: " + id, e);
             return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
         }
     }
@@ -66,6 +71,7 @@ public final class DaoHttpService implements Closeable {
 
             return new Response(Response.CREATED, Response.EMPTY);
         } catch (Exception e) {
+            log.error("Put is failed, id: " + id, e);
             return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
         }
     }
@@ -86,6 +92,7 @@ public final class DaoHttpService implements Closeable {
 
             return new Response(Response.ACCEPTED, Response.EMPTY);
         } catch (Exception e) {
+            log.error("Remove is failed, id: " + id, e);
             return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
         }
     }

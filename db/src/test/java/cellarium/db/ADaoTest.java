@@ -43,7 +43,7 @@ public abstract class ADaoTest {
     protected final TestDaoConfig createConfig(long sizeBytes) {
         final TestDaoConfig testDaoConfig = new TestDaoConfig();
         testDaoConfig.path = DEFAULT_DIR.toString();
-        testDaoConfig.memtableLimitBytes = sizeBytes;
+        testDaoConfig.memtableTotalSpaceBytes = sizeBytes;
         testDaoConfig.sstablesLimit = Integer.MAX_VALUE;
 
 
