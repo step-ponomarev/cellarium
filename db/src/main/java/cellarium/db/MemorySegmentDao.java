@@ -11,19 +11,19 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cellarium.db.entry.EntryComparator;
+import cellarium.db.entry.MemorySegmentEntry;
 import cellarium.db.iterators.MergeIterator;
 import cellarium.db.iterators.ReadIterator;
 import cellarium.db.iterators.TombstoneSkipIterator;
 import cellarium.db.store.DiskStore;
 import cellarium.db.store.FlushData;
 import cellarium.db.store.MemoryStore;
-import cellarium.db.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemorySegment;
 
 public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentEntry> {
     private static final Logger log = LoggerFactory.getLogger(MemorySegmentDao.class);
 
-    private final long memTableLimitBytes;
+    private final long memtableTotalSpaceBytes;
     private final int sstablesLimit;
     private final int timeoutMs;
 
@@ -44,7 +44,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
         }
 
         this.executor = Executors.newSingleThreadExecutor();
-        this.memTableLimitBytes = config.memtableLimitBytes;
+        this.memtableTotalSpaceBytes = config.memtableTotalSpaceBytes;
         this.sstablesLimit = config.sstablesLimit;
         this.timeoutMs = config.timeoutMs == null ? Integer.MAX_VALUE : config.timeoutMs;
 
@@ -54,15 +54,13 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
 
     @Override
     public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) throws IOException {
-        // Сначала с памяти потому что может произойти флаш и чтение с диска, когда
-        // данных там еще не было.
-        // А затем чтение из памяти, когда данные уже флашнули -> теряем данные
         final Iterator<MemorySegmentEntry> fromMemory = memoryStore.get(from, to);
         final Iterator<MemorySegmentEntry> fromDisk = diskStore.get(from, to);
 
         return new ReadIterator<>(
                 new TombstoneSkipIterator<>(
                         MergeIterator.of(
+                                // first old data (disk) then inmemory
                                 List.of(fromDisk, fromMemory),
                                 EntryComparator::compareMemorySegmentEntryKeys
                         ),
@@ -89,21 +87,21 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     @Override
     public void upsert(MemorySegmentEntry entry) {
         final long entrySize = entry.getSizeBytes();
-        if (entrySize > memTableLimitBytes) {
+        if (entrySize > memtableTotalSpaceBytes) {
             throw new IllegalStateException(
-                    "Entry is too big, limit is " + memTableLimitBytes + "bytes, entry size is: " + entry.getSizeBytes());
+                    "Entry is too big, limit is " + memtableTotalSpaceBytes + "bytes, entry size is: " + entry.getSizeBytes());
         }
 
-        if (memoryStore.getSizeBytes() + entrySize > memTableLimitBytes) {
+        if (memoryStore.getSizeBytes() + entrySize > memtableTotalSpaceBytes) {
             scheduleFlush(memoryStore.getSizeBytes() + entrySize);
         }
 
         memoryStore.upsert(entry);
     }
 
-    private void scheduleFlush(long expectedSizeBytes) {
+    private void scheduleFlush(long expectedSize) {
         synchronized (scheduleFlushLock) {
-            if (memoryStore.hasFlushData() || expectedSizeBytes <= memTableLimitBytes) {
+            if (memoryStore.flushIsPending() || expectedSize <= memtableTotalSpaceBytes) {
                 return;
             }
 
@@ -115,7 +113,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     @Override
     public void flush() throws IOException {
         synchronized (flushCompactionLock) {
-            if (memoryStore.hasFlushData()) {
+            if (memoryStore.flushIsPending()) {
                 log.warn("Flush is running already!");
                 return;
             }
@@ -129,17 +127,17 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     @Override
     public void compact() {
         synchronized (flushCompactionLock) {
-            if (!memoryStore.hasFlushData()) {
+            if (!memoryStore.flushIsPending()) {
                 memoryStore.prepareFlushData();
             }
 
             try {
-                diskStore.compact(memoryStore.createFlushData());
+                diskStore.compact(
+                        memoryStore.createFlushData()
+                );
+                memoryStore.clearFlushData();
             } catch (IOException e) {
                 throw new IllegalStateException(e);
-            } finally {
-                //TODO: Не вышло закомпактиться - теряем данные??
-                memoryStore.clearFlushData();
             }
         }
     }
@@ -162,7 +160,7 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     }
 
     private void handlePreparedFlush() {
-        if (!memoryStore.hasFlushData()) {
+        if (!memoryStore.flushIsPending()) {
             log.warn("Flushed already");
             return;
         }

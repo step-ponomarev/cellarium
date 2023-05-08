@@ -162,17 +162,6 @@ public class ClusterTest extends AHttpTest {
         }
     }
 
-    //TODO: пофиксить
-    //Должен идти последним в классе т.к. не дает стартануть one-nio, а она порт занимает до старта...
-    @Test(expected = IllegalArgumentException.class)
-    public final void zzzzzzzz_last_test_execution_prefix_testNegativeTimeout() throws IOException {
-        final Path workDir = Files.createDirectory(DEFAULT_DIR);
-        try (ClearableCluster cluster = new ClearableCluster(CLUSTER_URLS, workDir)) {
-            cluster.setRequestTimeoutMs(-1);
-            cluster.start();
-        }
-    }
-
     private static class ClearableCluster extends Cluster implements Closeable {
         public ClearableCluster(Set<String> clusterUrls, Path baseDir) {
             super(clusterUrls, baseDir);

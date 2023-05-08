@@ -23,7 +23,7 @@ gradle-app.setting
 
 /bin/
 .vscode
-/dao/
+/cellarium-db/
 /conf/
 /tmp/
 */tmp/

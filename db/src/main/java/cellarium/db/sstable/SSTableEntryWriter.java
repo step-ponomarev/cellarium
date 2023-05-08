@@ -18,9 +18,9 @@ final class SSTableEntryWriter implements Writer<MemorySegmentEntry> {
 
     @Override
     public long write(MemorySegmentEntry value) throws IOException {
-        final long size = memorySegmentEntryWriter.write(value);
-
         indexWriter.write(dataOffset);
+
+        final long size = memorySegmentEntryWriter.write(value);
         dataOffset += size;
 
         return size;

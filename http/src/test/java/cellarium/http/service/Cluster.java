@@ -96,8 +96,7 @@ public class Cluster {
         Iterator<String> iterator = clusterUrls.iterator();
 
         final int index = ThreadLocalRandom.current().nextInt(0, clusterUrls.size());
-        for (int i = 0; i < index; i++, iterator.next()) {
-        }
+        for (int i = 0; i < index; i++, iterator.next()) {}
 
         return urlToEndpoint.get(iterator.next());
     }
@@ -105,7 +104,7 @@ public class Cluster {
     private static MemorySegmentDao createDao(Path instanceDir) throws IOException {
         final DaoConfig daoConfig = new DaoConfig();
         daoConfig.path = instanceDir.toString();
-        daoConfig.memtableLimitBytes = 1024 * 1024;
+        daoConfig.memtableTotalSpaceBytes = 1024 * 1024;
 
         return new MemorySegmentDao(daoConfig);
     }
@@ -115,8 +114,7 @@ public class Cluster {
         serverConfig.selfPort = currentUrl.getPort();
         serverConfig.selfUrl = currentUrl.toString();
         serverConfig.clusterUrls = clusterUrls;
-        serverConfig.localThreadAmount = Runtime.getRuntime().availableProcessors() - 2;
-        serverConfig.remoteThreadAmount = Runtime.getRuntime().availableProcessors() - 2;
+        serverConfig.requestHandlerThreadCount = Runtime.getRuntime().availableProcessors() - 2;
 
         final AcceptorConfig acceptor = new AcceptorConfig();
         acceptor.port = serverConfig.selfPort;
@@ -127,7 +125,6 @@ public class Cluster {
         };
 
         serverConfig.closeSessions = true;
-        serverConfig.requestTimeoutMs = this.requestTimeoutMs;
 
         return serverConfig;
     }

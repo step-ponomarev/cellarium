@@ -11,13 +11,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cellarium.db.sstable.SSTableFactory;
-import cellarium.db.sstable.SSTableWithMeta;
-import cellarium.db.utils.DiskUtils;
 import cellarium.db.entry.EntryComparator;
 import cellarium.db.entry.MemorySegmentEntry;
 import cellarium.db.iterators.MergeIterator;
 import cellarium.db.iterators.TombstoneSkipIterator;
+import cellarium.db.sstable.SSTableFactory;
+import cellarium.db.sstable.SSTableWithMeta;
+import cellarium.db.utils.DiskUtils;
 import jdk.incubator.foreign.MemorySegment;
 
 public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Closeable {
@@ -89,7 +89,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
 
         final List<SSTableWithMeta> ssTablesToRemove = new ArrayList<>(ssTables);
         if (!compactedData.hasNext()) {
-            ssTables.clear();
+            ssTables.removeAll(ssTablesToRemove);
             removeSSTables(ssTablesToRemove);
             return;
         }
@@ -100,6 +100,8 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
 
         ssTables.removeAll(ssTablesToRemove);
         removeSSTables(ssTablesToRemove);
+
+        log.info("Compaction is finished");
     }
 
     public int getSSTablesAmount() {
@@ -110,6 +112,7 @@ public class DiskStore implements Store<MemorySegment, MemorySegmentEntry>, Clos
         if (ssTables == null || ssTables.isEmpty()) {
             return;
         }
+
         for (SSTableWithMeta removed : ssTables) {
             removed.ssTable.close();
             DiskUtils.removeDir(removed.sstableDir);

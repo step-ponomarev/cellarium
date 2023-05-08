@@ -39,24 +39,6 @@ public class EntryComparator {
         return compareMemorySegments(r1.getKey(), r2.getKey());
     }
 
-    public static <E extends Entry<MemorySegment>> boolean areEquals(E e1, E e2) {
-        if (e1 == null || e2 == null) {
-            return false;
-        }
-
-        if (compareMemorySegmentEntryKeys(e1, e2) != 0) {
-            return false;
-        }
-
-        if (e1.getValue() == null && e2.getValue() == null) {
-            return true;
-        }
-
-        return e1.getValue() != null
-                && e2.getValue() != null
-                && compareMemorySegments(e1.getValue(), e2.getValue()) == 0;
-    }
-
     public static int compareStringEntries(Entry<String> r1, Entry<String> r2) {
         if (r1 == null) {
             return 1;

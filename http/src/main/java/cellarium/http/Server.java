@@ -4,27 +4,26 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cellarium.db.MemorySegmentDao;
-import cellarium.http.cluster.ConsistentHashingCluster;
+import cellarium.http.cluster.Cluster;
+import cellarium.http.cluster.ConsistentHashing;
+import cellarium.http.cluster.LoadBalancer;
 import cellarium.http.cluster.Node;
+import cellarium.http.cluster.request.NodeRequest;
+import cellarium.http.cluster.request.RequestInvokeException;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
-import cellarium.http.handlers.AsyncRequestHandler;
-import cellarium.http.handlers.LocalRequestHandler;
-import cellarium.http.handlers.RemoteRequestHandler;
 import cellarium.http.service.DaoHttpService;
 import one.nio.http.HttpServer;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
-import one.nio.http.RequestHandler;
 import one.nio.http.Response;
+import one.nio.util.Hash;
 
 public final class Server extends HttpServer {
     private static final Logger log = LoggerFactory.getLogger(Server.class);
 
-    private final AsyncRequestHandler remoteRequestHandler;
-    private final AsyncRequestHandler localRequestHandler;
-
-    private final ConsistentHashingCluster consistentHashingCluster;
+    private final Cluster cluster;
+    private final LoadBalancer loadBalancer;
 
     public Server(ServerConfig config, MemorySegmentDao dao) throws IOException {
         super(config);
@@ -33,9 +32,8 @@ public final class Server extends HttpServer {
             throw new NullPointerException("Dao cannot be null");
         }
 
-        this.consistentHashingCluster = new ConsistentHashingCluster(config.selfUrl, config.clusterUrls, config.virtualNodeAmount);
-        this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao), config.localThreadAmount);
-        this.remoteRequestHandler = new RemoteRequestHandler(this.consistentHashingCluster, config.remoteThreadAmount, config.requestTimeoutMs);
+        this.cluster = new Cluster(config.selfUrl, config.clusterUrls, config.virtualNodeAmount, new DaoHttpService(dao));
+        this.loadBalancer = new LoadBalancer(config.clusterUrls, config.requestHandlerThreadCount, config.maxTasksPerNode);
     }
 
     @Override
@@ -43,26 +41,46 @@ public final class Server extends HttpServer {
         log.info("Stopping server");
 
         try {
-            remoteRequestHandler.close();
-            localRequestHandler.close();
+            loadBalancer.close();
+            cluster.close();
         } catch (IOException e) {
+            log.error("Fail on stopping", e);
             throw new IllegalStateException(e);
         } finally {
             super.stop();
         }
     }
 
-    //TODO: Дважды ищем ноду - плохо.
     @Override
-    protected RequestHandler findHandlerByHost(Request request) {
+    public void handleRequest(Request request, HttpSession session) throws IOException {
         if (!isValidRequest(request)) {
-            return null;
+            handleDefault(request, session);
+            return;
         }
 
         final String id = request.getParameter(QueryParam.ID);
-        final Node nodeByKey = consistentHashingCluster.getNodeByKey(id);
+        if (id == null) {
+            session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
+            return;
+        }
 
-        return nodeByKey.isLocalNode() ? localRequestHandler : remoteRequestHandler;
+        final Node node = cluster.getNodeByIndex(
+                ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getNodeAmount())
+        );
+
+        final Runnable task = () -> {
+            try {
+                session.sendResponse(
+                        node.invoke(
+                                new NodeRequest(request, id)
+                        )
+                );
+            } catch (IOException | RequestInvokeException e) {
+                sendErrorResponse(session, e);
+            }
+        };
+
+        loadBalancer.scheduleTask(node.getNodeUrl(), new LoadBalancer.CancelableTask(task, e -> sendErrorResponse(session, e)));
     }
 
     @Override
@@ -76,19 +94,20 @@ public final class Server extends HttpServer {
             session.sendResponse(new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY));
             return;
         }
-
-        if (request.getParameter(QueryParam.ID) == null) {
-            session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
-            return;
-        }
     }
 
     private static boolean isValidRequest(Request request) {
-        if (request.getParameter(QueryParam.ID) == null) {
-            return false;
-        }
-
         return ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())
                 && ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod());
+    }
+
+    private static void sendErrorResponse(HttpSession session, Throwable e) {
+        try {
+            log.error("Response is failed ", e);
+            session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY));
+        } catch (IOException ie) {
+            log.error("Closing session", ie);
+            session.close();
+        }
     }
 }

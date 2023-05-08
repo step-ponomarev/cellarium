@@ -9,16 +9,20 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
-import cellarium.db.sstable.write.index.FileChannelIndexWriter;
-import cellarium.db.sstable.write.index.MemorySegmentIndexWriter;
-import cellarium.db.utils.DiskUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cellarium.db.entry.MemorySegmentEntry;
 import cellarium.db.sstable.write.entry.FileChannelEntryWriter;
 import cellarium.db.sstable.write.entry.MemorySegmentEntryWriter;
+import cellarium.db.sstable.write.index.FileChannelIndexWriter;
+import cellarium.db.sstable.write.index.MemorySegmentIndexWriter;
+import cellarium.db.utils.DiskUtils;
 import jdk.incubator.foreign.MemorySegment;
 import jdk.incubator.foreign.ResourceScope;
 
 public final class SSTableFactory {
+    private static final Logger log = LoggerFactory.getLogger(SSTableFactory.class);
+    
     private static final String DATA_FILE_NAME = "sstable.db";
     private static final String INDEX_FILE_NAME = "index.db";
     private static final String TIMESTAMP_DELIM = "_";
@@ -73,23 +77,33 @@ public final class SSTableFactory {
 
         final Path ssTableDir = createSSTableDir(tableDir);
         try {
+            // key + value sizes * data count + data sizeBytes
+            final long expectedDataSize = (long) Long.BYTES * 2 * count + sizeBytes;
+
             final MemorySegment mappedSsTable = mapFile(
                     Files.createFile(ssTableDir.resolve(DATA_FILE_NAME)),
-                    // key + value sizes * data count + data sizeBytes
-                    (long) Long.BYTES * 2 * count + sizeBytes);
+                    expectedDataSize);
 
             final MemorySegment mappedIndex = mapFile(
                     Files.createFile(ssTableDir.resolve(INDEX_FILE_NAME)),
                     //data offsets
-                    (long) Long.BYTES * count);
+                    (long) Long.BYTES * count
+            );
 
             final SSTableEntryWriter entryWriter = new SSTableEntryWriter(
                     new MemorySegmentIndexWriter(mappedIndex, SSTable.BYTE_ORDER),
                     new MemorySegmentEntryWriter(mappedSsTable, SSTable.TOMBSTONE_TAG, SSTable.BYTE_ORDER)
             );
 
+            long flushedDataSize = 0;
             while (data.hasNext()) {
-                entryWriter.write(data.next());
+                flushedDataSize += entryWriter.write(data.next());
+            }
+
+            if (expectedDataSize != flushedDataSize) {
+                log.warn(
+                        String.format("Expected flush size: %s, but flushed: %s bytes", expectedDataSize, flushedDataSize)
+                );
             }
 
             final SSTable ssTable = new SSTable(
