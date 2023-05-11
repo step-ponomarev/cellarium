@@ -17,8 +17,8 @@ public final class LocalRequestHandler implements NodeRequestHandler, Closeable 
     public Response handleReqeust(NodeRequest request) {
         return switch (request.getMethod()) {
             case Request.METHOD_GET -> daoHttpService.getById(request.getId());
-            case Request.METHOD_PUT -> daoHttpService.put(request.getId(), request.getBody());
-            case Request.METHOD_DELETE -> daoHttpService.delete(request.getId());
+            case Request.METHOD_PUT -> daoHttpService.put(request.getId(), request.getBody(), request.getTimestamp());
+            case Request.METHOD_DELETE -> daoHttpService.delete(request.getId(), request.getTimestamp());
             default -> new Response(Response.BAD_REQUEST);
         };
     }

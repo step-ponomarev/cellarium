@@ -51,7 +51,7 @@ public final class DaoHttpService implements Closeable {
         }
     }
 
-    public Response put(String id, byte[] body) {
+    public Response put(String id, byte[] body, long timestamp) {
         if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
@@ -65,7 +65,7 @@ public final class DaoHttpService implements Closeable {
                     new MemorySegmentEntry(
                             MemorySegmentUtils.stringToMemorySegment(id),
                             MemorySegment.ofArray(body),
-                            System.currentTimeMillis()
+                            timestamp
                     )
             );
 
@@ -76,7 +76,7 @@ public final class DaoHttpService implements Closeable {
         }
     }
 
-    public Response delete(String id) {
+    public Response delete(String id, long timestamp) {
         if (id == null || id.isEmpty()) {
             return new Response(Response.BAD_REQUEST, Response.EMPTY);
         }
@@ -86,7 +86,7 @@ public final class DaoHttpService implements Closeable {
                     new MemorySegmentEntry(
                             MemorySegmentUtils.stringToMemorySegment(id),
                             null,
-                            System.currentTimeMillis()
+                            timestamp
                     )
             );
 

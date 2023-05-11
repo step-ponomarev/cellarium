@@ -9,7 +9,7 @@ public final class ServerConfig extends HttpServerConfig {
     public int selfPort;
     //http://domain:port
     public String selfUrl;
-    public Set<String> clusterUrls;
+    public Set<ConfigNode> cluster;
     public int requestHandlerThreadCount = 1;
     public int virtualNodeAmount = 10;
     public int maxTasksPerNode = 1;

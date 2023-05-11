@@ -1,61 +1,59 @@
 package cellarium.http.cluster;
 
-import java.io.Closeable;
-import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import cellarium.http.cluster.request.LocalRequestHandler;
-import cellarium.http.cluster.request.RemoteRequestHandler;
-import cellarium.http.service.DaoHttpService;
+import java.util.stream.Stream;
 
-public final class Cluster implements Closeable {
+public final class Cluster {
     private final Node[] nodes;
-    private final LocalRequestHandler localRequestHandler;
+    private final Map<String, Set<Node>> urlToReplicas;
 
-    public Cluster(String selfUrl, Set<String> clusterUrls, int virtualNodesCount, DaoHttpService daoHttpService) {
-        this.localRequestHandler = new LocalRequestHandler(daoHttpService);
-        this.nodes = createVirtualNodes(selfUrl, clusterUrls, virtualNodesCount, this.localRequestHandler);
+    private final Map<String, Node> urlToNode;
+    private final Map<String, Set<String>> urlToReplicaUrls;
+
+    public Cluster(Node[] nodes, Map<String, Set<Node>> urlToReplicas) {
+        this.nodes = nodes;
+        this.urlToReplicas = urlToReplicas;
+        //TODO: Пофиксить, убирать дубли
+        this.urlToNode = Stream.of(nodes).collect(Collectors.toMap(Node::getNodeUrl, UnaryOperator.identity()));
+        this.urlToReplicaUrls = Stream.of(nodes).collect(
+                Collectors.toMap(
+                        Node::getNodeUrl,
+                        u -> urlToReplicas.get(u.getNodeUrl()).stream().map(Node::getNodeUrl).collect(Collectors.toSet()))
+        );
     }
 
-    @Override
-    public void close() throws IOException {
-        localRequestHandler.close();
+    public Set<String> getReplicaUrlsByUrl(String url) {
+        final Set<String> replicaUrls = urlToReplicaUrls.get(url);
+
+        return replicaUrls == null ? Collections.emptySet() : replicaUrls;
+    }
+
+    public Set<Node> getReplicasByUrl(String url) {
+        final Set<Node> nodes = urlToReplicas.get(url);
+        if (nodes == null) {
+            return Collections.emptySet();
+        }
+
+        return nodes;
+    }
+
+    public Node getNodeByUrl(String url) {
+        return urlToNode.get(url);
     }
 
     public Node getNodeByIndex(int i) {
         return nodes[i];
     }
 
-    public int getNodeAmount() {
-        return nodes.length;
+    public int getPhysicNodeAmount() {
+        return urlToReplicas.size();
     }
 
-    private static Node[] createVirtualNodes(String selfUrl, Set<String> clusterUrls, int virtualNodesCount, LocalRequestHandler localRequestHandler) {
-        if (clusterUrls == null || clusterUrls.isEmpty()) {
-            throw new IllegalArgumentException("No urls provided");
-        }
-
-        if (virtualNodesCount == 0) {
-            throw new IllegalArgumentException("Virtual nodes count cannot be 0");
-        }
-
-        final String[] urls = clusterUrls.toArray(String[]::new);
-        final Node[] virtualNodes = new Node[urls.length * virtualNodesCount];
-
-        final Map<String, RemoteRequestHandler> remoteHandlers = clusterUrls.stream()
-                .filter(u -> !selfUrl.equals(u))
-                .collect(Collectors.toMap(UnaryOperator.identity(), RemoteRequestHandler::new));
-
-        // node order for 3 nodes and 2 virual for each: [1, 2, 3, 1, 2, 3]
-        for (int i = 0; i < virtualNodes.length; i++) {
-            final String nodeUrl = urls[i % urls.length];
-
-            final boolean localNode = nodeUrl.equals(selfUrl);
-            virtualNodes[i] = new Node(nodeUrl, localNode ? localRequestHandler : remoteHandlers.get(nodeUrl));
-        }
-
-        return virtualNodes;
+    public int getVirtualNodeAmount() {
+        return nodes.length;
     }
 }

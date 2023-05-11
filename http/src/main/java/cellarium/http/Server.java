@@ -1,6 +1,12 @@
 package cellarium.http;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cellarium.db.MemorySegmentDao;
@@ -8,8 +14,9 @@ import cellarium.http.cluster.Cluster;
 import cellarium.http.cluster.ConsistentHashing;
 import cellarium.http.cluster.LoadBalancer;
 import cellarium.http.cluster.Node;
+import cellarium.http.cluster.request.LocalRequestHandler;
 import cellarium.http.cluster.request.NodeRequest;
-import cellarium.http.cluster.request.RequestInvokeException;
+import cellarium.http.cluster.request.RemoteRequestHandler;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.service.DaoHttpService;
@@ -24,6 +31,7 @@ public final class Server extends HttpServer {
 
     private final Cluster cluster;
     private final LoadBalancer loadBalancer;
+    private final LocalRequestHandler localRequestHandler;
 
     public Server(ServerConfig config, MemorySegmentDao dao) throws IOException {
         super(config);
@@ -32,23 +40,12 @@ public final class Server extends HttpServer {
             throw new NullPointerException("Dao cannot be null");
         }
 
-        this.cluster = new Cluster(config.selfUrl, config.clusterUrls, config.virtualNodeAmount, new DaoHttpService(dao));
-        this.loadBalancer = new LoadBalancer(config.clusterUrls, config.requestHandlerThreadCount, config.maxTasksPerNode);
-    }
+        final Map<String, Set<String>> urlToReplicas = config.cluster.stream()
+                .collect(Collectors.toMap(u -> u.url, u -> u.replicas));
 
-    @Override
-    public synchronized void stop() {
-        log.info("Stopping server");
-
-        try {
-            loadBalancer.close();
-            cluster.close();
-        } catch (IOException e) {
-            log.error("Fail on stopping", e);
-            throw new IllegalStateException(e);
-        } finally {
-            super.stop();
-        }
+        this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao));
+        this.cluster = createCluster(config.selfUrl, urlToReplicas, config.virtualNodeAmount, localRequestHandler);
+        this.loadBalancer = new LoadBalancer(urlToReplicas.keySet(), config.requestHandlerThreadCount, config.maxTasksPerNode);
     }
 
     @Override
@@ -58,29 +55,110 @@ public final class Server extends HttpServer {
             return;
         }
 
-        final String id = request.getParameter(QueryParam.ID);
+        final Map<String, String> reqeustParams = new HashMap<>();
+        for (Map.Entry<String, String> param : request.getParameters()) {
+            reqeustParams.put(param.getKey(), param.getValue());
+        }
+
+        final String id = reqeustParams.get(QueryParam.ID);
         if (id == null) {
             session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
             return;
         }
 
-        final Node node = cluster.getNodeByIndex(
-                ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getNodeAmount())
-        );
+        final boolean internalClusterRequest = reqeustParams.containsKey(QueryParam.TIMESTAMP);
+        final long timestamp = internalClusterRequest
+                ? Long.parseLong(reqeustParams.get(QueryParam.TIMESTAMP))
+                : System.currentTimeMillis();
+
+        final Node candidateNode = getCandidateNode(id, internalClusterRequest);
+        if (candidateNode == null) {
+            session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY));
+            return;
+        }
 
         final Runnable task = () -> {
             try {
+                String quorumStr = reqeustParams.get(QueryParam.QUORUM);
+                int quorum = quorumStr == null ? 1 : Integer.parseInt(quorumStr);
+
+                final NodeRequest nodeRequest = NodeRequest.of(request, id, timestamp);
+                if (internalClusterRequest || quorum == 1) {
+                    session.sendResponse(
+                            candidateNode.invoke(nodeRequest)
+                    );
+                    return;
+                }
+
+                final Set<String> replicas = cluster.getReplicaUrlsByUrl(candidateNode.getNodeUrl());
                 session.sendResponse(
-                        node.invoke(
-                                new NodeRequest(request, id)
-                        )
+                        handleDistributedReqeust(nodeRequest, replicas, quorum)
                 );
-            } catch (IOException | RequestInvokeException e) {
+            } catch (Exception e) {
                 sendErrorResponse(session, e);
             }
         };
 
-        loadBalancer.scheduleTask(node.getNodeUrl(), new LoadBalancer.CancelableTask(task, e -> sendErrorResponse(session, e)));
+        try {
+            final boolean scheduled = loadBalancer.scheduleTask(
+                    candidateNode.getNodeUrl(),
+                    task
+            );
+
+            if (!scheduled) {
+                session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY));
+            }
+        } catch (RejectedExecutionException e) {
+            sendErrorResponse(session, e);
+        }
+    }
+
+    private Node getCandidateNode(String id, boolean internalClusterRequest) {
+        Node candidateNode = cluster.getNodeByIndex(
+                ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getVirtualNodeAmount())
+        );
+
+        if (!internalClusterRequest) {
+            final Set<String> replicaUrls = cluster.getReplicaUrlsByUrl(candidateNode.getNodeUrl());
+
+            final String candidateNodeUrl = loadBalancer.getLeastLoadReplicaUrl(replicaUrls);
+            if (candidateNodeUrl == null) {
+                return null;
+            }
+
+            return cluster.getNodeByUrl(candidateNodeUrl);
+        }
+
+        return candidateNode;
+    }
+
+    private Response handleDistributedReqeust(NodeRequest request, Set<String> replicaUrls, int quorum) {
+        final Response[] quorumResponses = new Response[quorum];
+
+        final String[] replicas = loadBalancer.sortByLoadFactor(replicaUrls);
+        if (replicas.length < quorum) {
+            return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
+        }
+
+        int success = 0;
+        for (String s : replicas) {
+            if (success == quorum) {
+                break;
+            }
+
+            try {
+                quorumResponses[success++] = cluster.getNodeByUrl(s).invoke(request);
+            } catch (Exception e) {
+                log.error("Request is failed", e);
+            }
+        }
+
+        if (success < quorum) {
+            return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
+        }
+
+        //TODO: НУжно как-то понимать какой ответ новее и если что репейрить!
+        return quorumResponses[0];
     }
 
     @Override
@@ -93,6 +171,21 @@ public final class Server extends HttpServer {
         if (!ServerConfiguration.SUPPORTED_METHODS.contains(request.getMethod())) {
             session.sendResponse(new Response(Response.METHOD_NOT_ALLOWED, Response.EMPTY));
             return;
+        }
+    }
+
+    @Override
+    public synchronized void stop() {
+        log.info("Stopping server");
+
+        try {
+            loadBalancer.close();
+            localRequestHandler.close();
+        } catch (IOException e) {
+            log.error("Fail on stopping", e);
+            throw new IllegalStateException(e);
+        } finally {
+            super.stop();
         }
     }
 
@@ -109,5 +202,41 @@ public final class Server extends HttpServer {
             log.error("Closing session", ie);
             session.close();
         }
+    }
+
+    private static Cluster createCluster(String selfUrl,
+                                         Map<String, Set<String>> urlToReplicas,
+                                         int virtualNodeAmount,
+                                         LocalRequestHandler localRequestHandler) {
+        final Map<String, Node> urlToNode = urlToReplicas.keySet().stream()
+                .collect(Collectors.toMap(
+                        UnaryOperator.identity(),
+                        url -> new Node(url, url.equals(selfUrl) ? localRequestHandler : new RemoteRequestHandler(url))
+                ));
+
+        final String[] nodeUrls = urlToReplicas.keySet().toArray(String[]::new);
+        final Node[] virtualNodes = new Node[nodeUrls.length * virtualNodeAmount];
+        // node order for 3 nodes and 2 virual for each: [1, 2, 3, 1, 2, 3]
+        for (int i = 0; i < virtualNodes.length; i++) {
+            virtualNodes[i] = urlToNode.get(
+                    nodeUrls[i % nodeUrls.length]
+            );
+        }
+
+        final Map<String, Set<Node>> urlToReplicaNodes = new HashMap<>();
+        for (String url : urlToNode.keySet()) {
+            final Set<String> replicaUrls = urlToReplicas.get(url);
+            final Node[] replicas = new Node[replicaUrls.size() + 1];
+
+            int i = 0;
+            for (String replicaUrl : replicaUrls) {
+                replicas[i++] = urlToNode.get(replicaUrl);
+            }
+            replicas[i] = urlToNode.get(url);
+
+            urlToReplicaNodes.put(url, Set.of(replicas));
+        }
+
+        return new Cluster(virtualNodes, urlToReplicaNodes);
     }
 }

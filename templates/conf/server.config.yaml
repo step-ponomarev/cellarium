@@ -1,9 +1,11 @@
 # cellarium.http.conf.ServerConfig
 
 selfPort: 8080
-selfUrl: http://localhost:8080
-clusterUrls:
-  - http://localhost:8080
+selfUrl: http://127.0.0.1:8080
+cluster:
+  - url: http://127.0.0.1:8080
+    replicas: 
+      
 requestHandlerThreadCount: 6
 closeSessions: true
 virtualNodeAmount: 10

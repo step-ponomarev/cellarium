@@ -2,46 +2,22 @@ package cellarium.http.cluster;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 public final class LoadBalancer implements Closeable {
-    private final Map<String, BlockingQueue<CancelableTask>> nodeUrlToTasks;
+    private final Map<String, BlockingQueue<Runnable>> nodeUrlToTasks;
     private final ExecutorService executorService;
-
-    public static final class CancelableTask implements Runnable {
-        private final Runnable task;
-        private final Consumer<Throwable> onCancel;
-        private volatile boolean canceled = false;
-
-        public CancelableTask(Runnable task, Consumer<Throwable> onCancel) {
-            this.task = task;
-            this.onCancel = onCancel;
-        }
-
-        @Override
-        public synchronized void run() {
-            if (canceled) {
-                throw new CancellationException("Canceled");
-            }
-
-            task.run();
-        }
-
-        public synchronized void cancel(Throwable e) {
-            onCancel.accept(e);
-            canceled = true;
-        }
-    }
 
     public LoadBalancer(Set<String> clusterUrls, int threadCount, int executingTaskPerNode) {
         this.nodeUrlToTasks = new HashMap<>();
@@ -52,18 +28,52 @@ public final class LoadBalancer implements Closeable {
         }
     }
 
-    public void scheduleTask(String url, CancelableTask cancelableTask) {
-        final BlockingQueue<CancelableTask> nodeTasks = nodeUrlToTasks.get(url);
-        if (!nodeTasks.offer(cancelableTask)) {
-            cancelableTask.cancel(new CancellationException("Canceled"));
-            return;
+    public String getLeastLoadReplicaUrl(Set<String> replicas) {
+        int maxRemainingCapacity = Integer.MIN_VALUE;
+        String leastLoaded = null;
+        for (String url : replicas) {
+            final int remainingCapacity = nodeUrlToTasks.get(url).remainingCapacity();
+            if (remainingCapacity > 0 && maxRemainingCapacity > maxRemainingCapacity) {
+                leastLoaded = url;
+                maxRemainingCapacity = remainingCapacity;
+            }
         }
 
-        try {
-            executorService.execute(() -> nodeTasks.poll().run());
-        } catch (RejectedExecutionException e) {
-            cancelableTask.onCancel.accept(e);
+        return leastLoaded;
+    }
+
+    public String[] sortByLoadFactor(Set<String> replicas) {
+        if (replicas == null || replicas.isEmpty()) {
+            throw new IllegalArgumentException("Empty urls");
         }
+
+        final List<Map.Entry<String, BlockingQueue<Runnable>>> filteredEntries = new ArrayList<>(replicas.size());
+        for (Map.Entry<String, BlockingQueue<Runnable>> entry : nodeUrlToTasks.entrySet()) {
+            if (replicas.contains(entry.getKey()) && entry.getValue().remainingCapacity() != 0) {
+                filteredEntries.add(entry);
+            }
+        }
+
+        filteredEntries.sort(Comparator.comparingInt(queue -> queue.getValue().remainingCapacity()));
+
+        final int resultSize = filteredEntries.size();
+        final String[] result = new String[resultSize];
+        for (int i = 0; i < resultSize; i++) {
+            result[i] = filteredEntries.get(i).getKey();
+        }
+
+        return result;
+    }
+
+    public boolean scheduleTask(String url, Runnable task) throws RejectedExecutionException {
+        final BlockingQueue<Runnable> nodeTasks = nodeUrlToTasks.get(url);
+        if (!nodeTasks.offer(task)) {
+            return false;
+        }
+
+        executorService.execute(() -> nodeTasks.poll().run());
+
+        return true;
     }
 
     @Override

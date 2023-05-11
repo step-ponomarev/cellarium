@@ -6,14 +6,17 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import cellarium.http.QueryParam;
 
 public final class SingleEndpointService implements EndpointService {
     private final static HttpClient client = HttpClient.newHttpClient();
+    private final int quorum;
 
     private final String endpoint;
-
-    public SingleEndpointService(String endpoint) {
+    
+    public SingleEndpointService(String endpoint, int quorum) {
         this.endpoint = endpoint;
+        this.quorum = quorum;
     }
 
     @Override
@@ -49,7 +52,9 @@ public final class SingleEndpointService implements EndpointService {
             return createRequest("");
         }
 
-        return createRequest("?id=" + id);
+        return createRequest("?" + QueryParam.ID + "=" + id
+                + "&" + QueryParam.QUORUM + "=" + quorum
+        );
     }
 
     private HttpRequest.Builder createRequest(String path) {
