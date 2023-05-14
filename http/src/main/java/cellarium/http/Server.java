@@ -1,6 +1,8 @@
 package cellarium.http;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -14,12 +16,12 @@ import cellarium.http.cluster.Cluster;
 import cellarium.http.cluster.ConsistentHashing;
 import cellarium.http.cluster.LoadBalancer;
 import cellarium.http.cluster.Node;
+import cellarium.http.cluster.NodeResponse;
 import cellarium.http.cluster.request.LocalRequestHandler;
 import cellarium.http.cluster.request.NodeRequest;
 import cellarium.http.cluster.request.RemoteRequestHandler;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
-import cellarium.http.service.DaoHttpService;
 import one.nio.http.HttpServer;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
@@ -43,7 +45,7 @@ public final class Server extends HttpServer {
         final Map<String, Set<String>> urlToReplicas = config.cluster.stream()
                 .collect(Collectors.toMap(u -> u.url, u -> u.replicas));
 
-        this.localRequestHandler = new LocalRequestHandler(new DaoHttpService(dao));
+        this.localRequestHandler = new LocalRequestHandler(dao);
         this.cluster = createCluster(config.selfUrl, urlToReplicas, config.virtualNodeAmount, localRequestHandler);
         this.loadBalancer = new LoadBalancer(urlToReplicas.keySet(), config.requestHandlerThreadCount, config.maxTasksPerNode);
     }
@@ -73,7 +75,7 @@ public final class Server extends HttpServer {
 
         final String quorumStr = reqeustParams.get(QueryParam.QUORUM);
         final int quorum = quorumStr == null ? 1 : Integer.parseInt(quorumStr);
-                
+
         final Node candidateNode = cluster.getNodeByIndex(
                 ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getVirtualNodeAmount())
         );
@@ -104,40 +106,22 @@ public final class Server extends HttpServer {
             );
 
             if (!scheduled) {
-                session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY));
+                session.sendResponse(
+                        new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY)
+                );
             }
         } catch (RejectedExecutionException e) {
             sendErrorResponse(session, e);
         }
     }
 
-    private Node getCandidateNode(String id, boolean internalClusterRequest) {
-        Node candidateNode = cluster.getNodeByIndex(
-                ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getVirtualNodeAmount())
-        );
-
-        if (!internalClusterRequest) {
-            final Set<String> replicaUrls = cluster.getReplicaUrlsByUrl(candidateNode.getNodeUrl());
-
-            final String candidateNodeUrl = loadBalancer.getLeastLoadReplicaUrl(replicaUrls);
-            if (candidateNodeUrl == null) {
-                return null;
-            }
-
-            return cluster.getNodeByUrl(candidateNodeUrl);
-        }
-
-        return candidateNode;
-    }
-
     private Response handleDistributedReqeust(NodeRequest request, Set<String> replicaUrls, int quorum) {
-        final Response[] quorumResponses = new Response[quorum];
-
         final String[] replicas = loadBalancer.sortByLoadFactor(replicaUrls);
         if (replicas.length < quorum) {
             return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
         }
 
+        final NodeResponse[] quorumResponses = new NodeResponse[quorum];
         int success = 0;
         for (String url : replicas) {
             if (success == quorum) {
@@ -146,12 +130,14 @@ public final class Server extends HttpServer {
 
             final Node replica = cluster.getNodeByUrl(url);
             if (replica == null) {
-                log.error("Not found replica by url: " + url);
-                throw new IllegalStateException("Replica by url is not exist");
+                throw new IllegalStateException("Replica by url is not exist, url: " + url);
             }
 
             try {
-                quorumResponses[success++] = replica.invoke(request);
+                final NodeResponse response = replica.invoke(request);
+                if (response.getStatus() != HttpURLConnection.HTTP_UNAVAILABLE) {
+                    quorumResponses[success++] = response;
+                }
             } catch (Exception e) {
                 log.error("Request is failed", e);
             }
@@ -161,7 +147,7 @@ public final class Server extends HttpServer {
             return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
         }
 
-        //TODO: НУжно как-то понимать какой ответ новее и если что репейрить!
+        Arrays.sort(quorumResponses, (l, r) -> Long.compare(r.getTimestamp(), l.getTimestamp()));
         return quorumResponses[0];
     }
 

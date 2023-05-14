@@ -19,7 +19,7 @@ public final class Node {
         return nodeUrl;
     }
 
-    public Response invoke(NodeRequest request) throws RequestInvokeException {
+    public NodeResponse invoke(NodeRequest request) throws RequestInvokeException {
         return requestHandler.handleReqeust(request);
     }
 

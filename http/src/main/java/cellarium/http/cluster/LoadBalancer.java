@@ -72,7 +72,6 @@ public final class LoadBalancer implements Closeable {
         }
 
         executorService.execute(() -> nodeTasks.poll().run());
-
         return true;
     }
 

@@ -1,7 +1,7 @@
 package cellarium.http.cluster.request;
 
-import one.nio.http.Response;
+import cellarium.http.cluster.NodeResponse;
 
 public interface NodeRequestHandler {
-    Response handleReqeust(NodeRequest request) throws RequestInvokeException;
+    NodeResponse handleReqeust(NodeRequest request) throws RequestInvokeException;
 }
