@@ -144,8 +144,14 @@ public final class Server extends HttpServer {
                 break;
             }
 
+            final Node replica = cluster.getNodeByUrl(url);
+            if (replica == null) {
+                log.error("Not found replica by url: " + url);
+                throw new IllegalStateException("Replica by url is not exist");
+            }
+
             try {
-                quorumResponses[success++] = cluster.getNodeByUrl(url).invoke(request);
+                quorumResponses[success++] = replica.invoke(request);
             } catch (Exception e) {
                 log.error("Request is failed", e);
             }
