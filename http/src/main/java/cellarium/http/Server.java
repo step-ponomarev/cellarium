@@ -71,17 +71,15 @@ public final class Server extends HttpServer {
                 ? Long.parseLong(reqeustParams.get(QueryParam.TIMESTAMP))
                 : System.currentTimeMillis();
 
-        final Node candidateNode = getCandidateNode(id, internalClusterRequest);
-        if (candidateNode == null) {
-            session.sendResponse(new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY));
-            return;
-        }
+        final String quorumStr = reqeustParams.get(QueryParam.QUORUM);
+        final int quorum = quorumStr == null ? 1 : Integer.parseInt(quorumStr);
+                
+        final Node candidateNode = cluster.getNodeByIndex(
+                ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getVirtualNodeAmount())
+        );
 
         final Runnable task = () -> {
             try {
-                String quorumStr = reqeustParams.get(QueryParam.QUORUM);
-                int quorum = quorumStr == null ? 1 : Integer.parseInt(quorumStr);
-
                 final NodeRequest nodeRequest = NodeRequest.of(request, id, timestamp);
                 if (internalClusterRequest || quorum == 1) {
                     session.sendResponse(
@@ -141,13 +139,13 @@ public final class Server extends HttpServer {
         }
 
         int success = 0;
-        for (String s : replicas) {
+        for (String url : replicas) {
             if (success == quorum) {
                 break;
             }
 
             try {
-                quorumResponses[success++] = cluster.getNodeByUrl(s).invoke(request);
+                quorumResponses[success++] = cluster.getNodeByUrl(url).invoke(request);
             } catch (Exception e) {
                 log.error("Request is failed", e);
             }

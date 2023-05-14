@@ -18,11 +18,14 @@ public final class Cluster {
         this.nodes = nodes;
         this.urlToReplicas = urlToReplicas;
         //TODO: Пофиксить, убирать дубли
-        this.urlToNode = Stream.of(nodes).collect(Collectors.toMap(Node::getNodeUrl, UnaryOperator.identity()));
+        this.urlToNode = Stream.of(nodes)
+                .collect(Collectors.toMap(Node::getNodeUrl, UnaryOperator.identity(), (l, r) -> l));
         this.urlToReplicaUrls = Stream.of(nodes).collect(
                 Collectors.toMap(
                         Node::getNodeUrl,
-                        u -> urlToReplicas.get(u.getNodeUrl()).stream().map(Node::getNodeUrl).collect(Collectors.toSet()))
+                        u -> urlToReplicas.get(u.getNodeUrl()).stream().map(Node::getNodeUrl).collect(Collectors.toSet()),
+                        (l, r) -> l
+                )
         );
     }
 

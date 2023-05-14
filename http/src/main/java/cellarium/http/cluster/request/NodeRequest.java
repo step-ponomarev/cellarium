@@ -23,7 +23,7 @@ public class NodeRequest extends Request {
                 request.addHeader(header);
             }
         }
-        request.setBody(request.getBody());
+        request.setBody(prototype.getBody());
 
         return new NodeRequest(
                 request,
