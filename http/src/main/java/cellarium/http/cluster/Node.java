@@ -1,10 +1,10 @@
 package cellarium.http.cluster;
 
 import java.util.Objects;
-import cellarium.http.cluster.request.NodeRequest;
 import cellarium.http.cluster.request.NodeRequestHandler;
+import cellarium.http.cluster.request.NodeResponse;
 import cellarium.http.cluster.request.RequestInvokeException;
-import one.nio.http.Response;
+import one.nio.http.Request;
 
 public final class Node {
     private final String nodeUrl;
@@ -19,8 +19,8 @@ public final class Node {
         return nodeUrl;
     }
 
-    public NodeResponse invoke(NodeRequest request) throws RequestInvokeException {
-        return requestHandler.handleReqeust(request);
+    public NodeResponse invoke(Request request, String id, long timestamp) throws RequestInvokeException {
+        return requestHandler.handleReqeust(request, id, timestamp);
     }
 
     @Override

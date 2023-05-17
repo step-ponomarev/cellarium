@@ -8,13 +8,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class Cluster {
+    private final String selfUrl;
     private final Node[] nodes;
     private final Map<String, Set<Node>> urlToReplicas;
 
     private final Map<String, Node> urlToNode;
     private final Map<String, Set<String>> urlToReplicaUrls;
 
-    public Cluster(Node[] nodes, Map<String, Set<Node>> urlToReplicas) {
+    public Cluster(String selfUrl, Node[] nodes, Map<String, Set<Node>> urlToReplicas) {
+        this.selfUrl = selfUrl;
         this.nodes = nodes;
         this.urlToReplicas = urlToReplicas;
         //TODO: Пофиксить, убирать дубли
@@ -35,13 +37,8 @@ public final class Cluster {
         return replicaUrls == null ? Collections.emptySet() : replicaUrls;
     }
 
-    public Set<Node> getReplicasByUrl(String url) {
-        final Set<Node> nodes = urlToReplicas.get(url);
-        if (nodes == null) {
-            return Collections.emptySet();
-        }
-
-        return nodes;
+    public String getSelfUrl() {
+        return selfUrl;
     }
 
     public Node getNodeByUrl(String url) {

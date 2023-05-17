@@ -16,12 +16,12 @@ import cellarium.http.cluster.Cluster;
 import cellarium.http.cluster.ConsistentHashing;
 import cellarium.http.cluster.LoadBalancer;
 import cellarium.http.cluster.Node;
-import cellarium.http.cluster.NodeResponse;
-import cellarium.http.cluster.request.LocalRequestHandler;
-import cellarium.http.cluster.request.NodeRequest;
-import cellarium.http.cluster.request.RemoteRequestHandler;
+import cellarium.http.cluster.request.LocalNodeRequestHandler;
+import cellarium.http.cluster.request.NodeResponse;
+import cellarium.http.cluster.request.RemoteNodeRequestHandler;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
+import cellarium.http.utils.ReqeustUtils;
 import one.nio.http.HttpServer;
 import one.nio.http.HttpSession;
 import one.nio.http.Request;
@@ -33,7 +33,7 @@ public final class Server extends HttpServer {
 
     private final Cluster cluster;
     private final LoadBalancer loadBalancer;
-    private final LocalRequestHandler localRequestHandler;
+    private final LocalNodeRequestHandler localNodeRequestHandler;
 
     public Server(ServerConfig config, MemorySegmentDao dao) throws IOException {
         super(config);
@@ -45,8 +45,8 @@ public final class Server extends HttpServer {
         final Map<String, Set<String>> urlToReplicas = config.cluster.stream()
                 .collect(Collectors.toMap(u -> u.url, u -> u.replicas));
 
-        this.localRequestHandler = new LocalRequestHandler(dao);
-        this.cluster = createCluster(config.selfUrl, urlToReplicas, config.virtualNodeAmount, localRequestHandler);
+        this.localNodeRequestHandler = new LocalNodeRequestHandler(dao);
+        this.cluster = createCluster(config.selfUrl, urlToReplicas, config.virtualNodeAmount, localNodeRequestHandler);
         this.loadBalancer = new LoadBalancer(urlToReplicas.keySet(), config.requestHandlerThreadCount, config.maxTasksPerNode);
     }
 
@@ -68,32 +68,26 @@ public final class Server extends HttpServer {
             return;
         }
 
-        final boolean internalClusterRequest = reqeustParams.containsKey(QueryParam.TIMESTAMP);
-        final long timestamp = internalClusterRequest
-                ? Long.parseLong(reqeustParams.get(QueryParam.TIMESTAMP))
-                : System.currentTimeMillis();
-
         final String quorumStr = reqeustParams.get(QueryParam.QUORUM);
-        final int quorum = quorumStr == null ? 1 : Integer.parseInt(quorumStr);
 
-        final Node candidateNode = cluster.getNodeByIndex(
-                ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getVirtualNodeAmount())
+        //TODO: Не очень то надежный признак
+        final boolean isTargetRequestFromReplica = quorumStr == null;
+        final Node candidateNode = isTargetRequestFromReplica
+                ? cluster.getNodeByUrl(cluster.getSelfUrl())
+                : cluster.getNodeByIndex(ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getVirtualNodeAmount())
         );
 
         final Runnable task = () -> {
             try {
-                final NodeRequest nodeRequest = NodeRequest.of(request, id, timestamp);
-                if (internalClusterRequest || quorum == 1) {
-                    session.sendResponse(
-                            candidateNode.invoke(nodeRequest)
-                    );
-                    return;
-                }
-
-                final Set<String> replicas = cluster.getReplicaUrlsByUrl(candidateNode.getNodeUrl());
-                session.sendResponse(
-                        handleDistributedReqeust(nodeRequest, replicas, quorum)
+                final Set<String> replicas = cluster.getReplicaUrlsByUrl(
+                        candidateNode.getNodeUrl()
                 );
+
+                final Response response = isTargetRequestFromReplica
+                        ? localNodeRequestHandler.handleReqeust(request, id, Long.parseLong(ReqeustUtils.getHeader(request, CustomHeader.TIMESTAMP)))
+                        : handleDistributedReqeust(request, id, replicas, Integer.parseInt(quorumStr));
+
+                session.sendResponse(response);
             } catch (Exception e) {
                 sendErrorResponse(session, e);
             }
@@ -115,42 +109,6 @@ public final class Server extends HttpServer {
         }
     }
 
-    private Response handleDistributedReqeust(NodeRequest request, Set<String> replicaUrls, int quorum) {
-        final String[] replicas = loadBalancer.sortByLoadFactor(replicaUrls);
-        if (replicas.length < quorum) {
-            return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
-        }
-
-        final NodeResponse[] quorumResponses = new NodeResponse[quorum];
-        int success = 0;
-        for (String url : replicas) {
-            if (success == quorum) {
-                break;
-            }
-
-            final Node replica = cluster.getNodeByUrl(url);
-            if (replica == null) {
-                throw new IllegalStateException("Replica by url is not exist, url: " + url);
-            }
-
-            try {
-                final NodeResponse response = replica.invoke(request);
-                if (response.getStatus() != HttpURLConnection.HTTP_UNAVAILABLE) {
-                    quorumResponses[success++] = response;
-                }
-            } catch (Exception e) {
-                log.error("Request is failed", e);
-            }
-        }
-
-        if (success < quorum) {
-            return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
-        }
-
-        Arrays.sort(quorumResponses, (l, r) -> Long.compare(r.getTimestamp(), l.getTimestamp()));
-        return quorumResponses[0];
-    }
-
     @Override
     public void handleDefault(Request request, HttpSession session) throws IOException {
         if (!ServerConfiguration.V_0_ENTITY_ENDPOINT.equals(request.getPath())) {
@@ -170,7 +128,7 @@ public final class Server extends HttpServer {
 
         try {
             loadBalancer.close();
-            localRequestHandler.close();
+            localNodeRequestHandler.close();
         } catch (IOException e) {
             log.error("Fail on stopping", e);
             throw new IllegalStateException(e);
@@ -197,11 +155,11 @@ public final class Server extends HttpServer {
     private static Cluster createCluster(String selfUrl,
                                          Map<String, Set<String>> urlToReplicas,
                                          int virtualNodeAmount,
-                                         LocalRequestHandler localRequestHandler) {
+                                         LocalNodeRequestHandler localNodeRequestHandler) {
         final Map<String, Node> urlToNode = urlToReplicas.keySet().stream()
                 .collect(Collectors.toMap(
                         UnaryOperator.identity(),
-                        url -> new Node(url, url.equals(selfUrl) ? localRequestHandler : new RemoteRequestHandler(url))
+                        url -> new Node(url, url.equals(selfUrl) ? localNodeRequestHandler : new RemoteNodeRequestHandler(url))
                 ));
 
         final String[] nodeUrls = urlToReplicas.keySet().toArray(String[]::new);
@@ -214,7 +172,8 @@ public final class Server extends HttpServer {
         }
 
         final Map<String, Set<Node>> urlToReplicaNodes = new HashMap<>();
-        for (String url : urlToNode.keySet()) {
+        for (Map.Entry<String, Node> entry : urlToNode.entrySet()) {
+            final String url = entry.getKey();
             final Set<String> replicaUrls = urlToReplicas.get(url);
             final Node[] replicas = new Node[replicaUrls.size() + 1];
 
@@ -222,11 +181,50 @@ public final class Server extends HttpServer {
             for (String replicaUrl : replicaUrls) {
                 replicas[i++] = urlToNode.get(replicaUrl);
             }
-            replicas[i] = urlToNode.get(url);
+            replicas[i] = entry.getValue();
 
             urlToReplicaNodes.put(url, Set.of(replicas));
         }
 
-        return new Cluster(virtualNodes, urlToReplicaNodes);
+        return new Cluster(selfUrl, virtualNodes, urlToReplicaNodes);
+    }
+
+    private Response handleDistributedReqeust(Request request, String id, Set<String> replicaUrls, int quorum) {
+        final String[] replicas = loadBalancer.sortByLoadFactor(replicaUrls);
+        if (replicas.length < quorum) {
+            return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
+        }
+
+        final long timestamp = System.currentTimeMillis();
+        final NodeResponse[] quorumResponses = new NodeResponse[quorum];
+        int success = 0;
+        for (String url : replicas) {
+            if (success == quorum) {
+                break;
+            }
+
+            final Node replica = cluster.getNodeByUrl(url);
+            if (replica == null) {
+                throw new IllegalStateException("Replica by url is not exist, url: " + url);
+            }
+
+            try {
+                final NodeResponse response = replica.invoke(request, id, timestamp);
+
+                // not 5xx response
+                if (response.getStatus() % HttpURLConnection.HTTP_SERVER_ERROR >= 100) {
+                    quorumResponses[success++] = response;
+                }
+            } catch (Exception e) {
+                log.error("Request is failed", e);
+            }
+        }
+
+        if (success < quorum) {
+            return new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY);
+        }
+
+        Arrays.sort(quorumResponses, (l, r) -> Long.compare(r.getTimestamp(), l.getTimestamp()));
+        return quorumResponses[0];
     }
 }
