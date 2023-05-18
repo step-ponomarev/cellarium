@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +17,6 @@ import cellarium.http.cluster.LoadBalancer;
 import cellarium.http.cluster.Node;
 import cellarium.http.cluster.request.LocalNodeRequestHandler;
 import cellarium.http.cluster.request.NodeResponse;
-import cellarium.http.cluster.request.RemoteNodeRequestHandler;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import cellarium.http.utils.ReqeustUtils;
@@ -46,7 +44,7 @@ public final class Server extends HttpServer {
                 .collect(Collectors.toMap(u -> u.url, u -> u.replicas));
 
         this.localNodeRequestHandler = new LocalNodeRequestHandler(dao);
-        this.cluster = createCluster(config.selfUrl, urlToReplicas, config.virtualNodeAmount, localNodeRequestHandler);
+        this.cluster = Cluster.createCluster(config.selfUrl, urlToReplicas, config.virtualNodeAmount, localNodeRequestHandler);
         this.loadBalancer = new LoadBalancer(urlToReplicas.keySet(), config.requestHandlerThreadCount, config.maxTasksPerNode);
     }
 
@@ -150,43 +148,6 @@ public final class Server extends HttpServer {
             log.error("Closing session", ie);
             session.close();
         }
-    }
-
-    private static Cluster createCluster(String selfUrl,
-                                         Map<String, Set<String>> urlToReplicas,
-                                         int virtualNodeAmount,
-                                         LocalNodeRequestHandler localNodeRequestHandler) {
-        final Map<String, Node> urlToNode = urlToReplicas.keySet().stream()
-                .collect(Collectors.toMap(
-                        UnaryOperator.identity(),
-                        url -> new Node(url, url.equals(selfUrl) ? localNodeRequestHandler : new RemoteNodeRequestHandler(url))
-                ));
-
-        final String[] nodeUrls = urlToReplicas.keySet().toArray(String[]::new);
-        final Node[] virtualNodes = new Node[nodeUrls.length * virtualNodeAmount];
-        // node order for 3 nodes and 2 virual for each: [1, 2, 3, 1, 2, 3]
-        for (int i = 0; i < virtualNodes.length; i++) {
-            virtualNodes[i] = urlToNode.get(
-                    nodeUrls[i % nodeUrls.length]
-            );
-        }
-
-        final Map<String, Set<Node>> urlToReplicaNodes = new HashMap<>();
-        for (Map.Entry<String, Node> entry : urlToNode.entrySet()) {
-            final String url = entry.getKey();
-            final Set<String> replicaUrls = urlToReplicas.get(url);
-            final Node[] replicas = new Node[replicaUrls.size() + 1];
-
-            int i = 0;
-            for (String replicaUrl : replicaUrls) {
-                replicas[i++] = urlToNode.get(replicaUrl);
-            }
-            replicas[i] = entry.getValue();
-
-            urlToReplicaNodes.put(url, Set.of(replicas));
-        }
-
-        return new Cluster(selfUrl, virtualNodes, urlToReplicaNodes);
     }
 
     private Response handleDistributedReqeust(Request request, String id, Set<String> replicaUrls, int quorum) {
