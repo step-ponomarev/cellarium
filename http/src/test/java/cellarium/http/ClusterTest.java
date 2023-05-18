@@ -218,7 +218,7 @@ public class ClusterTest extends AHttpTest {
     }
     
     @Test
-    public final void testNewestDataWillGet() throws IOException, InterruptedException {
+    public final void testNewestReplacedData() throws IOException, InterruptedException {
         final Path workDir = Files.createDirectory(DEFAULT_DIR);
 
         final String firstNode = "http://127.0.0.1:8080";
@@ -263,6 +263,92 @@ public class ClusterTest extends AHttpTest {
             
             getResponse = cluster.getExactEndpoint(secondNode).get(id);
             Assert.assertArrayEquals(newBody, getResponse.body());
+            cluster.stop();
+        } finally {
+            DiskUtils.removeDir(workDir);
+        }
+    }
+    
+    @Test
+    public final void testNewestDeletedData() throws IOException, InterruptedException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+
+        final String firstNode = "http://127.0.0.1:8080";
+        final String secondNode = "http://127.0.0.1:8081";
+        final Map<String, Set<String>> stringSetMap = Map.of(
+                firstNode, Set.of(secondNode),
+                secondNode, Set.of(firstNode)
+        );
+
+        try {
+            Cluster cluster = new Cluster(stringSetMap, workDir, 2);
+            cluster.start();
+
+            final String id = generateId();
+            final byte[] body = generateBody();
+
+            HttpResponse<byte[]> modificationResponse = cluster.getExactEndpoint(firstNode).put(id, body);
+            Assert.assertEquals(HttpURLConnection.HTTP_CREATED, modificationResponse.statusCode());
+            cluster.stop();
+
+            cluster = new Cluster(Map.of(secondNode, Collections.emptySet()), workDir);
+            cluster.start();
+
+            final EndpointService secondNodeEndpoint = cluster.getExactEndpoint(secondNode);
+            HttpResponse<byte[]> getResponse = secondNodeEndpoint.get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_OK, getResponse.statusCode());
+            Assert.assertArrayEquals(body, getResponse.body());
+            
+            modificationResponse = secondNodeEndpoint.delete(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_ACCEPTED, modificationResponse.statusCode());
+            
+            getResponse = secondNodeEndpoint.get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, getResponse.statusCode());
+            cluster.stop();
+
+            cluster = new Cluster(stringSetMap, workDir, 2);
+            cluster.start();
+
+            getResponse = cluster.getExactEndpoint(firstNode).get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, getResponse.statusCode());
+
+            getResponse = cluster.getExactEndpoint(secondNode).get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, getResponse.statusCode());
+            cluster.stop();
+        } finally {
+            DiskUtils.removeDir(workDir);
+        }
+    }
+    
+    @Test
+    public final void testAddedNewReplicaWithoutData() throws IOException, InterruptedException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+
+        final String firstNode = "http://127.0.0.1:8080";
+        final String secondNode = "http://127.0.0.1:8081";
+        final Map<String, Set<String>> stringSetMap = Map.of(
+                firstNode, Set.of(secondNode),
+                secondNode, Set.of(firstNode)
+        );
+
+        try {
+            Cluster cluster = new Cluster(Map.of(firstNode, Collections.emptySet()), workDir);
+            cluster.start();
+
+            final String id = generateId();
+            final byte[] body = generateBody();
+
+            HttpResponse<byte[]> modificationResponse = cluster.getExactEndpoint(firstNode).put(id, body);
+            Assert.assertEquals(HttpURLConnection.HTTP_CREATED, modificationResponse.statusCode());
+            cluster.stop();
+
+            cluster = new Cluster(stringSetMap, workDir, 2);
+            cluster.start();
+            
+            HttpResponse<byte[]> getResponse = cluster.getExactEndpoint(secondNode).get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_OK, getResponse.statusCode());
+            Assert.assertArrayEquals(body, getResponse.body());
+            
             cluster.stop();
         } finally {
             DiskUtils.removeDir(workDir);

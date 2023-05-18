@@ -41,8 +41,14 @@ public final class LocalNodeRequestHandler implements NodeRequestHandler, Closea
                     MemorySegmentUtils.stringToMemorySegment(id)
             );
 
+            // Not exist
             if (entry == null) {
-                return NodeResponse.createLocalResponse(Response.NOT_FOUND, Response.EMPTY, currentTimeMillis);
+                return NodeResponse.createLocalResponse(Response.NOT_FOUND, Response.EMPTY, -1);
+            }
+
+            // Removed
+            if (entry.getValue() == null) {
+                return NodeResponse.createLocalResponse(Response.NOT_FOUND, Response.EMPTY, entry.getTimestamp());
             }
 
             return NodeResponse.createLocalResponse(

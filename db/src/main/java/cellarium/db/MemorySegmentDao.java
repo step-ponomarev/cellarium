@@ -73,15 +73,10 @@ public final class MemorySegmentDao implements Dao<MemorySegment, MemorySegmentE
     public MemorySegmentEntry get(MemorySegment key) throws IOException {
         MemorySegmentEntry entry = memoryStore.get(key);
         if (entry != null) {
-            return entry.getValue() == null ? null : entry;
+            return entry;
         }
 
-        entry = diskStore.get(key);
-        if (entry != null) {
-            return entry.getValue() == null ? null : entry;
-        }
-
-        return null;
+        return diskStore.get(key);
     }
 
     @Override

@@ -43,7 +43,7 @@ public class BasicDaoTest extends ADaoTest {
             dao.upsert(entry);
 
             final Entry<String> entryFromDao = dao.get(entry.getKey());
-            Assert.assertTrue(entryFromDao == null);
+            Assert.assertTrue(entryFromDao == null || entryFromDao.getValue() == null);
         }
     }
 
@@ -177,7 +177,8 @@ public class BasicDaoTest extends ADaoTest {
             assertEquals(entry, dao.get(entry.getKey()));
 
             dao.upsert(createEntry(entry.getKey(), null));
-            Assert.assertNull(dao.get(entry.getKey()));
+            final Entry<String> stringEntry = dao.get(entry.getKey());
+            Assert.assertTrue(stringEntry == null || stringEntry.getValue() == null);
         }
     }
 

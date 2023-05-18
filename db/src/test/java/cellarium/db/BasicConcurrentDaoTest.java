@@ -52,7 +52,8 @@ public class BasicConcurrentDaoTest extends AConcurrentDaoTest {
                 final Entry<String> entryToRemove = entries.get(index);
                 dao.upsert(createEntry(entryToRemove.getKey(), null));
 
-                Assert.assertNull(dao.get(entryToRemove.getKey()));
+                final Entry<String> stringEntry = dao.get(entryToRemove.getKey());
+                Assert.assertTrue(stringEntry == null || stringEntry.getValue() == null);
             }).await();
         }
     }
