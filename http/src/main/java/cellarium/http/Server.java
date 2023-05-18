@@ -84,7 +84,7 @@ public final class Server extends HttpServer {
                 );
 
                 final Response response = isTargetRequestFromReplica
-                        ? localNodeRequestHandler.handleReqeust(request, id, Long.parseLong(ReqeustUtils.getHeader(request, CustomHeader.TIMESTAMP)))
+                        ? localNodeRequestHandler.handleReqeust(request, id, Long.parseLong(ReqeustUtils.getHeader(request, HttpHeader.TIMESTAMP)))
                         : handleDistributedReqeust(request, id, replicas, Integer.parseInt(quorumStr));
 
                 session.sendResponse(response);

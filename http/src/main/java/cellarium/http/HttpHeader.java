@@ -1,7 +1,7 @@
 package cellarium.http;
 
-public class CustomHeader {
+public class HttpHeader {
     public static final String TIMESTAMP = "X-Timestamp";
     
-    private CustomHeader() {}
+    private HttpHeader() {}
 }

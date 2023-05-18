@@ -2,7 +2,7 @@ package cellarium.http.cluster.request;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cellarium.http.CustomHeader;
+import cellarium.http.HttpHeader;
 import cellarium.http.QueryParam;
 import one.nio.http.HttpClient;
 import one.nio.http.Request;
@@ -42,7 +42,7 @@ public final class RemoteNodeRequestHandler implements NodeRequestHandler {
 
     private Request prepareRemoteRequest(Request request, String id, long timestamp) {
         final String[] headers = new String[2];
-        headers[0] = CustomHeader.TIMESTAMP + ": " + timestamp;
+        headers[0] = HttpHeader.TIMESTAMP + ": " + timestamp;
 
         final byte[] body = request.getBody();
         headers[1] = "Content-Length: " + (body == null ? 0 : body.length);
