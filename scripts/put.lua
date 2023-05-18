@@ -5,7 +5,7 @@ request = function()
     wrk.method = "PUT"
     wrk.body = createRandomString(byteSize)
 
-    path = "/v0/entity?id=" .. id
+    path = "/v0/entity?q=1&id=" .. id
     id = id + 1
     return wrk.format(nil, path)
 end
