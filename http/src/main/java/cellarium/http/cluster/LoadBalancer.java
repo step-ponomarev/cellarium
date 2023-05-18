@@ -66,6 +66,10 @@ public final class LoadBalancer implements Closeable {
     }
 
     public boolean scheduleTask(String url, Runnable task) throws RejectedExecutionException {
+        if (url == null) {
+            throw new NullPointerException("Url cannot be null");
+        }
+
         final BlockingQueue<Runnable> nodeTasks = nodeUrlToTasks.get(url);
         if (!nodeTasks.offer(task)) {
             return false;

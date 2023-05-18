@@ -3,10 +3,10 @@ package cellarium.http;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,11 +55,7 @@ public final class Server extends HttpServer {
             return;
         }
 
-        final Map<String, String> reqeustParams = new HashMap<>();
-        for (Map.Entry<String, String> param : request.getParameters()) {
-            reqeustParams.put(param.getKey(), param.getValue());
-        }
-
+        final Map<String, String> reqeustParams = ReqeustUtils.extractQueryParams(request);
         final String id = reqeustParams.get(QueryParam.ID);
         if (id == null) {
             session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
@@ -67,42 +63,26 @@ public final class Server extends HttpServer {
         }
 
         final String quorumStr = reqeustParams.get(QueryParam.QUORUM);
-
-        //TODO: Не очень то надежный признак
-        final boolean requestFromReplica = quorumStr == null;
-        final Node candidateNode = requestFromReplica
-                ? cluster.getNodeByUrl(cluster.getSelfUrl())
-                : cluster.getNodeByIndex(ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getVirtualNodeAmount())
-        );
-
-        final Runnable task = () -> {
-            try {
-                final Set<String> replicas = cluster.getReplicaUrlsByUrl(
-                        candidateNode.getNodeUrl()
-                );
-
-                final Response response = requestFromReplica
-                        ? localNodeRequestHandler.handleReqeust(request, id, Long.parseLong(ReqeustUtils.getHeader(request, HttpHeader.TIMESTAMP)))
-                        : handleDistributedReqeust(request, id, replicas, Integer.parseInt(quorumStr));
-
-                session.sendResponse(response);
-            } catch (Exception e) {
-                sendErrorResponse(session, e);
-            }
-        };
-
         try {
-            final boolean scheduled = loadBalancer.scheduleTask(
-                    candidateNode.getNodeUrl(),
-                    task
+            //TODO: Bad guarantee
+            final boolean requestFromReplica = quorumStr == null;
+            final Node candidateNode = getCandidateNode(id, requestFromReplica);
+
+            final Set<String> replicas = cluster.getReplicaUrlsByUrl(
+                    candidateNode.getNodeUrl()
             );
 
+            final Supplier<Response> responseSupplier = requestFromReplica
+                    ? createLocalResponseSupplier(request, id)
+                    : () -> handleDistributedReqeust(request, id, replicas, Integer.parseInt(quorumStr));
+
+            final boolean scheduled = scheduleRequest(candidateNode.getNodeUrl(), session, responseSupplier);
             if (!scheduled) {
                 session.sendResponse(
                         new Response(Response.SERVICE_UNAVAILABLE, Response.EMPTY)
                 );
             }
-        } catch (RejectedExecutionException e) {
+        } catch (Exception e) {
             sendErrorResponse(session, e);
         }
     }
@@ -148,6 +128,40 @@ public final class Server extends HttpServer {
             log.error("Closing session", ie);
             session.close();
         }
+    }
+
+    private Node getCandidateNode(String id, boolean requestFromReplica) {
+        return requestFromReplica
+                ? cluster.getNodeByUrl(cluster.getSelfUrl())
+                : cluster.getNodeByIndex(ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getVirtualNodeAmount())
+        );
+    }
+
+    private Supplier<Response> createLocalResponseSupplier(Request request, String id) {
+        return () -> {
+            final long coordinatorRequestTimestamp = Long.parseLong(
+                    ReqeustUtils.getHeader(request, HttpHeader.TIMESTAMP)
+            );
+
+            return localNodeRequestHandler.handleReqeust(request, id, coordinatorRequestTimestamp);
+        };
+    }
+
+    private boolean scheduleRequest(String candidateUrl, HttpSession session, Supplier<Response> responseSupplier) throws RejectedExecutionException {
+        final Runnable task = () -> {
+            try {
+                session.sendResponse(
+                        responseSupplier.get()
+                );
+            } catch (Exception e) {
+                sendErrorResponse(session, e);
+            }
+        };
+
+        return loadBalancer.scheduleTask(
+                candidateUrl,
+                task
+        );
     }
 
     private Response handleDistributedReqeust(Request request, String id, Set<String> replicaUrls, int quorum) {

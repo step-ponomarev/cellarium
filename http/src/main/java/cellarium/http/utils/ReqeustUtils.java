@@ -1,5 +1,7 @@
 package cellarium.http.utils;
 
+import java.util.HashMap;
+import java.util.Map;
 import one.nio.http.Request;
 
 public class ReqeustUtils {
@@ -15,6 +17,15 @@ public class ReqeustUtils {
         }
 
         return null;
+    }
+
+    public static Map<String, String> extractQueryParams(Request request) {
+        final Map<String, String> reqeustParams = new HashMap<>();
+        for (Map.Entry<String, String> param : request.getParameters()) {
+            reqeustParams.put(param.getKey(), param.getValue());
+        }
+
+        return reqeustParams;
     }
     
     private ReqeustUtils() {}
