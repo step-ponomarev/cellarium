@@ -5,6 +5,7 @@ import java.net.HttpURLConnection;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.util.Collections;
+import java.util.Map;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -14,7 +15,7 @@ import cellarium.http.service.Cluster;
 import cellarium.http.service.EndpointService;
 
 public class BasicHttpTest extends AHttpTest {
-    private final static String URL = "http://localhost:8080";
+    private final static String URL = "http://127.0.0.1:8080";
 
     private Cluster cluster;
     private EndpointService endpointService;
@@ -27,7 +28,7 @@ public class BasicHttpTest extends AHttpTest {
 
         Files.createDirectory(DEFAULT_DIR);
 
-        cluster = new Cluster(Collections.singleton(URL), DEFAULT_DIR);
+        cluster = new Cluster(Map.of(URL, Collections.emptySet()), DEFAULT_DIR);
         cluster.start();
 
         endpointService = cluster.getRandomEndpoint();

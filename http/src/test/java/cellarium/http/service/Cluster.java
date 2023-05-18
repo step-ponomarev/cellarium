@@ -11,9 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import cellarium.db.DaoConfig;
 import cellarium.db.MemorySegmentDao;
 import cellarium.http.Server;
+import cellarium.http.conf.ConfigNode;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
 import one.nio.http.HttpServer;
@@ -24,15 +26,18 @@ public class Cluster {
 
     protected boolean running = true;
 
-    public final Set<String> clusterUrls;
+    public final Map<String, Set<String>> hostToReplicas;
     private final List<HttpServer> instances;
     private final Map<String, EndpointService> urlToEndpoint;
+
     protected final Path baseDir;
 
-    private int requestTimeoutMs = Integer.MAX_VALUE;
+    public Cluster(Map<String, Set<String>> hostUrlToReplicas, Path baseDir) {
+        this(hostUrlToReplicas, baseDir, 1);
+    }
 
-    public Cluster(Set<String> clusterUrls, Path baseDir) {
-        if (clusterUrls == null || clusterUrls.isEmpty()) {
+    public Cluster(Map<String, Set<String>> hostUrlToReplicas, Path baseDir, int quorum) {
+        if (hostUrlToReplicas == null || hostUrlToReplicas.isEmpty()) {
             throw new IllegalArgumentException("Cluster urls cannot be empty");
         }
 
@@ -44,22 +49,18 @@ public class Cluster {
             throw new IllegalStateException("Base dir is not exists");
         }
 
-        this.clusterUrls = clusterUrls;
+        this.hostToReplicas = hostUrlToReplicas;
         this.instances = new ArrayList<>();
         this.urlToEndpoint = new HashMap<>();
         this.baseDir = baseDir;
 
-        for (String url : clusterUrls) {
-            urlToEndpoint.put(url, new SingleEndpointService(url + ServerConfiguration.V_0_ENTITY_ENDPOINT));
+        for (String host : hostUrlToReplicas.keySet()) {
+            urlToEndpoint.put(host, new SingleEndpointService(host + ServerConfiguration.V_0_ENTITY_ENDPOINT, quorum));
         }
     }
 
-    public void setRequestTimeoutMs(int requestTimeoutMs) {
-        this.requestTimeoutMs = requestTimeoutMs;
-    }
-
     public void start() throws IOException {
-        for (String url : clusterUrls) {
+        for (String url : hostToReplicas.keySet()) {
             final URI uri = URI.create(url);
             final Path instanceDir = baseDir.resolve(
                     Path.of(DIR_PREFIX + uri.getPath() + uri.getPort())
@@ -70,7 +71,7 @@ public class Cluster {
             }
 
             final Server server = new Server(
-                    createServerConfig(uri, clusterUrls),
+                    createServerConfig(uri, hostToReplicas),
                     createDao(instanceDir)
             );
 
@@ -93,10 +94,11 @@ public class Cluster {
     }
 
     public EndpointService getRandomEndpoint() {
-        Iterator<String> iterator = clusterUrls.iterator();
+        Iterator<String> iterator = hostToReplicas.keySet().iterator();
 
-        final int index = ThreadLocalRandom.current().nextInt(0, clusterUrls.size());
-        for (int i = 0; i < index; i++, iterator.next()) {}
+        final int index = ThreadLocalRandom.current().nextInt(0, hostToReplicas.size());
+        for (int i = 0; i < index; i++, iterator.next()) {
+        }
 
         return urlToEndpoint.get(iterator.next());
     }
@@ -109,11 +111,17 @@ public class Cluster {
         return new MemorySegmentDao(daoConfig);
     }
 
-    private ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls) {
+    private ServerConfig createServerConfig(URI currentUrl, Map<String, Set<String>> clusterUrlToReplicas) {
         final ServerConfig serverConfig = new ServerConfig();
         serverConfig.selfPort = currentUrl.getPort();
         serverConfig.selfUrl = currentUrl.toString();
-        serverConfig.clusterUrls = clusterUrls;
+        serverConfig.cluster = clusterUrlToReplicas.entrySet().stream().map(u -> {
+            final ConfigNode configNode = new ConfigNode();
+            configNode.url = u.getKey();
+            configNode.replicas = u.getValue();
+
+            return configNode;
+        }).collect(Collectors.toSet());
         serverConfig.requestHandlerThreadCount = Runtime.getRuntime().availableProcessors() - 2;
 
         final AcceptorConfig acceptor = new AcceptorConfig();

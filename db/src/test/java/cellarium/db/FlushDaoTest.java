@@ -98,7 +98,8 @@ public class FlushDaoTest extends AConcurrentDaoTest {
             for (int i = 0; i < count; i++) {
                 final Entry<String> expected = entries.get(i);
                 if (i % 2 == 0) {
-                    Assert.assertNull(dao.get(expected.getKey()));
+                    Entry<String> stringEntry = dao.get(expected.getKey());
+                    Assert.assertTrue(stringEntry == null || stringEntry.getValue() == null);
                     continue;
                 }
 

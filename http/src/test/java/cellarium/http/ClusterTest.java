@@ -10,7 +10,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -22,10 +24,10 @@ import cellarium.http.service.EndpointService;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusterTest extends AHttpTest {
-    private static final String BASE_URL = "http://localhost:";
+    private static final String BASE_URL = "http://127.0.0.1";
     private static final Set<Integer> PORTS = Set.of(8080, 8081, 8082, 8083, 8084);
     private static final Set<String> CLUSTER_URLS = PORTS.stream()
-            .map(p -> BASE_URL + p)
+            .map(p -> BASE_URL + ":" + p)
             .collect(Collectors.toSet());
 
     @Test
@@ -102,7 +104,7 @@ public class ClusterTest extends AHttpTest {
 
             int replicasCount = 0;
             for (String url : CLUSTER_URLS) {
-                final Cluster urlCluster = new Cluster(Collections.singleton(url), workDir);
+                final Cluster urlCluster = new Cluster(Map.of(url, Collections.emptySet()), workDir);
                 urlCluster.start();
 
                 HttpResponse<byte[]> httpResponse = urlCluster.getExactEndpoint(url).get(id);
@@ -140,7 +142,7 @@ public class ClusterTest extends AHttpTest {
             cluster.stop();
 
             for (String url : CLUSTER_URLS) {
-                final Cluster singleInstanceCluster = new Cluster(Collections.singleton(url), workDir);
+                final Cluster singleInstanceCluster = new Cluster(Map.of(url, Collections.emptySet()), workDir);
                 singleInstanceCluster.start();
 
                 final EndpointService endpoint = singleInstanceCluster.getExactEndpoint(url);
@@ -162,9 +164,200 @@ public class ClusterTest extends AHttpTest {
         }
     }
 
+    @Test
+    public final void testSimpleReplication() throws IOException, InterruptedException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+
+        final String firstNode = "http://127.0.0.1:8080";
+        final String secondNode = "http://127.0.0.1:8081";
+        final Map<String, Set<String>> stringSetMap = Map.of(
+                firstNode, Set.of(secondNode),
+                secondNode, Set.of(firstNode)
+        );
+
+        try {
+            Cluster cluster = new Cluster(stringSetMap, workDir, 2);
+            cluster.start();
+
+            final int count = 20_000;
+            final List<String> ids = new ArrayList<>(count);
+            for (int i = 0; i < count; i++) {
+                final String id = generateId();
+                final byte[] body = generateBody();
+
+                final HttpResponse<byte[]> putResponse = cluster.getExactEndpoint(firstNode).put(id, body);
+                Assert.assertEquals(HttpURLConnection.HTTP_CREATED, putResponse.statusCode());
+
+                ids.add(id);
+            }
+
+            cluster.stop();
+            
+            // check only first node
+            cluster = new Cluster(Map.of(firstNode, Collections.emptySet()), workDir);
+            cluster.start();
+
+            for (String id : ids) {
+                final HttpResponse<byte[]> putResponse = cluster.getExactEndpoint(firstNode).get(id);
+                Assert.assertEquals(HttpURLConnection.HTTP_OK, putResponse.statusCode());
+            }
+            cluster.stop();
+
+            // check only second node
+            cluster = new Cluster(Map.of(secondNode, Collections.emptySet()), workDir);
+            cluster.start();
+
+            for (String id : ids) {
+                final HttpResponse<byte[]> putResponse = cluster.getExactEndpoint(secondNode).get(id);
+                Assert.assertEquals(HttpURLConnection.HTTP_OK, putResponse.statusCode());
+            }
+            cluster.stop();
+        } finally {
+            DiskUtils.removeDir(workDir);
+        }
+    }
+    
+    @Test
+    public final void testNewestReplacedData() throws IOException, InterruptedException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+
+        final String firstNode = "http://127.0.0.1:8080";
+        final String secondNode = "http://127.0.0.1:8081";
+        final Map<String, Set<String>> stringSetMap = Map.of(
+                firstNode, Set.of(secondNode),
+                secondNode, Set.of(firstNode)
+        );
+
+        try {
+            Cluster cluster = new Cluster(stringSetMap, workDir, 2);
+            cluster.start();
+
+            final String id = generateId();
+            final byte[] body = generateBody();
+
+            HttpResponse<byte[]> putResponse = cluster.getExactEndpoint(firstNode).put(id, body);
+            Assert.assertEquals(HttpURLConnection.HTTP_CREATED, putResponse.statusCode());
+            cluster.stop();
+
+            cluster = new Cluster(Map.of(secondNode, Collections.emptySet()), workDir);
+            cluster.start();
+
+            final EndpointService secondNodeEndpoint = cluster.getExactEndpoint(secondNode);
+            HttpResponse<byte[]> getResponse = secondNodeEndpoint.get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_OK, getResponse.statusCode());
+            Assert.assertArrayEquals(body, getResponse.body());
+
+            final byte[] newBody = generateBody();
+            putResponse = secondNodeEndpoint.put(id, newBody);
+            Assert.assertEquals(HttpURLConnection.HTTP_CREATED, putResponse.statusCode());
+            
+            getResponse = secondNodeEndpoint.get(id);
+            Assert.assertArrayEquals(newBody, getResponse.body());
+            cluster.stop();
+            
+            cluster = new Cluster(stringSetMap, workDir, 2);
+            cluster.start();
+            
+            getResponse = cluster.getExactEndpoint(firstNode).get(id);
+            Assert.assertArrayEquals(newBody, getResponse.body());
+            
+            getResponse = cluster.getExactEndpoint(secondNode).get(id);
+            Assert.assertArrayEquals(newBody, getResponse.body());
+            cluster.stop();
+        } finally {
+            DiskUtils.removeDir(workDir);
+        }
+    }
+    
+    @Test
+    public final void testNewestDeletedData() throws IOException, InterruptedException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+
+        final String firstNode = "http://127.0.0.1:8080";
+        final String secondNode = "http://127.0.0.1:8081";
+        final Map<String, Set<String>> stringSetMap = Map.of(
+                firstNode, Set.of(secondNode),
+                secondNode, Set.of(firstNode)
+        );
+
+        try {
+            Cluster cluster = new Cluster(stringSetMap, workDir, 2);
+            cluster.start();
+
+            final String id = generateId();
+            final byte[] body = generateBody();
+
+            HttpResponse<byte[]> modificationResponse = cluster.getExactEndpoint(firstNode).put(id, body);
+            Assert.assertEquals(HttpURLConnection.HTTP_CREATED, modificationResponse.statusCode());
+            cluster.stop();
+
+            cluster = new Cluster(Map.of(secondNode, Collections.emptySet()), workDir);
+            cluster.start();
+
+            final EndpointService secondNodeEndpoint = cluster.getExactEndpoint(secondNode);
+            HttpResponse<byte[]> getResponse = secondNodeEndpoint.get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_OK, getResponse.statusCode());
+            Assert.assertArrayEquals(body, getResponse.body());
+            
+            modificationResponse = secondNodeEndpoint.delete(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_ACCEPTED, modificationResponse.statusCode());
+            
+            getResponse = secondNodeEndpoint.get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, getResponse.statusCode());
+            cluster.stop();
+
+            cluster = new Cluster(stringSetMap, workDir, 2);
+            cluster.start();
+
+            getResponse = cluster.getExactEndpoint(firstNode).get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, getResponse.statusCode());
+
+            getResponse = cluster.getExactEndpoint(secondNode).get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, getResponse.statusCode());
+            cluster.stop();
+        } finally {
+            DiskUtils.removeDir(workDir);
+        }
+    }
+    
+    @Test
+    public final void testAddedNewReplicaWithoutData() throws IOException, InterruptedException {
+        final Path workDir = Files.createDirectory(DEFAULT_DIR);
+
+        final String firstNode = "http://127.0.0.1:8080";
+        final String secondNode = "http://127.0.0.1:8081";
+        final Map<String, Set<String>> stringSetMap = Map.of(
+                firstNode, Set.of(secondNode),
+                secondNode, Set.of(firstNode)
+        );
+
+        try {
+            Cluster cluster = new Cluster(Map.of(firstNode, Collections.emptySet()), workDir);
+            cluster.start();
+
+            final String id = generateId();
+            final byte[] body = generateBody();
+
+            HttpResponse<byte[]> modificationResponse = cluster.getExactEndpoint(firstNode).put(id, body);
+            Assert.assertEquals(HttpURLConnection.HTTP_CREATED, modificationResponse.statusCode());
+            cluster.stop();
+
+            cluster = new Cluster(stringSetMap, workDir, 2);
+            cluster.start();
+            
+            HttpResponse<byte[]> getResponse = cluster.getExactEndpoint(secondNode).get(id);
+            Assert.assertEquals(HttpURLConnection.HTTP_OK, getResponse.statusCode());
+            Assert.assertArrayEquals(body, getResponse.body());
+            
+            cluster.stop();
+        } finally {
+            DiskUtils.removeDir(workDir);
+        }
+    }
+
     private static class ClearableCluster extends Cluster implements Closeable {
         public ClearableCluster(Set<String> clusterUrls, Path baseDir) {
-            super(clusterUrls, baseDir);
+            super(clusterUrls.stream().collect(Collectors.toMap(UnaryOperator.identity(), e -> Collections.emptySet())), baseDir);
         }
 
         @Override
