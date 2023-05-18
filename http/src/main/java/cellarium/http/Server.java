@@ -71,8 +71,8 @@ public final class Server extends HttpServer {
         final String quorumStr = reqeustParams.get(QueryParam.QUORUM);
 
         //TODO: Не очень то надежный признак
-        final boolean isTargetRequestFromReplica = quorumStr == null;
-        final Node candidateNode = isTargetRequestFromReplica
+        final boolean requestFromReplica = quorumStr == null;
+        final Node candidateNode = requestFromReplica
                 ? cluster.getNodeByUrl(cluster.getSelfUrl())
                 : cluster.getNodeByIndex(ConsistentHashing.getNodeIndexForHash(Hash.murmur3(id), cluster.getVirtualNodeAmount())
         );
@@ -83,7 +83,7 @@ public final class Server extends HttpServer {
                         candidateNode.getNodeUrl()
                 );
 
-                final Response response = isTargetRequestFromReplica
+                final Response response = requestFromReplica
                         ? localNodeRequestHandler.handleReqeust(request, id, Long.parseLong(ReqeustUtils.getHeader(request, HttpHeader.TIMESTAMP)))
                         : handleDistributedReqeust(request, id, replicas, Integer.parseInt(quorumStr));
 
