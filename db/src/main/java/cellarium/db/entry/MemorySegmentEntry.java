@@ -2,7 +2,7 @@ package cellarium.db.entry;
 
 import jdk.incubator.foreign.MemorySegment;
 
-public final class MemorySegmentEntry extends AbstractEntry<MemorySegment> {
+public final class MemorySegmentEntry extends AMultipleValueEntry<MemorySegment> {
     private final long timestamp;
     private final long sizeBytes;
 
@@ -23,12 +23,12 @@ public final class MemorySegmentEntry extends AbstractEntry<MemorySegment> {
     }
 
     @Override
-    public MemorySegment getKey() {
-        return key;
+    public MemorySegment getPk() {
+        return pk;
     }
 
     @Override
-    public MemorySegment getValue() {
+    public MemorySegment getValues() {
         return value;
     }
 }

@@ -1,7 +1,7 @@
 package entry.generator;
 
 import java.util.AbstractList;
-import cellarium.db.entry.AbstractEntry;
+import cellarium.db.entry.AMultipleValueEntry;
 import cellarium.db.entry.Entry;
 import entry.TestUtils;
 
@@ -29,7 +29,7 @@ public class EntryGeneratorList extends AbstractList<Entry<String>> {
         }
 
         final String key = TestUtils.generateKeyByIndex(index);
-        return new AbstractEntry<>(keyPrefix + key, valuePrefix + key) {
+        return new AMultipleValueEntry<>(keyPrefix + key, valuePrefix + key) {
 
         };
     }

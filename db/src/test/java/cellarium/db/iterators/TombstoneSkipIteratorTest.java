@@ -7,8 +7,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import cellarium.db.entry.Entry;
 import cellarium.db.entry.EntryComparator;
-import cellarium.db.iterators.MergeIterator;
-import cellarium.db.iterators.TombstoneSkipIterator;
 import entry.generator.EntryGeneratorList;
 import entry.generator.NullEntryGeneratorList;
 

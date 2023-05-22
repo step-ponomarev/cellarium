@@ -32,7 +32,7 @@ public class MemTable implements Store<MemorySegment, MemorySegmentEntry> {
     @Override
     public void upsert(MemorySegmentEntry entry) {
         final long[] sizeDelta = new long[1];
-        entries.compute(entry.getKey(), (k, oldValue) -> {
+        entries.compute(entry.getPk(), (k, oldValue) -> {
             if (oldValue == null) {
                 sizeDelta[0] = entry.getSizeBytes();
             } else {

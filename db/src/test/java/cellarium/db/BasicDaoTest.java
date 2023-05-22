@@ -30,8 +30,8 @@ public class BasicDaoTest extends ADaoTest {
             final Entry<String> entry = createEntry("key", "value");
             dao.upsert(entry);
 
-            final Entry<String> entryFromDao = dao.get(entry.getKey());
-            Assert.assertEquals(entry.getKey(), entryFromDao.getKey());
+            final Entry<String> entryFromDao = dao.get(entry.getPk());
+            Assert.assertEquals(entry.getPk(), entryFromDao.getPk());
             Assert.assertEquals(entry.getValue(), entryFromDao.getValue());
         }
     }
@@ -42,7 +42,7 @@ public class BasicDaoTest extends ADaoTest {
             final Entry<String> entry = createEntry("key", null);
             dao.upsert(entry);
 
-            final Entry<String> entryFromDao = dao.get(entry.getKey());
+            final Entry<String> entryFromDao = dao.get(entry.getPk());
             Assert.assertTrue(entryFromDao == null);
         }
     }
@@ -56,12 +56,12 @@ public class BasicDaoTest extends ADaoTest {
             entries.forEach(e -> {
                 final Entry<String> entry;
                 try {
-                    entry = dao.get(e.getKey());
+                    entry = dao.get(e.getPk());
                 } catch (IOException ex) {
                     throw new IllegalStateException(ex);
                 }
 
-                Assert.assertEquals(e.getKey(), entry.getKey());
+                Assert.assertEquals(e.getPk(), entry.getPk());
                 Assert.assertEquals(e.getValue(), entry.getValue());
             });
         }
@@ -80,7 +80,7 @@ public class BasicDaoTest extends ADaoTest {
                 final Entry<String> entry = entries.get(i);
                 final Entry<String> next = all.next();
 
-                Assert.assertEquals(entry.getKey(), next.getKey());
+                Assert.assertEquals(entry.getPk(), next.getPk());
                 Assert.assertEquals(entry.getValue(), next.getValue());
             }
 
@@ -174,10 +174,10 @@ public class BasicDaoTest extends ADaoTest {
             final Entry<String> entry = createEntry("KEY", "VALUE");
             dao.upsert(entry);
 
-            assertEquals(entry, dao.get(entry.getKey()));
+            assertEquals(entry, dao.get(entry.getPk()));
 
-            dao.upsert(createEntry(entry.getKey(), null));
-            Assert.assertNull(dao.get(entry.getKey()));
+            dao.upsert(createEntry(entry.getPk(), null));
+            Assert.assertNull(dao.get(entry.getPk()));
         }
     }
 
@@ -187,14 +187,14 @@ public class BasicDaoTest extends ADaoTest {
             final Entry<String> entry = createEntry("KEY", "VALUE");
             dao.upsert(entry);
 
-            assertEquals(entry, dao.get(entry.getKey()));
+            assertEquals(entry, dao.get(entry.getPk()));
 
-            dao.upsert(createEntry(entry.getKey(), null));
+            dao.upsert(createEntry(entry.getPk(), null));
 
-            final Entry<String> expected = createEntry(entry.getKey(), "NEW_VALUE");
+            final Entry<String> expected = createEntry(entry.getPk(), "NEW_VALUE");
             dao.upsert(expected);
 
-            assertEquals(expected, dao.get(entry.getKey()));
+            assertEquals(expected, dao.get(entry.getPk()));
         }
     }
 
@@ -204,9 +204,9 @@ public class BasicDaoTest extends ADaoTest {
             final Entry<String> entry = createEntry("KEY", "VALUE");
             dao.upsert(entry);
 
-            assertEquals(entry, dao.get(entry.getKey()));
+            assertEquals(entry, dao.get(entry.getPk()));
 
-            dao.upsert(createEntry(entry.getKey(), null));
+            dao.upsert(createEntry(entry.getPk(), null));
             assertNotContains(dao.get(null, null), entry);
         }
     }
@@ -236,7 +236,7 @@ public class BasicDaoTest extends ADaoTest {
 
             for (int i = 0; i < count; i++) {
                 final Entry<String> expectedEntry = entries.get(i);
-                assertEquals(expectedEntry, dao.get(expectedEntry.getKey()));
+                assertEquals(expectedEntry, dao.get(expectedEntry.getPk()));
             }
         }
     }

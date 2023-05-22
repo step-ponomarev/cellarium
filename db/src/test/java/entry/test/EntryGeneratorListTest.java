@@ -20,7 +20,7 @@ public class EntryGeneratorListTest {
 
         Assert.assertEquals(count, entries.size());
         entries.forEach(e -> {
-            Assert.assertTrue(e.getKey() != null);
+            Assert.assertTrue(e.getPk() != null);
             Assert.assertTrue(e.getValue() != null);
         });
     }
@@ -34,7 +34,7 @@ public class EntryGeneratorListTest {
 
         Assert.assertEquals(count, entries.size());
         entries.forEach(e -> {
-            Assert.assertTrue(e.getKey().startsWith(keyPrefix));
+            Assert.assertTrue(e.getPk().startsWith(keyPrefix));
             Assert.assertTrue(e.getValue().startsWith(valuePrefix));
         });
     }

@@ -28,7 +28,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
 
             for (int i = 0; i < count; i++) {
                 final Entry<String> entry = entries.get(i);
-                assertEquals(entry, dao.get(entry.getKey()));
+                assertEquals(entry, dao.get(entry.getPk()));
             }
         }
     }
@@ -62,7 +62,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
             dao.flush();
 
             for (Entry<String> entry : entries) {
-                dao.upsert(createEntry(entry.getKey(), null));
+                dao.upsert(createEntry(entry.getPk(), null));
                 dao.flush();
             }
 
@@ -83,7 +83,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
             final long beforeCompaction = DiskUtils.gerDirSizeBytes(DEFAULT_DIR);
             for (int i = 0; i < count; i++) {
                 if (i % 2 == 0) {
-                    dao.upsert(createEntry(entries.get(i).getKey(), null));
+                    dao.upsert(createEntry(entries.get(i).getPk(), null));
                 }
             }
 
@@ -107,7 +107,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
 
             for (int i = 0; i < count; i++) {
                 if (i % 2 == 0) {
-                    dao.upsert(createEntry(entries.get(i).getKey(), null));
+                    dao.upsert(createEntry(entries.get(i).getPk(), null));
                     dao.flush();
                 }
             }
@@ -156,7 +156,7 @@ public class CompactionDaoTest extends AConcurrentDaoTest {
                 dao.upsert(addedEntry);
                 dao.compact();
 
-                assertEquals(addedEntry, dao.get(addedEntry.getKey()));
+                assertEquals(addedEntry, dao.get(addedEntry.getPk()));
             }).await();
         }
     }

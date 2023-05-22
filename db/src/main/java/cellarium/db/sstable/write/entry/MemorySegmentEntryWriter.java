@@ -14,7 +14,7 @@ public final class MemorySegmentEntryWriter extends AMemorySegmentEntryWriter {
     }
 
     public long write(MemorySegmentEntry entry) {
-        final MemorySegment key = entry.getKey();
+        final MemorySegment key = entry.getPk();
         final long keySize = key.byteSize();
 
         final long startOffset = position;
@@ -27,7 +27,7 @@ public final class MemorySegmentEntryWriter extends AMemorySegmentEntryWriter {
         MemoryAccess.setLongAtOffset(memorySegment, position, byteOrder, entry.getTimestamp());
         position += Long.BYTES;
 
-        final MemorySegment value = entry.getValue();
+        final MemorySegment value = entry.getValues();
         if (value == null) {
             MemoryAccess.setLongAtOffset(memorySegment, position, byteOrder, this.tombstoneTag);
             position += Long.BYTES;

@@ -1,6 +1,6 @@
 package entry.generator;
 
-import cellarium.db.entry.AbstractEntry;
+import cellarium.db.entry.AMultipleValueEntry;
 import cellarium.db.entry.Entry;
 import entry.TestUtils;
 
@@ -19,9 +19,9 @@ public class NullEntryGeneratorList extends EntryGeneratorList {
             throw new IndexOutOfBoundsException("Available index range: [0, " + count + "], got: " + index);
         }
 
-        return new AbstractEntry<>(keyPrefix + TestUtils.generateKeyByIndex(index), null) {
+        return new AMultipleValueEntry<>(keyPrefix + TestUtils.generateKeyByIndex(index), null) {
             @Override
-            public String getValue() {
+            public String getValues() {
                 return null;
             }
         };

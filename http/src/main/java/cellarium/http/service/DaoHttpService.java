@@ -43,7 +43,7 @@ public final class DaoHttpService implements Closeable {
             }
 
             return Response.ok(
-                    entry.getValue().toByteArray()
+                    entry.getValues().toByteArray()
             );
         } catch (Exception e) {
             log.error("Get by id is failed, id: " + id, e);

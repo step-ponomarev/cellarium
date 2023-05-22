@@ -9,7 +9,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import cellarium.db.conf.TestDaoConfig;
-import cellarium.db.entry.AbstractEntry;
+import cellarium.db.entry.AMultipleValueEntry;
 import cellarium.db.entry.Entry;
 import cellarium.db.utils.DiskUtils;
 
@@ -36,7 +36,7 @@ public abstract class ADaoTest {
             throw new IllegalArgumentException("Key cannot be null!");
         }
 
-        return new AbstractEntry<>(key, value) {
+        return new AMultipleValueEntry<>(key, value) {
         };
     }
 
@@ -59,7 +59,7 @@ public abstract class ADaoTest {
             throw new AssertionError("Expected: " + expected + " actual " + actual);
         }
 
-        Assert.assertEquals(Objects.requireNonNull(expected).getKey(), Objects.requireNonNull(actual).getKey());
+        Assert.assertEquals(Objects.requireNonNull(expected).getPk(), Objects.requireNonNull(actual).getPk());
         Assert.assertEquals(expected.getValue(), actual.getValue());
     }
 
@@ -67,14 +67,14 @@ public abstract class ADaoTest {
         Entry<String> addedEntry = null;
         while (source.hasNext()) {
             addedEntry = source.next();
-            if (expected.getKey().compareTo(addedEntry.getKey()) <= 0) {
+            if (expected.getPk().compareTo(addedEntry.getPk()) <= 0) {
                 break;
             }
         }
 
         Assert.assertNotNull(addedEntry);
-        if (expected.getKey().compareTo(addedEntry.getKey()) != 0 || expected.getValue().compareTo(addedEntry.getValue()) != 0) {
-            Assert.fail("Data doesn't contain entry: " + expected.getKey() + " " + expected.getValue());
+        if (expected.getPk().compareTo(addedEntry.getPk()) != 0 || expected.getValue().compareTo(addedEntry.getValue()) != 0) {
+            Assert.fail("Data doesn't contain entry: " + expected.getPk() + " " + expected.getValue());
         }
     }
 
@@ -82,8 +82,8 @@ public abstract class ADaoTest {
         Entry<String> addedEntry = null;
         while (source.hasNext()) {
             addedEntry = source.next();
-            if (expected.getKey().compareTo(addedEntry.getKey()) == 0) {
-                Assert.fail("Contain entry: " + expected.getKey() + " " + expected.getValue());
+            if (expected.getPk().compareTo(addedEntry.getPk()) == 0) {
+                Assert.fail("Contain entry: " + expected.getPk() + " " + expected.getValue());
             }
         }
     }

@@ -22,7 +22,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
             for (int i = 0; i < count; i++) {
                 final Entry<String> entry = entries.get(i);
 
-                assertEquals(entry, dao.get(entries.get(i).getKey()));
+                assertEquals(entry, dao.get(entries.get(i).getPk()));
             }
         }
     }
@@ -56,11 +56,11 @@ public class FlushDaoTest extends AConcurrentDaoTest {
             final Entry<String> entryWillBeReplaced = entries.get(replaceIndex);
             assertEquals(entries.get(replaceIndex), entryWillBeReplaced);
 
-            final Entry<String> replaceEntry = createEntry(entryWillBeReplaced.getKey(), "REPLACED_VALUE");
+            final Entry<String> replaceEntry = createEntry(entryWillBeReplaced.getPk(), "REPLACED_VALUE");
             dao.upsert(replaceEntry);
             dao.flush();
 
-            assertEquals(replaceEntry, dao.get(entryWillBeReplaced.getKey()));
+            assertEquals(replaceEntry, dao.get(entryWillBeReplaced.getPk()));
         }
     }
 
@@ -90,7 +90,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
 
             for (int i = 0; i < count - 1; i += 2) {
                 final Entry<String> entryToRemove = entries.get(i);
-                dao.upsert(createEntry(entryToRemove.getKey(), null));
+                dao.upsert(createEntry(entryToRemove.getPk(), null));
             }
 
             dao.flush();
@@ -98,11 +98,11 @@ public class FlushDaoTest extends AConcurrentDaoTest {
             for (int i = 0; i < count; i++) {
                 final Entry<String> expected = entries.get(i);
                 if (i % 2 == 0) {
-                    Assert.assertNull(dao.get(expected.getKey()));
+                    Assert.assertNull(dao.get(expected.getPk()));
                     continue;
                 }
 
-                assertEquals(expected, dao.get(expected.getKey()));
+                assertEquals(expected, dao.get(expected.getPk()));
             }
         }
     }
@@ -159,7 +159,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
         dao = new TestDao(createConfig(UNLIMITED_MEMORY_SIZE));
 
         for (Entry<String> entry : entries) {
-            assertEquals(entry, dao.get(entry.getKey()));
+            assertEquals(entry, dao.get(entry.getPk()));
         }
 
         dao.close();
@@ -177,7 +177,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
                 dao.upsert(addedEntry);
                 dao.flush();
 
-                assertEquals(addedEntry, dao.get(addedEntry.getKey()));
+                assertEquals(addedEntry, dao.get(addedEntry.getPk()));
             }).await();
         }
     }
@@ -198,7 +198,7 @@ public class FlushDaoTest extends AConcurrentDaoTest {
                     dao.compact();
                 }
 
-                assertEquals(addedEntry, dao.get(addedEntry.getKey()));
+                assertEquals(addedEntry, dao.get(addedEntry.getPk()));
             }).await();
         }
     }

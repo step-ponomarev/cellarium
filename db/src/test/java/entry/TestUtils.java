@@ -7,7 +7,7 @@ public class TestUtils {
     private TestUtils() {}
 
     public static long getSizeBytesOf(Entry<String> entry) {
-        return MemorySegmentUtils.stringToMemorySegment(entry.getKey()).byteSize() +
+        return MemorySegmentUtils.stringToMemorySegment(entry.getPk()).byteSize() +
                 (entry.getValue() == null ? 0 : MemorySegmentUtils.stringToMemorySegment(entry.getValue()).byteSize());
     }
 

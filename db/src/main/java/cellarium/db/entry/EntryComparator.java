@@ -36,7 +36,7 @@ public class EntryComparator {
             return -1;
         }
 
-        return compareMemorySegments(r1.getKey(), r2.getKey());
+        return compareMemorySegments(r1.getPk(), r2.getPk());
     }
 
     public static int compareStringEntries(Entry<String> r1, Entry<String> r2) {
@@ -48,6 +48,6 @@ public class EntryComparator {
             return -1;
         }
 
-        return r1.getKey().compareTo(r2.getKey());
+        return r1.getPk().compareTo(r2.getPk());
     }
 }

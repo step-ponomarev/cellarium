@@ -1,7 +1,7 @@
 package cellarium.db.utils;
 
 import java.nio.charset.StandardCharsets;
-import cellarium.db.entry.AbstractEntry;
+import cellarium.db.entry.AMultipleValueEntry;
 import cellarium.db.entry.Entry;
 import cellarium.db.entry.MemorySegmentEntry;
 import jdk.incubator.foreign.MemorySegment;
@@ -31,7 +31,7 @@ public class MemorySegmentUtils {
         }
 
         return new MemorySegmentEntry(
-                MemorySegmentUtils.stringToMemorySegment(entry.getKey()),
+                MemorySegmentUtils.stringToMemorySegment(entry.getPk()),
                 entry.getValue() == null ? null : MemorySegmentUtils.stringToMemorySegment(entry.getValue()),
                 System.currentTimeMillis());
     }
@@ -41,9 +41,9 @@ public class MemorySegmentUtils {
             return null;
         }
 
-        return new AbstractEntry<>(
-                MemorySegmentUtils.memorySegmentToString(entry.getKey()),
-                MemorySegmentUtils.memorySegmentToString(entry.getValue())) {
+        return new AMultipleValueEntry<>(
+                MemorySegmentUtils.memorySegmentToString(entry.getPk()),
+                MemorySegmentUtils.memorySegmentToString(entry.getValues())) {
         };
     }
 }

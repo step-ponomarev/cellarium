@@ -6,11 +6,10 @@ import java.util.Iterator;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
-import cellarium.db.entry.AbstractEntry;
+import cellarium.db.entry.AMultipleValueEntry;
 import cellarium.db.entry.Entry;
 import cellarium.db.entry.EntryComparator;
 import cellarium.db.entry.MemorySegmentEntry;
-import cellarium.db.iterators.MergeIterator;
 import entry.TestUtils;
 import entry.generator.EntryGeneratorList;
 import entry.generator.NullEntryGeneratorList;
@@ -145,12 +144,12 @@ public class MergeIteratorTest {
 
         final List<Entry<String>> fromTailEntries = new ArrayList<>();
         for (int i = count / 2; i < count; i++) {
-            fromTailEntries.add(new AbstractEntry<>(TestUtils.generateKeyByIndex(i), String.valueOf(i)) {
+            fromTailEntries.add(new AMultipleValueEntry<>(TestUtils.generateKeyByIndex(i), String.valueOf(i)) {
             });
         }
         final List<Entry<String>> fromHeadEntries = new ArrayList<>();
         for (int i = 0; i < count / 2; i++) {
-            fromHeadEntries.add(new AbstractEntry<>(TestUtils.generateKeyByIndex(i), String.valueOf(i)) {
+            fromHeadEntries.add(new AMultipleValueEntry<>(TestUtils.generateKeyByIndex(i), String.valueOf(i)) {
             });
         }
 
@@ -165,7 +164,7 @@ public class MergeIteratorTest {
         for (int i = 0; i < count; i++) {
             Assert.assertTrue(orderedIterator.hasNext());
             final Entry<String> next = orderedIterator.next();
-            Assert.assertEquals(TestUtils.generateKeyByIndex(i), next.getKey());
+            Assert.assertEquals(TestUtils.generateKeyByIndex(i), next.getPk());
             Assert.assertEquals(String.valueOf(i), next.getValue());
         }
 

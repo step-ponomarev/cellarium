@@ -22,7 +22,7 @@ public final class FileChannelEntryWriter extends AMemorySegmentEntryWriter {
         final long startPosition = fileChannel.position();
 
         long position = startPosition;
-        final MemorySegment key = entry.getKey();
+        final MemorySegment key = entry.getPk();
 
         final List<ByteBuffer> buffersToWrite = new ArrayList<>();
         buffersToWrite.add(ByteBuffer.allocate(Long.BYTES).order(byteOrder).putLong(key.byteSize()).flip());
@@ -34,7 +34,7 @@ public final class FileChannelEntryWriter extends AMemorySegmentEntryWriter {
         buffersToWrite.add(ByteBuffer.allocate(Long.BYTES).order(byteOrder).putLong(entry.getTimestamp()).flip());
         position += Long.BYTES;
 
-        final MemorySegment value = entry.getValue();
+        final MemorySegment value = entry.getValues();
         if (value == null) {
             buffersToWrite.add(ByteBuffer.allocate(Long.BYTES).order(byteOrder).putLong(tombstoneTag).flip());
             position += Long.BYTES;
