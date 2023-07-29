@@ -2,7 +2,7 @@ package cellarium.db.memtable;
 
 import cellarium.db.entry.Entry;
 import cellarium.db.entry.EntryWithSize;
-import cellarium.db.storage.memtable.MemTable;
+import cellarium.db.memtable.MemTable;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

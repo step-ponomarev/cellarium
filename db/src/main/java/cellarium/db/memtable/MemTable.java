@@ -1,4 +1,4 @@
-package cellarium.db.storage.memtable;
+package cellarium.db.memtable;
 
 import cellarium.db.entry.EntryWithSize;
 import cellarium.db.storage.Storage;

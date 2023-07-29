@@ -1,7 +1,5 @@
 package cellarium.db.entry;
 
-import cellarium.db.entry.Entry;
-
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
