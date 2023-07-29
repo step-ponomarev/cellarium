@@ -1,10 +1,11 @@
-package cellarium.db.iterators;
+package cellarium.db.entry;
+
+import cellarium.db.entry.Entry;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import cellarium.db.entry.Entry;
 
-public final class TombstoneSkipIterator<E extends Entry<?>> implements Iterator<E> {
+public final class TombstoneSkipIterator<E extends Entry<?, ?>> implements Iterator<E> {
     private final Iterator<E> delegate;
     private final int timeoutMs;
     private final long createdMs;
@@ -31,8 +32,6 @@ public final class TombstoneSkipIterator<E extends Entry<?>> implements Iterator
         return current != null;
     }
 
-    /**
-     */
     @Override
     public E next() {
         if (!hasNext()) {

@@ -1,7 +1,7 @@
 package cellarium.db.entry;
 
-public interface Entry<D> {
-    D getKey();
+public interface Entry<PK, V> {
+    PK getPK();
 
-    D getValue();
+    V getValue();
 }

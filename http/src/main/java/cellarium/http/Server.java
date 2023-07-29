@@ -3,7 +3,7 @@ package cellarium.http;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cellarium.db.MemorySegmentDao;
+import cellarium.db.dao.CellariumDiskStorage;
 import cellarium.http.cluster.Cluster;
 import cellarium.http.cluster.ConsistentHashing;
 import cellarium.http.cluster.LoadBalancer;
@@ -25,7 +25,7 @@ public final class Server extends HttpServer {
     private final Cluster cluster;
     private final LoadBalancer loadBalancer;
 
-    public Server(ServerConfig config, MemorySegmentDao dao) throws IOException {
+    public Server(ServerConfig config, CellariumDiskStorage dao) throws IOException {
         super(config);
 
         if (dao == null) {

@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ThreadLocalRandom;
 import org.junit.AfterClass;
-import cellarium.db.utils.DiskUtils;
 
 public abstract class AHttpTest {
     private static final int BODY_LEN_BYTES = 40;

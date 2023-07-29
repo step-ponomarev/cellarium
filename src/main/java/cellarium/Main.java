@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.apache.log4j.PropertyConfigurator;
-import cellarium.db.MemorySegmentDao;
+import cellarium.db.dao.CellariumDiskStorage;
 import cellarium.http.Server;
 import cellarium.http.conf.AnnotatedDaoConfig;
 import cellarium.http.conf.ConfigReader;
@@ -24,7 +24,7 @@ public class Main {
 
         final Server server = new Server(
                 configReader.readServerConfig(),
-                new MemorySegmentDao(configReader.readDaoConfig())
+                new CellariumDiskStorage(configReader.readDaoConfig())
         );
         server.start();
 

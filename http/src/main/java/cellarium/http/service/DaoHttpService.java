@@ -4,8 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cellarium.db.MemorySegmentDao;
-import cellarium.db.entry.MemorySegmentEntry;
+import cellarium.db.dao.CellariumDiskStorage;
 import cellarium.db.utils.MemorySegmentUtils;
 import jdk.incubator.foreign.MemorySegment;
 import one.nio.http.Response;
@@ -13,9 +12,9 @@ import one.nio.http.Response;
 public final class DaoHttpService implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(DaoHttpService.class);
 
-    private final MemorySegmentDao dao;
+    private final CellariumDiskStorage dao;
 
-    public DaoHttpService(MemorySegmentDao dao) {
+    public DaoHttpService(CellariumDiskStorage dao) {
         if (dao == null) {
             throw new NullPointerException("Dao cannot be null");
         }
@@ -61,7 +60,7 @@ public final class DaoHttpService implements Closeable {
                 return new Response(Response.BAD_REQUEST, Response.EMPTY);
             }
 
-            dao.upsert(
+            dao.put(
                     new MemorySegmentEntry(
                             MemorySegmentUtils.stringToMemorySegment(id),
                             MemorySegment.ofArray(body),
@@ -82,7 +81,7 @@ public final class DaoHttpService implements Closeable {
         }
 
         try {
-            dao.upsert(
+            dao.put(
                     new MemorySegmentEntry(
                             MemorySegmentUtils.stringToMemorySegment(id),
                             null,

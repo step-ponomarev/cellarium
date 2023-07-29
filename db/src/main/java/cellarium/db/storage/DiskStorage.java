@@ -1,11 +1,11 @@
-package cellarium.db;
+package cellarium.db.storage;
 
 import java.io.Closeable;
 import java.io.IOException;
-import cellarium.db.store.Store;
+
 import cellarium.db.entry.Entry;
 
-public interface Dao<T, E extends Entry<T>> extends Store<T, E>, Closeable {
+public interface DiskStorage<T, E extends Entry<T, ?>> extends Storage<T, E>, Closeable {
     default void flush() throws IOException {
         throw new UnsupportedOperationException("Unsupported method");
     }

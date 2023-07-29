@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import cellarium.db.DaoConfig;
-import cellarium.db.MemorySegmentDao;
+
+import cellarium.db.dao.CellariumDiskStorage;
 import cellarium.http.Server;
 import cellarium.http.conf.ServerConfig;
 import cellarium.http.conf.ServerConfiguration;
@@ -101,12 +101,12 @@ public class Cluster {
         return urlToEndpoint.get(iterator.next());
     }
 
-    private static MemorySegmentDao createDao(Path instanceDir) throws IOException {
+    private static CellariumDiskStorage createDao(Path instanceDir) throws IOException {
         final DaoConfig daoConfig = new DaoConfig();
         daoConfig.path = instanceDir.toString();
         daoConfig.memtableTotalSpaceBytes = 1024 * 1024;
 
-        return new MemorySegmentDao(daoConfig);
+        return new CellariumDiskStorage(daoConfig);
     }
 
     private ServerConfig createServerConfig(URI currentUrl, Set<String> clusterUrls) {

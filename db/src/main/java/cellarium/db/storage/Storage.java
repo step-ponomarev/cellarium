@@ -1,10 +1,10 @@
-package cellarium.db.store;
+package cellarium.db.storage;
 
-import java.io.IOException;
-import java.util.Iterator;
 import cellarium.db.entry.Entry;
 
-public interface Store<T, E extends Entry<T>> {
+import java.util.Iterator;
+
+public interface Storage<K, E extends Entry<K, ?>> {
     /**
      * Returns ordered iterator of entries with keys between from (inclusive) and to (exclusive).
      *
@@ -12,11 +12,11 @@ public interface Store<T, E extends Entry<T>> {
      * @param to   upper bound of range (exclusive)
      * @return entries [from;to)
      */
-    Iterator<E> get(T from, T to) throws IOException;
+    Iterator<E> get(K from, K to);
 
-    E get(T key) throws IOException;
+    E get(K key);
 
-    default void upsert(E entry) {
+    default void put(E entry) {
         throw new UnsupportedOperationException("Unsupported operation");
     }
 }

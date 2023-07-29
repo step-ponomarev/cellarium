@@ -1,38 +1,42 @@
-package cellarium.db.memtable;
+package cellarium.db.storage.memtable;
+
+import cellarium.db.entry.EntryWithSize;
+import cellarium.db.storage.Storage;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
-import cellarium.db.entry.EntryComparator;
-import cellarium.db.entry.MemorySegmentEntry;
-import cellarium.db.store.Store;
-import jdk.incubator.foreign.MemorySegment;
 
-public class MemTable implements Store<MemorySegment, MemorySegmentEntry> {
-    private final SortedMap<MemorySegment, MemorySegmentEntry> entries;
+public final class MemTable<K, E extends EntryWithSize<K, ?>> implements Storage<K, E> {
+    private final SortedMap<K, E> entries;
     private final AtomicLong sizeBytes;
 
     public MemTable() {
-        this.entries = new ConcurrentSkipListMap<>(EntryComparator::compareMemorySegments);
+        this(null);
+    }
+
+    public MemTable(Comparator<K> comparator) {
+        this.entries = new ConcurrentSkipListMap<>(comparator);
         this.sizeBytes = new AtomicLong(0);
     }
 
     @Override
-    public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) {
+    public Iterator<E> get(K from, K to) {
         return slice(entries, from, to);
     }
 
     @Override
-    public MemorySegmentEntry get(MemorySegment key) {
+    public E get(K key) {
         return entries.get(key);
     }
 
     @Override
-    public void upsert(MemorySegmentEntry entry) {
+    public void put(E entry) {
         final long[] sizeDelta = new long[1];
-        entries.compute(entry.getKey(), (k, oldValue) -> {
+        entries.compute(entry.getPK(), (k, oldValue) -> {
             if (oldValue == null) {
                 sizeDelta[0] = entry.getSizeBytes();
             } else {
@@ -55,9 +59,7 @@ public class MemTable implements Store<MemorySegment, MemorySegmentEntry> {
         return sizeBytes.get();
     }
 
-    private static Iterator<MemorySegmentEntry> slice(SortedMap<MemorySegment, MemorySegmentEntry> store,
-                                                      MemorySegment from,
-                                                      MemorySegment to) {
+    private Iterator<E> slice(SortedMap<K, E> store, K from, K to) {
         if (store == null || store.isEmpty()) {
             return Collections.emptyIterator();
         }
