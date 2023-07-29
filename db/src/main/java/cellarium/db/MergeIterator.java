@@ -1,6 +1,10 @@
 package cellarium.db;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 public final class MergeIterator<E> implements Iterator<E> {
     private final Iterator<E> oldDataIterator;
