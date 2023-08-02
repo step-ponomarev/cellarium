@@ -7,6 +7,7 @@ import jdk.incubator.foreign.MemorySegment;
 import java.io.IOException;
 import java.util.Iterator;
 
+//TODO: Написать тесты, проверить потокобезопасность и проч
 public final class CellariumDB implements DiskStorage<MemorySegment, ColumnEntry<MemorySegment, MemorySegment>> {
     private final MemTable<MemorySegment, ColumnEntry<MemorySegment, MemorySegment>> memTable = new MemTable<>(MemorySegmentComparator.INSTANCE);
 
