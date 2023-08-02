@@ -1,17 +1,18 @@
-package cellarium.db.memtable;
-
-import cellarium.db.entry.Entry;
-import cellarium.db.entry.EntryWithSize;
-import cellarium.db.memtable.MemTable;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+package cellarium.db;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import cellarium.db.entry.Entry;
+import cellarium.db.entry.EntryWithSize;
+import cellarium.db.memtable.MemTable;
 
 public class MemTableTest {
     private MemTable<String, EntryWithSize<String, String>> memTable;
@@ -70,8 +71,7 @@ public class MemTableTest {
             executor.submit(() -> {
                 for (int j = 0; j < entryCount; j++) {
                     memTable.put(
-                            createEntry(j + "_" + Thread.currentThread().hashCode(), "value " + j)
-                    );
+                            createEntry(j + "_" + Thread.currentThread().hashCode(), "value " + j));
                 }
                 latch.countDown();
             });
@@ -108,4 +108,3 @@ public class MemTableTest {
         };
     }
 }
-

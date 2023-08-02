@@ -1,11 +1,11 @@
 package cellarium.db;
 
-public interface Column<T> {
+import cellarium.db.entry.WithSizeBytes;
+
+public interface Column<T> extends WithSizeBytes {
     String getName();
 
     Class<T> getType();
 
-    <T> T getValue();
-
-    long getSizeBytes();
+    T getValue();
 }

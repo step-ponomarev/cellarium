@@ -1,4 +1,4 @@
-package cellarium.db;
+package cellarium.db.storage;
 
 import java.util.Collections;
 import java.util.Comparator;

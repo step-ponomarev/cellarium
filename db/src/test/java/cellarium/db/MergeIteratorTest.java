@@ -3,6 +3,8 @@ package cellarium.db;
 import org.junit.Assert;
 import org.junit.Test;
 
+import cellarium.db.storage.MergeIterator;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;

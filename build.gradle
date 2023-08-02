@@ -10,7 +10,6 @@ java {
 
 dependencies {
     implementation project(':db')
-    implementation project(':http')
 }
 
 final incubatorModules = ["--add-modules", "jdk.incubator.foreign"]

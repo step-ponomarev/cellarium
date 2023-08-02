@@ -1,5 +1,3 @@
 package cellarium.db.entry;
 
-public interface EntryWithSize<PK, V> extends Entry<PK, V> {
-    long getSizeBytes();
-}
+public interface EntryWithSize<PK, V> extends Entry<PK, V>, WithSizeBytes {}
