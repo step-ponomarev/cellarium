@@ -1,5 +1,5 @@
 package cellarium.db.entry;
 
-public interface WithSizeBytes {
+public interface Sizeable {
     long getSizeBytes();
 }
