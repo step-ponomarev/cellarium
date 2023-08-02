@@ -21,6 +21,7 @@ gradle-app.setting
 /.idea/
 # Ignore Gradle build output directory
 
+/db/bin
 /bin/
 .vscode
 /cellarium-db/

@@ -6,7 +6,8 @@ import java.util.Iterator;
 
 public interface Storage<K, E extends Entry<K, ?>> {
     /**
-     * Returns ordered iterator of entries with keys between from (inclusive) and to (exclusive).
+     * Returns ordered iterator of entries with keys between from (inclusive) and to
+     * (exclusive).
      *
      * @param from lower bound of range (inclusive)
      * @param to   upper bound of range (exclusive)
@@ -16,7 +17,5 @@ public interface Storage<K, E extends Entry<K, ?>> {
 
     E get(K key);
 
-    default void put(E entry) {
-        throw new UnsupportedOperationException("Unsupported operation");
-    }
+    void put(E entry);
 }

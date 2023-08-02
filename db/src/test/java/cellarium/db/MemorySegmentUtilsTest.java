@@ -8,9 +8,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import jdk.incubator.foreign.MemorySegment;
 
-import cellarium.db.utils.MemorySegmentUtils;
-
-public class MemorySegmentUtilsTest {
+public final class MemorySegmentUtilsTest {
 
     @Test
     public void testStringConvertion() {

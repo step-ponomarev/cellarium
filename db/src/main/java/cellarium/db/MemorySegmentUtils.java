@@ -1,4 +1,4 @@
-package cellarium.db.utils;
+package cellarium.db;
 
 import jdk.incubator.foreign.MemorySegment;
 

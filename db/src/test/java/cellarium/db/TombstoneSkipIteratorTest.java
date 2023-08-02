@@ -9,7 +9,7 @@ import org.junit.Test;
 import cellarium.db.tombstone.Tombstone;
 import cellarium.db.tombstone.TombstoneSkipIterator;
 
-public class TombstoneSkipIteratorTest {
+public final class TombstoneSkipIteratorTest {
 
     @Test
     public void testNoTombstones() {

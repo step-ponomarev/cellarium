@@ -12,9 +12,8 @@ import org.junit.Test;
 
 import cellarium.db.entry.Entry;
 import cellarium.db.entry.EntryWithSize;
-import cellarium.db.memtable.MemTable;
 
-public class MemTableTest {
+public final class MemTableTest {
     private MemTable<String, EntryWithSize<String, String>> memTable;
 
     @Before

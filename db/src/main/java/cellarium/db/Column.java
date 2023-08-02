@@ -2,10 +2,10 @@ package cellarium.db;
 
 import cellarium.db.entry.Sizeable;
 
-public interface Column<T> extends Sizeable {
+public interface Column<T, V> extends Sizeable {
     String getName();
 
     Class<T> getType();
 
-    T getValue();
+    V getValue();
 }

@@ -1,4 +1,4 @@
-package cellarium.db.memtable;
+package cellarium.db;
 
 import cellarium.db.entry.EntryWithSize;
 import cellarium.db.entry.Sizeable;
