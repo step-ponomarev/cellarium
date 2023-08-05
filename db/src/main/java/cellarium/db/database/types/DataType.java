@@ -1,10 +1,11 @@
 package cellarium.db.database.types;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 public enum DataType {
-    ID(Long.class),
+    LONG(Long.class),
     INTEGER(Integer.class),
     STRING(String.class),
     BOOLEAN(Boolean.class);
@@ -19,6 +20,21 @@ public enum DataType {
 
     DataType(Class<?> nativeType) {
         this.nativeType = nativeType;
+    }
+
+    public static <V> long sizeOf(V value) {
+        final DataType type = typeOf(value);
+        if (type == null) {
+            throw new IllegalStateException("Unsupported type " + value.getClass());
+        }
+
+        return
+                switch (type) {
+                    case LONG -> Long.BYTES;
+                    case INTEGER -> Integer.BYTES;
+                    case BOOLEAN -> 1;
+                    case STRING -> ((String) value).getBytes(StandardCharsets.UTF_8).length;
+                };
     }
 
     public <V> boolean isTypeOf(V value) {
