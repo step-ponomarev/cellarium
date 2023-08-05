@@ -1,10 +1,10 @@
-package cellarium.db.request;
+package cellarium.db.database.query;
 
-import cellarium.db.DataBaseColumnType;
+import cellarium.db.table.DataBaseColumnType;
 
 import java.util.Map;
 
-public class CreateTableQuery extends Query {
+public final class CreateTableQuery extends Query {
     private final Map<String, DataBaseColumnType<?>> columnScheme;
 
     public CreateTableQuery(String table, Map<String, DataBaseColumnType<?>> columnScheme) {

@@ -37,7 +37,7 @@ public final class MemTable<K, E extends EntryWithSize<K, ?>> implements Storage
     @Override
     public void put(E entry) {
         final long[] sizeDelta = new long[1];
-        entries.compute(entry.getPK(), (k, oldValue) -> {
+        entries.compute(entry.getKey(), (k, oldValue) -> {
             if (oldValue == null) {
                 sizeDelta[0] = entry.getSizeBytes();
             } else {

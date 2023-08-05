@@ -1,17 +1,16 @@
 package cellarium.db;
 
+import cellarium.db.entry.Entry;
+import cellarium.db.entry.EntryWithSize;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import cellarium.db.entry.Entry;
-import cellarium.db.entry.EntryWithSize;
 
 public final class MemTableTest {
     private MemTable<String, EntryWithSize<String, String>> memTable;
@@ -29,8 +28,8 @@ public final class MemTableTest {
         memTable.put(entry1);
         memTable.put(entry2);
 
-        assertEquals(entry1, memTable.get(entry1.getPK()));
-        assertEquals(entry2, memTable.get(entry2.getPK()));
+        assertEquals(entry1, memTable.get(entry1.getKey()));
+        assertEquals(entry2, memTable.get(entry2.getKey()));
     }
 
     @Test
@@ -40,10 +39,10 @@ public final class MemTableTest {
         memTable.put(sourceEntry);
         memTable.put(createEntry("2", "value 2"));
 
-        final EntryWithSize<String, String> updatedEntry = createEntry(sourceEntry.getPK(), "new value 1");
+        final EntryWithSize<String, String> updatedEntry = createEntry(sourceEntry.getKey(), "new value 1");
         memTable.put(updatedEntry);
 
-        final EntryWithSize<String, String> mayBeUpdatedEntry = memTable.get(sourceEntry.getPK());
+        final EntryWithSize<String, String> mayBeUpdatedEntry = memTable.get(sourceEntry.getKey());
         assertEquals(updatedEntry, mayBeUpdatedEntry);
     }
 
@@ -83,15 +82,15 @@ public final class MemTableTest {
     }
 
     private static boolean assertEquals(Entry<?, ?> e1, Entry<?, ?> e2) {
-        return e1.getPK().equals(e2.getPK())
+        return e1.getKey().equals(e2.getKey())
                 && Objects.equals(e1.getValue(), e2.getValue());
     }
 
-    private static EntryWithSize<String, String> createEntry(String pk, String value) {
+    private static EntryWithSize<String, String> createEntry(String key, String value) {
         return new EntryWithSize<>() {
             @Override
-            public String getPK() {
-                return pk;
+            public String getKey() {
+                return key;
             }
 
             @Override
@@ -101,7 +100,7 @@ public final class MemTableTest {
 
             @Override
             public long getSizeBytes() {
-                return StandardCharsets.UTF_8.encode(pk).array().length
+                return StandardCharsets.UTF_8.encode(key).array().length
                         + (value == null ? 0 : StandardCharsets.UTF_8.encode(value).array().length);
             }
         };

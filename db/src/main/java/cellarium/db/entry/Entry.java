@@ -1,7 +1,5 @@
 package cellarium.db.entry;
 
-public interface Entry<PK, V> {
-    PK getPK();
-
+public interface Entry<K, V> extends WithKey<K> {
     V getValue();
 }

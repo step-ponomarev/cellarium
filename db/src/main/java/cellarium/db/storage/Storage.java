@@ -1,10 +1,10 @@
 package cellarium.db.storage;
 
-import cellarium.db.entry.Entry;
+import cellarium.db.entry.WithKey;
 
 import java.util.Iterator;
 
-public interface Storage<K, E extends Entry<K, ?>> {
+public interface Storage<K, E extends WithKey<K>> {
     /**
      * Returns ordered iterator of entries with keys between from (inclusive) and to
      * (exclusive).

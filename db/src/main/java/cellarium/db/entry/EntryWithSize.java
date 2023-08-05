@@ -1,3 +1,3 @@
 package cellarium.db.entry;
 
-public interface EntryWithSize<PK, V> extends Entry<PK, V>, Sizeable {}
+public interface EntryWithSize<K, V> extends Entry<K, V>, Sizeable {}

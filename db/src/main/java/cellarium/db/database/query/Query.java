@@ -1,4 +1,4 @@
-package cellarium.db.request;
+package cellarium.db.database.query;
 
 public class Query {
     private final String table;
