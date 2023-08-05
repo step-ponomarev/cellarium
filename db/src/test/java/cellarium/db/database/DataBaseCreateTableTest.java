@@ -3,7 +3,6 @@ package cellarium.db.database;
 import cellarium.db.database.query.CreateTableQuery;
 import cellarium.db.database.query.GetByIdQuery;
 import cellarium.db.database.types.DataType;
-import cellarium.db.entry.Entry;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,14 +78,13 @@ public class DataBaseCreateTableTest {
                 )
         );
 
-        Entry<?, ?> entry = dataBase.getById(
-                new GetByIdQuery(
-                        tableName,
-                        Long.MAX_VALUE
-                )
-        );
-
-        Assert.assertNull(entry);
+        Assert.assertNull(
+                dataBase.getById(
+                        new GetByIdQuery(
+                                tableName,
+                                Long.MAX_VALUE
+                        )
+                ));
     }
 
     @Test(expected = IllegalStateException.class)
