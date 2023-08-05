@@ -4,12 +4,12 @@ import cellarium.db.entry.EntryWithSize;
 
 import java.util.Map;
 
-public final class TableRow<PK, V> implements EntryWithSize<PK, Map<String, TableColumn<V>>> {
-    private final TableColumn<PK> pk;
-    private final Map<String, TableColumn<V>> columns;
+public final class TableRow<PK> implements EntryWithSize<PK, Map<String, ?>> {
+    private final PK pk;
+    private final Map<String, ?> columns;
     private final long sizeBytes;
 
-    public TableRow(TableColumn<PK> pk, Map<String, TableColumn<V>> columns, long sizeBytes) {
+    public TableRow(PK pk, Map<String, ?> columns, long sizeBytes) {
         this.pk = pk;
         this.columns = columns;
         this.sizeBytes = sizeBytes;
@@ -17,20 +17,16 @@ public final class TableRow<PK, V> implements EntryWithSize<PK, Map<String, Tabl
 
     @Override
     public PK getKey() {
-        return pk.getValue();
+        return pk;
     }
 
     @Override
-    public Map<String, TableColumn<V>> getValue() {
+    public Map<String, ?> getValue() {
         return columns;
     }
 
     @Override
     public long getSizeBytes() {
         return sizeBytes;
-    }
-
-    public TableColumn<PK> getPk() {
-        return pk;
     }
 }

@@ -1,18 +1,18 @@
 package cellarium.db.database.query;
 
-import cellarium.db.table.TableColumn;
+import cellarium.db.database.types.TypedValue;
 
 import java.util.Map;
 
-public final class UpdateQuery extends WhereQuery {
-    private final Map<String, TableColumn<?>> newValues;
+public final class UpdateQuery extends Query {
+    private final Map<String, TypedValue<?>> newValues;
 
-    public UpdateQuery(String table, Map<String, TableColumn<?>> newValues, Map<String, TableColumn<?>> where) {
-        super(table, where);
+    public UpdateQuery(String table, Map<String, TypedValue<?>> newValues, Map<String, TypedValue<?>> where) {
+        super(table);
         this.newValues = newValues;
     }
 
-    public Map<String, TableColumn<?>> getNewValues() {
+    public Map<String, TypedValue<?>> getNewValues() {
         return newValues;
     }
 }

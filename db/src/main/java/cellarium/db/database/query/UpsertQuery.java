@@ -1,24 +1,24 @@
 package cellarium.db.database.query;
 
-import cellarium.db.table.TableColumn;
+import cellarium.db.database.types.TypedValue;
 
 import java.util.Map;
 
 public final class UpsertQuery extends Query {
-    private final TableColumn<?> pk;
-    private final Map<String, TableColumn<?>> values;
+    private final Long pk;
+    private final Map<String, TypedValue<?>> values;
 
-    public UpsertQuery(String table, TableColumn<?> pk, Map<String, TableColumn<?>> values) {
+    public UpsertQuery(String table, Long pk, Map<String, TypedValue<?>> values) {
         super(table);
         this.pk = pk;
         this.values = values;
     }
 
-    public TableColumn<?> getPk() {
+    public Long getPk() {
         return pk;
     }
 
-    public Map<String, TableColumn<?>> getValues() {
+    public Map<String, ?> getValues() {
         return values;
     }
 }

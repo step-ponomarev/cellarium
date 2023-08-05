@@ -1,13 +1,13 @@
 package cellarium.db.database.query;
 
 public class Query {
-    private final String table;
+    private final String tableName;
 
-    public Query(String table) {
-        this.table = table;
+    public Query(String tableName) {
+        this.tableName = tableName;
     }
 
-    public String getTable() {
-        return table;
+    public String getTableName() {
+        return tableName;
     }
 }
