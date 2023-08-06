@@ -4,18 +4,21 @@ import cellarium.db.database.query.CreateTableQuery;
 import cellarium.db.database.query.GetByIdQuery;
 import cellarium.db.database.types.DataType;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.Map;
 
-public class DataBaseCreateTableTest {
-    private DataBase dataBase;
+public final class DataBaseCreateTableTest extends ADataBaseTest {
 
-    @Before
-    public void init() {
-        this.dataBase = new CellariumDB();
+    @Test(expected = IllegalArgumentException.class)
+    public void testTableNameWithSpace() {
+        dataBase.createTable(
+                new CreateTableQuery(
+                        "test table",
+                        Collections.emptyMap()
+                )
+        );
     }
 
     @Test(expected = NullPointerException.class)
