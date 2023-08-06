@@ -3,7 +3,7 @@ package cellarium.db.database.query.validator;
 import cellarium.db.database.query.Query;
 
 
-final class TableNameValidator implements QueryValidator<Query> {
+public final class TableNameValidator implements QueryValidator<Query> {
     public static final TableNameValidator INSTANCE = new TableNameValidator();
 
     private TableNameValidator() {}
@@ -17,12 +17,8 @@ final class TableNameValidator implements QueryValidator<Query> {
             throw new NullPointerException("Name is null");
         }
 
-        if (tableName.isBlank()) {
-            throw new IllegalArgumentException("Table name is blank");
-        }
-
-        if (tableName.trim().contains("\s")) {
-            throw new IllegalArgumentException("Table name cannot consist of spaces");
+        if (!RegExp.TABLE_NAME_PATTERN.matcher(tableName).matches()) {
+            throw new IllegalArgumentException("Invalid table name " + tableName);
         }
     }
 }

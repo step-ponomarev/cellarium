@@ -10,23 +10,12 @@ import java.util.Collections;
 import java.util.Map;
 
 public final class DataBaseCreateTableTest extends ADataBaseTest {
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testTableNameWithSpace() {
-        dataBase.createTable(
-                new CreateTableQuery(
-                        "test table",
-                        Collections.emptyMap()
-                )
-        );
-    }
-
     @Test(expected = NullPointerException.class)
     public void testNullTableName() {
         dataBase.createTable(
                 new CreateTableQuery(
                         null,
-                        Map.of("test_column", DataType.LONG)
+                        Map.of("column", DataType.LONG)
                 )
         );
     }
@@ -66,6 +55,16 @@ public final class DataBaseCreateTableTest extends ADataBaseTest {
         dataBase.createTable(
                 new CreateTableQuery(
                         "test_table",
+                        Collections.emptyMap()
+                )
+        );
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testTableNameWithSpace() {
+        dataBase.createTable(
+                new CreateTableQuery(
+                        "test table",
                         Collections.emptyMap()
                 )
         );
