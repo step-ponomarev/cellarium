@@ -1,14 +1,23 @@
 package cellarium.db.database;
 
-import cellarium.db.database.query.CreateTableQuery;
-import cellarium.db.database.query.GetByIdQuery;
-import cellarium.db.database.query.UpsertQuery;
-import cellarium.db.entry.Entry;
+import java.util.Map;
+import java.util.Set;
+
+import cellarium.db.database.options.CreateTableOptions;
+import cellarium.db.database.types.DataType;
+import cellarium.db.database.types.PrimaryKey;
+import cellarium.db.database.types.TypedValue;
 
 public interface DataBase {
-    void createTable(CreateTableQuery query);
+    void createTable(String tableName, PrimaryKey pk, Map<String, DataType> columns, CreateTableOptions createTableOptions);
 
-    void upsert(UpsertQuery query);
+    void insert(String tableName, Map<String, TypedValue<?>> values);
 
-    Entry<Long, ?> getById(GetByIdQuery query);
+    void select(String tableName, Set<String> columns, Condition condition);
+
+    void update(String tableName, Map<String, TypedValue<?>> values, Condition condition);
+
+    void delete(String tableName, Condition condition);
+
+    void dropTable(String tableName);
 }

@@ -1,8 +1,11 @@
 package cellarium.db.database.types;
 
-public final class TypedValue<V> {
+import cellarium.db.entry.Sizeable;
+
+public final class TypedValue<V> implements Sizeable {
     private final DataType dataType;
     private final V value;
+    private final long sizeBytes;
 
     public TypedValue(V value) {
         this.dataType = DataType.typeOf(value);
@@ -10,6 +13,7 @@ public final class TypedValue<V> {
             throw new IllegalArgumentException("Unsupported type " + value.getClass().toString());
         }
         this.value = value;
+        this.sizeBytes = DataType.sizeOf(value);
     }
 
     public DataType getDataType() {
@@ -18,5 +22,10 @@ public final class TypedValue<V> {
 
     public V getValue() {
         return value;
+    }
+
+    @Override
+    public long getSizeBytes() {
+        return sizeBytes;
     }
 }

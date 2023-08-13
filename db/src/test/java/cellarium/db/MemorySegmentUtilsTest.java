@@ -1,9 +1,5 @@
 package cellarium.db;
 
-import static org.junit.Assert.assertEquals;
-
-import java.nio.ByteBuffer;
-
 import org.junit.Assert;
 import org.junit.Test;
 import jdk.incubator.foreign.MemorySegment;

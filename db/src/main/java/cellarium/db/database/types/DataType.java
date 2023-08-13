@@ -10,40 +10,35 @@ public enum DataType {
     STRING(String.class),
     BOOLEAN(Boolean.class);
 
-    private static final Map<Class<?>, DataType> DATA_TYPES = new HashMap<>();
+    private static final Map<Class<?>, DataType> SUPPORTED_DATA_TYPES = new HashMap<>();
 
     static {
         for (DataType type : DataType.values()) {
-            DATA_TYPES.put(type.nativeType, type);
+            SUPPORTED_DATA_TYPES.put(type.nativeType, type);
         }
     }
+
+    public final Class<?> nativeType;
 
     DataType(Class<?> nativeType) {
         this.nativeType = nativeType;
     }
 
-    public static <V> long sizeOf(V value) {
+    static <V> long sizeOf(V value) {
         final DataType type = typeOf(value);
         if (type == null) {
             throw new IllegalStateException("Unsupported type " + value.getClass());
         }
 
-        return
-                switch (type) {
-                    case LONG -> Long.BYTES;
-                    case INTEGER -> Integer.BYTES;
-                    case BOOLEAN -> 1;
-                    case STRING -> ((String) value).getBytes(StandardCharsets.UTF_8).length;
-                };
+        return switch (type) {
+            case LONG -> Long.BYTES;
+            case INTEGER -> Integer.BYTES;
+            case BOOLEAN -> 1;
+            case STRING -> ((String) value).getBytes(StandardCharsets.UTF_8).length;
+        };
     }
 
-    public <V> boolean isTypeOf(V value) {
-        return nativeType.equals(value.getClass());
+    static <V> DataType typeOf(V value) {
+        return SUPPORTED_DATA_TYPES.getOrDefault(value.getClass());
     }
-
-    public static <V> DataType typeOf(V value) {
-        return DATA_TYPES.get(value.getClass());
-    }
-
-    public final Class<?> nativeType;
 }

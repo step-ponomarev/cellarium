@@ -1,90 +1,84 @@
 package cellarium.db;
 
-import cellarium.db.database.query.validator.RegExp;
+import cellarium.db.database.query.validator.RegExr;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.regex.Pattern;
 
-public final class TableNameRegExpTest {
-    private static final Pattern TABLE_NAME_PATTERN = RegExp.TABLE_NAME_PATTERN;
+public final class NameRegExrTest {
+    private static final int MIN_LEN = 10;
+    private static final int MAX_LEN = 22;
+
+    private static final Pattern NAME_PATTERN = RegExr.createNamePattern(MIN_LEN, MAX_LEN);
 
     @Test
     public void testEmptySting() {
         Assert.assertFalse(
-                TABLE_NAME_PATTERN.matcher("").matches()
-        );
+                NAME_PATTERN.matcher("").matches());
     }
 
     @Test
     public void testBlankSting() {
         Assert.assertFalse(
-                TABLE_NAME_PATTERN.matcher(" ").matches()
-        );
+                NAME_PATTERN.matcher(" ").matches());
     }
 
     @Test
     public void testStingWithSpaces() {
         Assert.assertFalse(
-                TABLE_NAME_PATTERN.matcher("table name").matches()
-        );
+                NAME_PATTERN.matcher("table name").matches());
     }
 
     @Test
     public void testMaxLenString() {
-        String string = createValidTavleNameString("s", RegExp.MAX_TABLE_NAME_LEN);
+        String string = createValidTavleNameString("s", MAX_LEN);
 
         Assert.assertTrue(
-                TABLE_NAME_PATTERN.matcher(string).matches()
-        );
+                NAME_PATTERN.matcher(string).matches());
     }
 
     @Test
     public void testBiggerThanMaxLenString() {
-        String string = createValidTavleNameString("s", RegExp.MAX_TABLE_NAME_LEN + 1);
+        String string = createValidTavleNameString("s", MAX_LEN + 1);
 
         Assert.assertFalse(
-                TABLE_NAME_PATTERN.matcher(string).matches()
-        );
+                NAME_PATTERN.matcher(string).matches());
     }
 
     @Test
     public void testMinLenString() {
-        String string = createValidTavleNameString("s", RegExp.MIN_TABLE_NAME_LEN);
+        String string = createValidTavleNameString("s", MIN_LEN);
 
         Assert.assertTrue(
-                TABLE_NAME_PATTERN.matcher(string).matches()
-        );
+                NAME_PATTERN.matcher(string).matches());
     }
 
     @Test
     public void testLessThanMinLenString() {
-        String string = createValidTavleNameString("s", RegExp.MIN_TABLE_NAME_LEN - 1);
+        String string = createValidTavleNameString("s", MIN_LEN - 1);
 
         Assert.assertFalse(
-                TABLE_NAME_PATTERN.matcher(string).matches()
-        );
+                NAME_PATTERN.matcher(string).matches());
     }
 
     @Test
     public void testBeginWithUnderscoreSting() {
         Assert.assertFalse(
-                TABLE_NAME_PATTERN.matcher(createValidTavleNameString("_", RegExp.MIN_TABLE_NAME_LEN)).matches()
-        );
+                NAME_PATTERN.matcher(createValidTavleNameString("_", MIN_LEN)).matches());
     }
 
     @Test
     public void testEndWithUnderscoreSting() {
         Assert.assertFalse(
-                TABLE_NAME_PATTERN.matcher(createValidTavleNameString("s", RegExp.MIN_TABLE_NAME_LEN - 1) + "_").matches()
-        );
+                NAME_PATTERN.matcher(createValidTavleNameString("s", MIN_LEN - 1) + "_")
+                        .matches());
     }
 
     @Test
     public void testBeginWithDigitSting() {
         Assert.assertFalse(
-                TABLE_NAME_PATTERN.matcher(createValidTavleNameString("0", RegExp.MIN_TABLE_NAME_LEN)).matches()
-        );
+                NAME_PATTERN.matcher(createValidTavleNameString("0", MIN_LEN)).matches());
     }
 
     @Test
@@ -100,8 +94,7 @@ public final class TableNameRegExpTest {
         final String validTableName = createValidTavleNameString("s", 12);
 
         Assert.assertTrue(
-                TABLE_NAME_PATTERN.matcher(validTableName).matches()
-        );
+                NAME_PATTERN.matcher(validTableName).matches());
     }
 
     private static String createValidTavleNameString(String startSymbol, int len) {
