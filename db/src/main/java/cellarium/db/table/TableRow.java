@@ -1,27 +1,28 @@
 package cellarium.db.table;
 
+import cellarium.db.database.types.TypedValue;
 import cellarium.db.entry.EntryWithSize;
 
 import java.util.Map;
 
-public final class TableRow<PK> implements EntryWithSize<PK, Map<String, ?>> {
-    private final PK pk;
-    private final Map<String, ?> columns;
+public final class TableRow<K> implements EntryWithSize<K, Map<String, ?>> {
+    private final K key;
+    private final Map<String, TypedValue> columns;
     private final long sizeBytes;
 
-    public TableRow(PK pk, Map<String, ?> columns, long sizeBytes) {
-        this.pk = pk;
+    public TableRow(K key, Map<String, TypedValue> columns, long sizeBytes) {
+        this.key = key;
         this.columns = columns;
         this.sizeBytes = sizeBytes;
     }
 
     @Override
-    public PK getKey() {
-        return pk;
+    public K getKey() {
+        return key;
     }
 
     @Override
-    public Map<String, ?> getValue() {
+    public Map<String, TypedValue> getValue() {
         return columns;
     }
 

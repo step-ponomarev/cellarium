@@ -1,16 +1,16 @@
-package cellarium.db;
+package cellarium.db.regex;
 
-import cellarium.db.database.query.validator.RegExr;
+import cellarium.db.database.Regex;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.regex.Pattern;
 
-public final class NameRegExrTest {
+public final class NameRegexTest {
     private static final int MIN_LEN = 10;
     private static final int MAX_LEN = 22;
 
-    private static final Pattern NAME_PATTERN = RegExr.createNamePattern(MIN_LEN, MAX_LEN);
+    private static final Pattern NAME_PATTERN = Regex.createNamePattern(MIN_LEN, MAX_LEN);
 
     @Test
     public void testEmptySting() {

@@ -11,7 +11,6 @@ public enum DataType {
     BOOLEAN(Boolean.class);
 
     private static final Map<Class<?>, DataType> SUPPORTED_DATA_TYPES = new HashMap<>();
-
     static {
         for (DataType type : DataType.values()) {
             SUPPORTED_DATA_TYPES.put(type.nativeType, type);
@@ -39,6 +38,6 @@ public enum DataType {
     }
 
     static <V> DataType typeOf(V value) {
-        return SUPPORTED_DATA_TYPES.getOrDefault(value.getClass());
+        return SUPPORTED_DATA_TYPES.get(value.getClass());
     }
 }
