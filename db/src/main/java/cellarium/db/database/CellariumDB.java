@@ -1,22 +1,26 @@
 package cellarium.db.database;
 
 import cellarium.db.MemTable;
-import cellarium.db.database.options.CreateTableOptions;
+import cellarium.db.database.condition.Condition;
+import cellarium.db.database.types.AValue;
 import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.PrimaryKey;
-import cellarium.db.database.types.TypedValue;
 import cellarium.db.table.Table;
 import cellarium.db.table.TableRow;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public final class CellariumDB implements DataBase {
     private final Map<String, Table> tables = new HashMap<>();
-    private final Map<String, MemTable<TypedValue, TableRow<TypedValue>>> memTables = new ConcurrentSkipListMap<>();
+    private final Map<String, MemTable<AValue<?>, TableRow<AValue<?>>>> memTables = new ConcurrentSkipListMap<>();
 
     @Override
-    public void createTable(String tableName, PrimaryKey pk, Map<String, DataType> columns, CreateTableOptions createTableOptions) {
+    public void createTable(String tableName, PrimaryKey pk, Map<String, DataType> columns) {
         validateTableName(tableName);
         validateColumnName(pk.getName());
         validateColumnNames(columns.keySet());
@@ -25,7 +29,6 @@ public final class CellariumDB implements DataBase {
         tableScheme.put(pk.getName(), pk.getType());
 
         synchronized (tables) {
-            new MemTable<Object, TableRow<Object>>();
             tables.put(tableName, new Table(tableName, pk, tableScheme));
             memTables.put(tableName, new MemTable<>());
         }
@@ -46,21 +49,21 @@ public final class CellariumDB implements DataBase {
     }
 
     @Override
-    public void insert(String tableName, Map<String, TypedValue> values) {
+    public void insert(String tableName, Map<String, AValue<?>> values) {
         validateTableName(tableName);
         final Table table = getTable(tableName);
 
         // Проверяем есть ли индексы у этой таблицы, которые мы можем использовать
         long sizeBytes = 0;
         final Map<String, DataType> tableScheme = table.getScheme();
-        for (final Map.Entry<String, TypedValue> column : values.entrySet()) {
+        for (final Map.Entry<String, AValue<?>> column : values.entrySet()) {
             final String columnName = column.getKey();
             final DataType tableColumnType = tableScheme.get(columnName);
             if (tableColumnType == null) {
                 throw new IllegalStateException("The table \"" + tableName + "\" does not have a column named\" " + columnName + "\".");
             }
 
-            final TypedValue insertedColumn = column.getValue();
+            final AValue<?> insertedColumn = column.getValue();
             if (!tableColumnType.nativeType.equals(insertedColumn.getDataType().nativeType)) {
                 throw new IllegalStateException("Expected column type: " + tableColumnType.name() + ", but got: " + insertedColumn.getDataType().name());
             }
@@ -68,12 +71,12 @@ public final class CellariumDB implements DataBase {
             sizeBytes += insertedColumn.getSizeBytes();
         }
 
-        final TypedValue pk = values.get(table.getPrimaryKey().getName());
+        final AValue<?> pk = values.get(table.getPrimaryKey().getName());
         if (pk == null) {
             throw new IllegalStateException("PK is null");
         }
 
-        final MemTable<TypedValue, TableRow<TypedValue>> memTable = memTables.get(tableName);
+        final MemTable<AValue<?>, TableRow<AValue<?>>> memTable = memTables.get(tableName);
         memTable.put(
                 new TableRow<>(pk, values, sizeBytes)
         );
@@ -81,20 +84,35 @@ public final class CellariumDB implements DataBase {
 
     //TODO: Обдумать как реализовать кандишены
     @Override
-    public Iterator<TableRow<TypedValue>> select(String tableName, Set<String> columns, Condition condition) {
+    public Iterator<TableRow<AValue<?>>> select(String tableName, Set<String> columns, Condition condition) {
         validateTableName(tableName);
         final Table table = getTable(tableName);
 
         // Проверяем есть ли индексы для кондишина
         // если можем, то используем индексы
 
+
+        final Map<String, Condition.ValueCandition> conditions = condition.getConditions();
+        //TODO: СЕЙЧАС РАБОТАЕТ ТОЛЬКО ДЛЯ PK
+        if (conditions.size() != 1) {
+            throw new IllegalStateException("Unsupported request");
+        }
+
+        final PrimaryKey primaryKey = table.getPrimaryKey();
+        final Condition.ValueCandition conditionValue = conditions.get(primaryKey.getName());
+        //TODO: сделлать подробные, раздельные ошибки
+        if (conditionValue == null || conditionValue.value.getDataType() != primaryKey.getType()) {
+            throw new IllegalStateException("Invalid condition value");
+        }
+
+        //TODO: Учесть какие колонки возвращать
         return Collections.singleton(
-                memTables.get(tableName).get(condition.equalsMap.get(table.getPrimaryKey().getName()))
+                memTables.get(tableName).get(conditionValue.value)
         ).iterator();
     }
 
     @Override
-    public void update(String tableName, Map<String, TypedValue> values, Condition condition) {
+    public void update(String tableName, Map<String, AValue<?>> values, Condition condition) {
         // TODO Auto-generated method stub
         // Проверяем есть ли индексы у этой таблицы, которые мы можем использовать
     }

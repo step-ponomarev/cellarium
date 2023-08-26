@@ -1,16 +1,16 @@
 package cellarium.db.table;
 
-import cellarium.db.database.types.TypedValue;
+import cellarium.db.database.types.AValue;
 import cellarium.db.entry.EntryWithSize;
 
 import java.util.Map;
 
-public final class TableRow<K> implements EntryWithSize<K, Map<String, ?>> {
+public final class TableRow<K extends AValue<?>> implements EntryWithSize<K, Map<String, ?>> {
     private final K key;
-    private final Map<String, TypedValue> columns;
+    private final Map<String, AValue<?>> columns;
     private final long sizeBytes;
 
-    public TableRow(K key, Map<String, TypedValue> columns, long sizeBytes) {
+    public TableRow(K key, Map<String, AValue<?>> columns, long sizeBytes) {
         this.key = key;
         this.columns = columns;
         this.sizeBytes = sizeBytes;
@@ -22,7 +22,7 @@ public final class TableRow<K> implements EntryWithSize<K, Map<String, ?>> {
     }
 
     @Override
-    public Map<String, TypedValue> getValue() {
+    public Map<String, AValue<?>> getValue() {
         return columns;
     }
 

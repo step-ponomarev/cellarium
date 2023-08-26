@@ -37,7 +37,7 @@ public enum DataType {
         };
     }
 
-    static <V> DataType typeOf(V value) {
+    public static <V> DataType typeOf(V value) {
         return SUPPORTED_DATA_TYPES.get(value.getClass());
     }
 }

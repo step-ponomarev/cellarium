@@ -11,7 +11,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class MemTable<K, E extends EntryWithSize<K, ?>> implements Storage<K, E>, Sizeable {
+public final class MemTable<K extends Comparable<?>, E extends EntryWithSize<K, ?>> implements Storage<K, E>, Sizeable {
     private final SortedMap<K, E> entries;
     private final AtomicLong sizeBytes;
 
