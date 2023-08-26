@@ -8,9 +8,7 @@ import cellarium.db.database.types.TypedValue;
 import cellarium.db.table.Table;
 import cellarium.db.table.TableRow;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public final class CellariumDB implements DataBase {
@@ -50,10 +48,7 @@ public final class CellariumDB implements DataBase {
     @Override
     public void insert(String tableName, Map<String, TypedValue> values) {
         validateTableName(tableName);
-        final Table table = tables.get(tableName);
-        if (table == null) {
-            throw new IllegalStateException("Table \"" + tableName + "\" does not exist.");
-        }
+        final Table table = getTable(tableName);
 
         // Проверяем есть ли индексы у этой таблицы, которые мы можем использовать
         long sizeBytes = 0;
@@ -80,23 +75,37 @@ public final class CellariumDB implements DataBase {
 
         final MemTable<TypedValue, TableRow<TypedValue>> memTable = memTables.get(tableName);
         memTable.put(
-                new TableRow(pk, values, sizeBytes)
+                new TableRow<>(pk, values, sizeBytes)
         );
     }
 
+    //TODO: Обдумать как реализовать кандишены
     @Override
-    public void select(String tableName, Set<String> columns, Condition condition) {
-        // TODO Auto-generated method stub
+    public Iterator<TableRow<TypedValue>> select(String tableName, Set<String> columns, Condition condition) {
+        validateTableName(tableName);
+        final Table table = getTable(tableName);
 
-        // Проверяем есть ли индексы у этой таблицы, которые мы можем использовать
+        // Проверяем есть ли индексы для кондишина
         // если можем, то используем индексы
 
+        return Collections.singleton(
+                memTables.get(tableName).get(condition.equalsMap.get(table.getPrimaryKey().getName()))
+        ).iterator();
     }
 
     @Override
     public void update(String tableName, Map<String, TypedValue> values, Condition condition) {
         // TODO Auto-generated method stub
         // Проверяем есть ли индексы у этой таблицы, которые мы можем использовать
+    }
+
+    private Table getTable(String tableName) {
+        final Table table = tables.get(tableName);
+        if (table == null) {
+            throw new IllegalStateException("Table \"" + tableName + "\" does not exist.");
+        }
+
+        return table;
     }
 
     private static void validateColumnNames(Iterable<String> names) {
