@@ -1,4 +1,4 @@
-package cellarium.db.table;
+package cellarium.db.database.table;
 
 import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.PrimaryKey;

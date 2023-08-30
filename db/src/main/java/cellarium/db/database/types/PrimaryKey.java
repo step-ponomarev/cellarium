@@ -1,13 +1,6 @@
 package cellarium.db.database.types;
 
-import java.util.Set;
-
 public final class PrimaryKey {
-    private static final Set<DataType> VALID_PRIMARY_KEY_TYPES = Set.of(
-            DataType.STRING,
-            DataType.INTEGER,
-            DataType.LONG);
-
     private final String name;
     private final DataType type;
 
@@ -21,11 +14,6 @@ public final class PrimaryKey {
         }
 
         this.name = name;
-
-        if (!VALID_PRIMARY_KEY_TYPES.contains(type)) {
-            throw new IllegalArgumentException("Unsupported primary key type: " + type);
-        }
-
         this.type = type;
     }
 

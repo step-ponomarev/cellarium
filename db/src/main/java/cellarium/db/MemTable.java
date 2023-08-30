@@ -1,7 +1,7 @@
 package cellarium.db;
 
-import cellarium.db.entry.EntryWithSize;
 import cellarium.db.entry.Sizeable;
+import cellarium.db.entry.WithKeyAndSize;
 import cellarium.db.storage.Storage;
 
 import java.util.Collections;
@@ -11,7 +11,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class MemTable<K extends Comparable<?>, E extends EntryWithSize<K, ?>> implements Storage<K, E>, Sizeable {
+public final class MemTable<K extends Comparable<?>, E extends WithKeyAndSize<K>> implements Storage<K, E>, Sizeable {
     private final SortedMap<K, E> entries;
     private final AtomicLong sizeBytes;
 

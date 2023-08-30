@@ -1,7 +1,7 @@
 package cellarium.db;
 
 import cellarium.db.entry.Entry;
-import cellarium.db.entry.EntryWithSize;
+import cellarium.db.entry.WithKeyAndSize;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,6 +14,8 @@ import java.util.concurrent.Executors;
 
 public final class MemTableTest {
     private MemTable<String, EntryWithSize<String, String>> memTable;
+
+    private interface EntryWithSize<K, V> extends Entry<K, V>, WithKeyAndSize<K> {}
 
     @Before
     public void initMemTable() {

@@ -1,6 +1,5 @@
-package cellarium.db.regex;
+package cellarium.db.database.validation;
 
-import cellarium.db.database.Regex;
 import org.junit.Assert;
 import org.junit.Test;
 

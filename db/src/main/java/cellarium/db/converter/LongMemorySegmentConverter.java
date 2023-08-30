@@ -6,7 +6,7 @@ import jdk.incubator.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 
 public final class LongMemorySegmentConverter implements MemorySegmentConverter<Long> {
-    private static final LongMemorySegmentConverter INSTANCE = new LongMemorySegmentConverter();
+    public static final LongMemorySegmentConverter INSTANCE = new LongMemorySegmentConverter();
 
     private LongMemorySegmentConverter() {}
 

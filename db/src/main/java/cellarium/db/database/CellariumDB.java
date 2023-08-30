@@ -1,61 +1,60 @@
 package cellarium.db.database;
 
 import cellarium.db.MemTable;
+import cellarium.db.converter.ConverterFactory;
 import cellarium.db.database.condition.Condition;
+import cellarium.db.database.condition.ConditionItem;
+import cellarium.db.database.table.Row;
+import cellarium.db.database.table.Table;
+import cellarium.db.database.table.TableRow;
 import cellarium.db.database.types.AValue;
 import cellarium.db.database.types.DataType;
+import cellarium.db.database.types.MemorySegmentValue;
 import cellarium.db.database.types.PrimaryKey;
-import cellarium.db.table.Table;
-import cellarium.db.table.TableRow;
+import cellarium.db.database.validation.NameValidator;
+import jdk.incubator.foreign.MemorySegment;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public final class CellariumDB implements DataBase {
     private final Map<String, Table> tables = new HashMap<>();
-    private final Map<String, MemTable<AValue<?>, TableRow<AValue<?>>>> memTables = new ConcurrentSkipListMap<>();
+    //TODO: Привели все к мемори сегментам
+    private final Map<String, MemTable<MemorySegmentValue, TableRow<MemorySegment, MemorySegmentValue>>> memTables = new ConcurrentSkipListMap<>();
 
     @Override
     public void createTable(String tableName, PrimaryKey pk, Map<String, DataType> columns) {
-        validateTableName(tableName);
-        validateColumnName(pk.getName());
-        validateColumnNames(columns.keySet());
+        NameValidator.validateTableName(tableName);
+        NameValidator.validateColumnName(pk.getName());
+        NameValidator.validateColumnNames(columns.keySet());
 
         final HashMap<String, DataType> tableScheme = new HashMap<>(columns);
         tableScheme.put(pk.getName(), pk.getType());
 
-        synchronized (tables) {
-            tables.put(tableName, new Table(tableName, pk, tableScheme));
-            memTables.put(tableName, new MemTable<>());
-        }
+        tables.put(tableName, new Table(tableName, pk, tableScheme));
+        memTables.put(tableName, new MemTable<>());
     }
 
     @Override
     public void delete(String tableName, Condition condition) {
-        validateTableName(tableName);
+        NameValidator.validateTableName(tableName);
     }
 
     @Override
     public void dropTable(String tableName) {
-        validateTableName(tableName);
-        synchronized (tables) {
-            tables.remove(tableName);
-            memTables.remove(tableName);
-        }
+        NameValidator.validateTableName(tableName);
+        tables.remove(tableName);
+        memTables.remove(tableName);
     }
 
     @Override
     public void insert(String tableName, Map<String, AValue<?>> values) {
-        validateTableName(tableName);
+        NameValidator.validateTableName(tableName);
         final Table table = getTable(tableName);
 
-        // Проверяем есть ли индексы у этой таблицы, которые мы можем использовать
         long sizeBytes = 0;
         final Map<String, DataType> tableScheme = table.getScheme();
+        final Map<String, MemorySegmentValue> memorySegmentValues = new HashMap<>(values.size());
         for (final Map.Entry<String, AValue<?>> column : values.entrySet()) {
             final String columnName = column.getKey();
             final DataType tableColumnType = tableScheme.get(columnName);
@@ -69,52 +68,51 @@ public final class CellariumDB implements DataBase {
             }
 
             sizeBytes += insertedColumn.getSizeBytes();
+            memorySegmentValues.put(columnName, convert(insertedColumn));
         }
 
         final AValue<?> pk = values.get(table.getPrimaryKey().getName());
         if (pk == null) {
-            throw new IllegalStateException("PK is null");
+            throw new IllegalStateException("Primary key is null");
         }
 
-        final MemTable<AValue<?>, TableRow<AValue<?>>> memTable = memTables.get(tableName);
-        memTable.put(
-                new TableRow<>(pk, values, sizeBytes)
+        memTables.get(tableName).put(new TableRow<>(convert(pk), memorySegmentValues, sizeBytes));
+    }
+
+    private static MemorySegmentValue convert(AValue<?> value) {
+        return new MemorySegmentValue(
+                ConverterFactory.getConverter(value.getDataType()).convert(value.getValue()),
+                value.getDataType(),
+                value.getSizeBytes()
         );
     }
 
-    //TODO: Обдумать как реализовать кандишены
     @Override
-    public Iterator<TableRow<AValue<?>>> select(String tableName, Set<String> columns, Condition condition) {
-        validateTableName(tableName);
+    public Iterator<? extends Row<?>> select(String tableName, Set<String> columns, Condition condition) {
+        NameValidator.validateTableName(tableName);
         final Table table = getTable(tableName);
 
-        // Проверяем есть ли индексы для кондишина
-        // если можем, то используем индексы
+        //TODO:
+//        final Map<String, ConditionItem> conditionItems = condition.getConditionItems();
 
 
-        final Map<String, Condition.ValueCandition> conditions = condition.getConditions();
-        //TODO: СЕЙЧАС РАБОТАЕТ ТОЛЬКО ДЛЯ PK
-        if (conditions.size() != 1) {
-            throw new IllegalStateException("Unsupported request");
-        }
-
-        final PrimaryKey primaryKey = table.getPrimaryKey();
-        final Condition.ValueCandition conditionValue = conditions.get(primaryKey.getName());
-        //TODO: сделлать подробные, раздельные ошибки
-        if (conditionValue == null || conditionValue.value.getDataType() != primaryKey.getType()) {
-            throw new IllegalStateException("Invalid condition value");
-        }
-
-        //TODO: Учесть какие колонки возвращать
-        return Collections.singleton(
-                memTables.get(tableName).get(conditionValue.value)
-        ).iterator();
+        return null;
+//        return new ColumnFilterIterator<>(
+//                Collections.singleton(
+//                        memTables.get(tableName).get(conditionValue.value)
+//                ).iterator(),
+//                columns
+//        );
     }
 
     @Override
     public void update(String tableName, Map<String, AValue<?>> values, Condition condition) {
-        // TODO Auto-generated method stub
-        // Проверяем есть ли индексы у этой таблицы, которые мы можем использовать
+        throw new UnsupportedOperationException("Unsupported method");
+    }
+
+    @Override
+    public Map<String, Table> describeTables() {
+        return this.tables;
     }
 
     private Table getTable(String tableName) {
@@ -124,27 +122,5 @@ public final class CellariumDB implements DataBase {
         }
 
         return table;
-    }
-
-    private static void validateColumnNames(Iterable<String> names) {
-        if (names == null) {
-            return;
-        }
-
-        for (String name : names) {
-            validateColumnName(name);
-        }
-    }
-
-    private static void validateColumnName(String name) {
-        if (!Regex.COLUMN_NAME_PATTERN.matcher(name).matches()) {
-            throw new IllegalArgumentException("Invalid column name: " + name);
-        }
-    }
-
-    private static void validateTableName(String tableName) {
-        if (!Regex.TABLE_NAME_PATTERN.matcher(tableName).matches()) {
-            throw new IllegalArgumentException("Invalid table name: " + tableName);
-        }
     }
 }

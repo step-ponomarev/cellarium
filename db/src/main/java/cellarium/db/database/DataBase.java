@@ -1,10 +1,11 @@
 package cellarium.db.database;
 
 import cellarium.db.database.condition.Condition;
+import cellarium.db.database.table.Row;
+import cellarium.db.database.table.Table;
 import cellarium.db.database.types.AValue;
 import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.PrimaryKey;
-import cellarium.db.table.TableRow;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -15,11 +16,13 @@ public interface DataBase {
 
     void insert(String tableName, Map<String, AValue<?>> values);
 
-    Iterator<TableRow<AValue<?>>> select(String tableName, Set<String> columns, Condition condition);
+    Iterator<? extends Row<?>> select(String tableName, Set<String> columns, Condition condition);
 
     void update(String tableName, Map<String, AValue<?>> values, Condition condition);
 
     void delete(String tableName, Condition condition);
 
     void dropTable(String tableName);
+
+    Map<String, Table> describeTables();
 }
