@@ -11,6 +11,6 @@ public final class IntegerValue extends AValue<Integer> {
 
     @Override
     public int compareTo(AValue<Integer> o) {
-        return this.value - o.getValue();
+        return Integer.compare(this.value, o.value);
     }
 }

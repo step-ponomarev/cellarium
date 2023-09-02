@@ -3,7 +3,8 @@ package cellarium.db.database;
 import cellarium.db.MemTable;
 import cellarium.db.converter.ConverterFactory;
 import cellarium.db.database.condition.Condition;
-import cellarium.db.database.condition.ConditionItem;
+import cellarium.db.database.iterators.ColumnFilterIterator;
+import cellarium.db.database.iterators.DecodeIterator;
 import cellarium.db.database.table.Row;
 import cellarium.db.database.table.Table;
 import cellarium.db.database.table.TableRow;
@@ -14,13 +15,16 @@ import cellarium.db.database.types.PrimaryKey;
 import cellarium.db.database.validation.NameValidator;
 import jdk.incubator.foreign.MemorySegment;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.stream.Collectors;
 
 public final class CellariumDB implements DataBase {
     private final Map<String, Table> tables = new HashMap<>();
-    //TODO: Привели все к мемори сегментам
-    private final Map<String, MemTable<MemorySegmentValue, TableRow<MemorySegment, MemorySegmentValue>>> memTables = new ConcurrentSkipListMap<>();
+    private final Map<String, MemTable<MemorySegmentValue, TableRow<MemorySegmentValue>>> memTables = new ConcurrentSkipListMap<>();
 
     @Override
     public void createTable(String tableName, PrimaryKey pk, Map<String, DataType> columns) {
@@ -80,6 +84,10 @@ public final class CellariumDB implements DataBase {
     }
 
     private static MemorySegmentValue convert(AValue<?> value) {
+        if (value == null) {
+            return null;
+        }
+
         return new MemorySegmentValue(
                 ConverterFactory.getConverter(value.getDataType()).convert(value.getValue()),
                 value.getDataType(),
@@ -88,21 +96,25 @@ public final class CellariumDB implements DataBase {
     }
 
     @Override
-    public Iterator<? extends Row<?>> select(String tableName, Set<String> columns, Condition condition) {
+    public Iterator<Row<AValue<?>>> select(String tableName, Set<String> columns, Condition condition) {
         NameValidator.validateTableName(tableName);
         final Table table = getTable(tableName);
 
-        //TODO:
-//        final Map<String, ConditionItem> conditionItems = condition.getConditionItems();
+        final Set<String> columnsInTable = table.getScheme().keySet();
+        if (columns != null && !columnsInTable.containsAll(columns)) {
+            final String badColumns = columns.stream().filter(c -> !columnsInTable.contains(c)).collect(Collectors.joining(", "));
+            throw new IllegalStateException("Columns " + badColumns + " are not consist in table " + tableName);
+        }
 
+        ColumnFilterIterator<TableRow<MemorySegment, MemorySegmentValue>> tableRowColumnFilterIterator = new ColumnFilterIterator<>(
+                memTables.get(tableName).get(
+                        convert(condition.from),
+                        convert(condition.to)
+                ),
+                columns
+        );
 
-        return null;
-//        return new ColumnFilterIterator<>(
-//                Collections.singleton(
-//                        memTables.get(tableName).get(conditionValue.value)
-//                ).iterator(),
-//                columns
-//        );
+        return new DecodeIterator(tableRowColumnFilterIterator);
     }
 
     @Override

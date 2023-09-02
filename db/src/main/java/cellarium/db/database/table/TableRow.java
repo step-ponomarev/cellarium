@@ -1,14 +1,14 @@
 package cellarium.db.database.table;
 
-import cellarium.db.entry.WithKeyAndSize;
 import cellarium.db.database.types.AValue;
+import cellarium.db.entry.WithKeyAndSize;
 
 import java.util.Map;
 
-public final class TableRow<T, V extends AValue<T>> extends Row<V> implements WithKeyAndSize<V> {
+public final class TableRow<K extends AValue<?>> extends Row<? extends AValue<?>> implements WithKeyAndSize<K> {
     private final long sizeBytes;
 
-    public TableRow(V pk, Map<String, V> columns, long sizeBytes) {
+    public TableRow(K pk, Map<String, AValue<?>> columns, long sizeBytes) {
         super(pk, columns);
         this.sizeBytes = sizeBytes;
     }
@@ -17,4 +17,6 @@ public final class TableRow<T, V extends AValue<T>> extends Row<V> implements Wi
     public long getSizeBytes() {
         return sizeBytes;
     }
+
+
 }

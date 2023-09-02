@@ -1,4 +1,4 @@
-package cellarium.db.database;
+package cellarium.db.database.iterators;
 
 import cellarium.db.database.table.Row;
 import cellarium.db.database.types.AValue;
@@ -8,7 +8,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-public final class ColumnFilterIterator<T extends Row> implements Iterator<Row> {
+public final class ColumnFilterIterator<T extends Row<?>> implements Iterator<Row<?>> {
     private final Iterator<T> iter;
     private final Set<String> columns;
 
@@ -23,16 +23,19 @@ public final class ColumnFilterIterator<T extends Row> implements Iterator<Row> 
     }
 
     @Override
-    public Row next() {
-        final T row = iter.next();
+    public Row<?> next() {
+        final Row<?> row = iter.next();
+        if (columns == null) {
+            return row;
+        }
 
-        final Map<String, AValue<?>> currentRowColumns = row.getValue();
+        final Map<String, ? extends AValue<?>> currentRowColumns = row.getValue();
         final Map<String, AValue<?>> newValues = new HashMap<>(columns.size());
         for (String column : columns) {
             newValues.put(column, currentRowColumns.get(column));
         }
 
-        return new Row(
+        return new Row<>(
                 row.getKey(),
                 newValues
         );

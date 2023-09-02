@@ -5,8 +5,8 @@ import cellarium.db.entry.Entry;
 
 import java.util.Map;
 
-public class Row<V extends AValue<?>> implements Entry<V, Map<String, V>> {
-    private final V pk;
+public class Row implements Entry<AValue<?>, Map<String, AValue<?>>> {
+    private final AValue<?> pk;
     private final Map<String, V> columns;
 
     public Row(V pk, Map<String, V> columns) {
