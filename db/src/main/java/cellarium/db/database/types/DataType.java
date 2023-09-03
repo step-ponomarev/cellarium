@@ -4,7 +4,8 @@ public enum DataType {
     LONG(Long.class),
     INTEGER(Integer.class),
     STRING(String.class),
-    BOOLEAN(Boolean.class);
+    BOOLEAN(Boolean.class),
+    BYTE(Byte.class);
 
     public final Class<?> nativeType;
 
