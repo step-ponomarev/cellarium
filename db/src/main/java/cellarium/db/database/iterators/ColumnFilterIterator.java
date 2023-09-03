@@ -8,7 +8,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-public final class ColumnFilterIterator<T extends Row<?>> implements Iterator<Row<?>> {
+public final class ColumnFilterIterator<T extends Row<?, ?>> implements Iterator<T> {
     private final Iterator<T> iter;
     private final Set<String> columns;
 
@@ -23,19 +23,19 @@ public final class ColumnFilterIterator<T extends Row<?>> implements Iterator<Ro
     }
 
     @Override
-    public Row<?> next() {
-        final Row<?> row = iter.next();
+    public T next() {
+        final T row = iter.next();
         if (columns == null) {
             return row;
         }
 
-        final Map<String, ? extends AValue<?>> currentRowColumns = row.getValue();
         final Map<String, AValue<?>> newValues = new HashMap<>(columns.size());
+        final Map<String, ? extends AValue<?>> currentRowColumns = row.getValue();
         for (String column : columns) {
             newValues.put(column, currentRowColumns.get(column));
         }
 
-        return new Row<>(
+        return (T) new Row<>(
                 row.getKey(),
                 newValues
         );

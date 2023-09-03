@@ -16,26 +16,38 @@ public final class DataBaseSelectTableTest extends ADataBaseTest {
     @Test
     public void testSelectById() {
         final String tableName = "test";
-        final Map<String, DataType> scheme = Map.of("name", DataType.STRING, "age", DataType.INTEGER);
-        dataBase.createTable(tableName, new PrimaryKey("id", DataType.INTEGER), scheme);
+        final String nameColumnName = "nameColumnName";
+        final String ageColumnName = "age";
+        final String idColumnName = "id";
 
-        final IntegerValue id = IntegerValue.of(221);
-        final IntegerValue age = IntegerValue.of(12);
+        final Map<String, DataType> scheme = Map.of(nameColumnName, DataType.STRING, ageColumnName, DataType.INTEGER);
+        dataBase.createTable(tableName, new PrimaryKey(idColumnName, DataType.INTEGER), scheme);
 
+        final int idValue = 221;
+        final int ageValue = 12;
+        final IntegerValue id = IntegerValue.of(idValue);
+        final IntegerValue age = IntegerValue.of(ageValue);
+
+        final Map<String, AValue<?>> addedValues = Map.of(idColumnName, id, ageColumnName, age);
         dataBase.insert(
                 tableName,
-                Map.of("id", id, "age", age)
+                addedValues
         );
 
-        final Iterator<? extends Row<AValue<?>>> rows = dataBase.select(
+        final Iterator<? extends Row<AValue<?>, AValue<?>>> rows = dataBase.select(
                 tableName,
                 null,
                 new Condition(id, null)
         );
 
         Assert.assertTrue(rows.hasNext());
-        final Row<AValue<?>> row = rows.next();
+
+        final Row<AValue<?>, AValue<?>> row = rows.next();
         final Map<String, AValue<?>> columns = row.getValue();
-        
+        for (Map.Entry<String, AValue<?>> v : addedValues.entrySet()) {
+            final AValue<?> value = columns.get(v.getKey());
+            Assert.assertNotNull(value);
+            Assert.assertEquals(v.getValue().getValue(), value.getValue());
+        }
     }
 }

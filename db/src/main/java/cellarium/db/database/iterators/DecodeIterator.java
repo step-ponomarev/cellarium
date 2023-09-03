@@ -2,6 +2,7 @@ package cellarium.db.database.iterators;
 
 import cellarium.db.converter.ColumnConverter;
 import cellarium.db.converter.ConverterFactory;
+import cellarium.db.database.table.MemorySegmentRow;
 import cellarium.db.database.table.Row;
 import cellarium.db.database.types.AValue;
 import cellarium.db.database.types.DataType;
@@ -9,14 +10,12 @@ import cellarium.db.database.types.IntegerValue;
 import cellarium.db.database.types.MemorySegmentValue;
 import jdk.incubator.foreign.MemorySegment;
 
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
-public final class DecodeIterator implements Iterator<Row<? extends AValue<?>>> {
-    private Iterator<? extends Row<MemorySegmentValue>> iterator;
+public final class DecodeIterator<I extends Iterator<MemorySegmentRow>> implements Iterator<Row<AValue<?>, AValue<?>>> {
+    private final I iterator;
 
-    public DecodeIterator(Iterator<? extends Row<MemorySegmentValue>> iterator) {
+    public DecodeIterator(I iterator) {
         this.iterator = iterator;
     }
 
@@ -26,17 +25,11 @@ public final class DecodeIterator implements Iterator<Row<? extends AValue<?>>> 
     }
 
     @Override
-    public Row<? extends AValue<?>> next() {
-        final Row<? extends MemorySegmentValue> next = this.iterator.next();
-
-        final Map<String, ? extends MemorySegmentValue> columns = next.getValue();
-
-        final Map<String, AValue<?>> decodedColumns = new HashMap<>(columns.size());
-        columns.entrySet().forEach(e -> decodedColumns.put(e.getKey(), convertToValue(e.getValue())));
-
+    public Row<AValue<?>, AValue<?>> next() {
+        final Row<MemorySegmentValue, AValue<?>> next = this.iterator.next();
         return new Row<>(
-                next.getKey(),
-                decodedColumns
+                convertToValue(next.getKey()),
+                next.getValue()
         );
     }
 

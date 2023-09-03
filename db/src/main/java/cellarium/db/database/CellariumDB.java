@@ -5,15 +5,14 @@ import cellarium.db.converter.ConverterFactory;
 import cellarium.db.database.condition.Condition;
 import cellarium.db.database.iterators.ColumnFilterIterator;
 import cellarium.db.database.iterators.DecodeIterator;
+import cellarium.db.database.table.MemorySegmentRow;
 import cellarium.db.database.table.Row;
 import cellarium.db.database.table.Table;
-import cellarium.db.database.table.TableRow;
 import cellarium.db.database.types.AValue;
 import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.MemorySegmentValue;
 import cellarium.db.database.types.PrimaryKey;
 import cellarium.db.database.validation.NameValidator;
-import jdk.incubator.foreign.MemorySegment;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
 
 public final class CellariumDB implements DataBase {
     private final Map<String, Table> tables = new HashMap<>();
-    private final Map<String, MemTable<MemorySegmentValue, TableRow<MemorySegmentValue>>> memTables = new ConcurrentSkipListMap<>();
+    private final Map<String, MemTable<MemorySegmentValue, MemorySegmentRow>> memTables = new ConcurrentSkipListMap<>();
 
     @Override
     public void createTable(String tableName, PrimaryKey pk, Map<String, DataType> columns) {
@@ -58,7 +57,7 @@ public final class CellariumDB implements DataBase {
 
         long sizeBytes = 0;
         final Map<String, DataType> tableScheme = table.getScheme();
-        final Map<String, MemorySegmentValue> memorySegmentValues = new HashMap<>(values.size());
+        final Map<String, AValue<?>> memorySegmentValues = new HashMap<>(values.size());
         for (final Map.Entry<String, AValue<?>> column : values.entrySet()) {
             final String columnName = column.getKey();
             final DataType tableColumnType = tableScheme.get(columnName);
@@ -72,7 +71,7 @@ public final class CellariumDB implements DataBase {
             }
 
             sizeBytes += insertedColumn.getSizeBytes();
-            memorySegmentValues.put(columnName, convert(insertedColumn));
+            memorySegmentValues.put(columnName, insertedColumn);
         }
 
         final AValue<?> pk = values.get(table.getPrimaryKey().getName());
@@ -80,10 +79,10 @@ public final class CellariumDB implements DataBase {
             throw new IllegalStateException("Primary key is null");
         }
 
-        memTables.get(tableName).put(new TableRow<>(convert(pk), memorySegmentValues, sizeBytes));
+        memTables.get(tableName).put(new MemorySegmentRow(toMemorySegmentValue(pk), memorySegmentValues, sizeBytes));
     }
 
-    private static MemorySegmentValue convert(AValue<?> value) {
+    private static MemorySegmentValue toMemorySegmentValue(AValue<?> value) {
         if (value == null) {
             return null;
         }
@@ -96,7 +95,7 @@ public final class CellariumDB implements DataBase {
     }
 
     @Override
-    public Iterator<Row<AValue<?>>> select(String tableName, Set<String> columns, Condition condition) {
+    public Iterator<? extends Row<AValue<?>, AValue<?>>> select(String tableName, Set<String> columns, Condition condition) {
         NameValidator.validateTableName(tableName);
         final Table table = getTable(tableName);
 
@@ -106,15 +105,18 @@ public final class CellariumDB implements DataBase {
             throw new IllegalStateException("Columns " + badColumns + " are not consist in table " + tableName);
         }
 
-        ColumnFilterIterator<TableRow<MemorySegment, MemorySegmentValue>> tableRowColumnFilterIterator = new ColumnFilterIterator<>(
-                memTables.get(tableName).get(
-                        convert(condition.from),
-                        convert(condition.to)
-                ),
-                columns
+        Iterator<MemorySegmentRow> memorySegmentRowIterator = memTables.get(tableName).get(
+                toMemorySegmentValue(condition.from),
+                toMemorySegmentValue(condition.to)
         );
 
-        return new DecodeIterator(tableRowColumnFilterIterator);
+        return new DecodeIterator<>(
+                new ColumnFilterIterator<>(
+                        memorySegmentRowIterator,
+                        columns
+                )
+
+        );
     }
 
     @Override
