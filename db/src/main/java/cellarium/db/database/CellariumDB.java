@@ -95,7 +95,7 @@ public final class CellariumDB implements DataBase {
     }
 
     @Override
-    public Iterator<? extends Row<AValue<?>, AValue<?>>> select(String tableName, Set<String> columns, Condition condition) {
+    public Iterator<Row<AValue<?>, AValue<?>>> select(String tableName, Set<String> columns, Condition condition) {
         NameValidator.validateTableName(tableName);
         final Table table = getTable(tableName);
 

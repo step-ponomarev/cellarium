@@ -16,7 +16,7 @@ public interface DataBase {
 
     void insert(String tableName, Map<String, AValue<?>> values);
 
-    Iterator<? extends Row<AValue<?>, AValue<?>>> select(String tableName, Set<String> columns, Condition condition);
+    Iterator<Row<AValue<?>, AValue<?>>> select(String tableName, Set<String> columns, Condition condition);
 
     void update(String tableName, Map<String, AValue<?>> values, Condition condition);
 
