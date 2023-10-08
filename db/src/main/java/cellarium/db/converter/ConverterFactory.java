@@ -1,5 +1,9 @@
 package cellarium.db.converter;
 
+import cellarium.db.converter.types.BooleanMemorySegmentConverter;
+import cellarium.db.converter.types.IntegerConverterMemorySegmentConverter;
+import cellarium.db.converter.types.LongMemorySegmentConverter;
+import cellarium.db.converter.types.StringMemorySegmentConverter;
 import cellarium.db.database.types.DataType;
 import jdk.incubator.foreign.MemorySegment;
 
@@ -7,7 +11,7 @@ import java.util.EnumMap;
 import java.util.Map;
 
 public final class ConverterFactory {
-    private static Map<DataType, ColumnConverter<?, MemorySegment>> converters = new EnumMap<>(DataType.class);
+    private static Map<DataType, Converter<?, MemorySegment>> converters = new EnumMap<>(DataType.class);
 
     static {
         converters.put(DataType.LONG, LongMemorySegmentConverter.INSTANCE);
@@ -18,7 +22,7 @@ public final class ConverterFactory {
 
     private ConverterFactory() {}
 
-    public static <T> ColumnConverter<T, MemorySegment> getConverter(DataType dataType) {
-        return (ColumnConverter<T, MemorySegment>) converters.get(dataType);
+    public static <T> Converter<T, MemorySegment> getConverter(DataType dataType) {
+        return (Converter<T, MemorySegment>) converters.get(dataType);
     }
 }

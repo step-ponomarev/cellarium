@@ -1,13 +1,9 @@
 package cellarium.db.database.condition;
 
+import java.util.Map;
+
 import cellarium.db.database.types.AValue;
 
-public final class Condition {
-    public final AValue<?> from;
-    public final AValue<?> to;
-
-    public Condition(AValue<?> from, AValue<?> to) {
-        this.from = from;
-        this.to = to;
-    }
+public interface Condition {
+    public boolean metches(Map<String, AValue<?>> row);
 }

@@ -1,8 +1,8 @@
 package cellarium.db.database;
 
-
+import cellarium.db.database.table.ColumnScheme;
 import cellarium.db.database.types.DataType;
-import cellarium.db.database.types.PrimaryKey;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -17,9 +17,8 @@ public final class DataBaseCreateTableTest extends ADataBaseTest {
     @Test
     public void testTableName() {
         final String tableName = "tableName";
-        dataBase.createTable(tableName, new PrimaryKey("id", DataType.LONG), Map.of("column1", DataType.BOOLEAN));
+        dataBase.createTable(tableName, new ColumnScheme("id", DataType.LONG), Map.of("column1", DataType.BOOLEAN));
         Assert.assertTrue(
-                dataBase.describeTables().containsKey(tableName)
-        );
+                dataBase.describeTables().containsKey(tableName));
     }
 }

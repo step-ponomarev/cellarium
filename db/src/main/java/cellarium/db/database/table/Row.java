@@ -5,11 +5,11 @@ import cellarium.db.entry.Entry;
 
 import java.util.Map;
 
-public class Row<K extends AValue<?>, V extends AValue<?>> implements Entry<K, Map<String, V>> {
-    private final K pk;
+public class Row<PK extends AValue<?>, V extends AValue<?>> implements Entry<PK, Map<String, V>> {
+    private final PK pk;
     private final Map<String, V> columns;
 
-    public Row(K pk, Map<String, V> columns) {
+    public Row(PK pk, Map<String, V> columns) {
         this.pk = pk;
         this.columns = columns;
     }
@@ -20,7 +20,7 @@ public class Row<K extends AValue<?>, V extends AValue<?>> implements Entry<K, M
     }
 
     @Override
-    public K getKey() {
+    public PK getKey() {
         return pk;
     }
 }

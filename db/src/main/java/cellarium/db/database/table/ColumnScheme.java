@@ -1,10 +1,12 @@
-package cellarium.db.database.types;
+package cellarium.db.database.table;
 
-public final class PrimaryKey {
+import cellarium.db.database.types.DataType;
+
+public final class ColumnScheme {
     private final String name;
     private final DataType type;
 
-    public PrimaryKey(String name, DataType type) {
+    public ColumnScheme(String name, DataType type) {
         if (name == null) {
             throw new NullPointerException("Name cannot be null");
         }

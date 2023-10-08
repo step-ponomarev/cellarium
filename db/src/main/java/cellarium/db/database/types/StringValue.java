@@ -3,8 +3,16 @@ package cellarium.db.database.types;
 import java.nio.charset.StandardCharsets;
 
 public final class StringValue extends AValue<String> {
-    public StringValue(String value, DataType dataType) {
-        super(value, dataType, getSizeBytes(value));
+    private StringValue(String value) {
+        super(value, DataType.STRING, getSizeBytes(value));
+    }
+
+    public static StringValue of(String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("Value cannot be null");
+        }
+
+        return new StringValue(value);
     }
 
     @Override

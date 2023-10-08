@@ -45,8 +45,7 @@ public final class MergeIterator<E> implements Iterator<E> {
         return new MergeIterator<>(
                 of(iterators.subList(0, size / 2), comparator),
                 of(iterators.subList(size / 2, size), comparator),
-                comparator
-        );
+                comparator);
     }
 
     @Override

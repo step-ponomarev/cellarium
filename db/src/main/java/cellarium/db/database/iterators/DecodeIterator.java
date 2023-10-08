@@ -1,14 +1,10 @@
 package cellarium.db.database.iterators;
 
-import cellarium.db.converter.ColumnConverter;
-import cellarium.db.converter.ConverterFactory;
+import cellarium.db.converter.value.MemorySegmentValueConverter;
 import cellarium.db.database.table.MemorySegmentRow;
 import cellarium.db.database.table.Row;
 import cellarium.db.database.types.AValue;
-import cellarium.db.database.types.DataType;
-import cellarium.db.database.types.IntegerValue;
 import cellarium.db.database.types.MemorySegmentValue;
-import jdk.incubator.foreign.MemorySegment;
 
 import java.util.Iterator;
 
@@ -28,18 +24,8 @@ public final class DecodeIterator<I extends Iterator<MemorySegmentRow>> implemen
     public Row<AValue<?>, AValue<?>> next() {
         final Row<MemorySegmentValue, AValue<?>> next = this.iterator.next();
         return new Row<>(
-                convertToValue(next.getKey()),
+                MemorySegmentValueConverter.INSTANCE.convertBack(next.getKey()),
                 next.getValue()
         );
-    }
-
-    private static AValue<?> convertToValue(MemorySegmentValue encodedValue) {
-        final DataType dataType = encodedValue.getDataType();
-        final ColumnConverter<Object, MemorySegment> converter = ConverterFactory.getConverter(dataType);
-
-        return switch (dataType) {
-            case INTEGER -> IntegerValue.of((Integer) converter.convertBack(encodedValue.getValue()));
-            default -> throw new IllegalStateException("Unsupported data type");
-        };
     }
 }

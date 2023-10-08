@@ -1,4 +1,4 @@
-package cellarium.db.converter;
+package cellarium.db.converter.types;
 
 import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.MemorySegment;
