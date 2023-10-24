@@ -1,7 +1,6 @@
 package cellarium.db;
 
-import jdk.incubator.foreign.MemorySegment;
-
+import java.lang.foreign.MemorySegment;
 import java.nio.charset.StandardCharsets;
 
 public class MemorySegmentUtils {
@@ -20,6 +19,6 @@ public class MemorySegmentUtils {
             return null;
         }
 
-        return MemorySegment.ofByteBuffer(StandardCharsets.UTF_8.encode(data));
+        return MemorySegment.ofBuffer(StandardCharsets.UTF_8.encode(data));
     }
 }

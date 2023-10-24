@@ -1,9 +1,7 @@
 package cellarium.db.converter.types;
 
-import jdk.incubator.foreign.MemoryAccess;
-import jdk.incubator.foreign.MemorySegment;
-
-import java.nio.ByteBuffer;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 
 public final class LongMemorySegmentConverter implements MemorySegmentConverter<Long> {
     public static final LongMemorySegmentConverter INSTANCE = new LongMemorySegmentConverter();
@@ -16,12 +14,7 @@ public final class LongMemorySegmentConverter implements MemorySegmentConverter<
             return null;
         }
 
-        final MemorySegment memorySegment = MemorySegment.ofByteBuffer(
-                ByteBuffer.allocate(Long.BYTES)
-        );
-
-        MemoryAccess.setLong(memorySegment, value);
-        return memorySegment;
+        return ARENA_OF_AUTO.allocate(ValueLayout.JAVA_LONG, value);
     }
 
     @Override
@@ -30,6 +23,6 @@ public final class LongMemorySegmentConverter implements MemorySegmentConverter<
             return null;
         }
 
-        return MemoryAccess.getLong(value);
+        return value.get(ValueLayout.JAVA_LONG, 0);
     }
 }

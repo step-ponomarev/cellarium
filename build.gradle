@@ -4,15 +4,15 @@ plugins {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 dependencies {
     implementation project(':db')
 }
 
-final incubatorModules = ["--add-modules", "jdk.incubator.foreign"]
+final commonCompilerArgs = "--enable-preview"
 allprojects {
     apply plugin: 'java'
 
@@ -27,20 +27,15 @@ allprojects {
         testImplementation 'junit:junit:4.13.2'
     }
 
-    tasks.all {
-        if (it instanceof JavaCompile) {
-            it.options.compilerArgs += incubatorModules
-        } else if (it instanceof Test) {
-            it.jvmArgs += incubatorModules
-        }
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += commonCompilerArgs
+    }
+
+    tasks.withType(Test) {
+        jvmArgs += commonCompilerArgs
     }
 }
 
 application {
     mainClass = 'cellarium.Main'
-    applicationDefaultJvmArgs = incubatorModules
-}
-
-run {
-    jvmArgs += incubatorModules
 }

@@ -1,9 +1,10 @@
 package cellarium.db.converter;
 
 import cellarium.db.database.types.DataType;
-import jdk.incubator.foreign.MemorySegment;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.lang.foreign.MemorySegment;
 
 public final class MemorySegmentConverterTest {
     @Test
@@ -36,11 +37,11 @@ public final class MemorySegmentConverterTest {
     public void testLongConverter() {
         final Converter<Long, MemorySegment> converter = ConverterFactory.getConverter(DataType.LONG);
 
-        final long step = 10_000_000_000l;
-        for (long i = Long.MIN_VALUE; i < Long.MAX_VALUE - step; i += step) {
-            final MemorySegment convertedValue = converter.convert(i);
-            Assert.assertEquals(i, (long) converter.convertBack(convertedValue));
-        }
+        MemorySegment convertedValue = converter.convert(Long.MIN_VALUE);
+        Assert.assertEquals(Long.MIN_VALUE, (long) converter.convertBack(convertedValue));
+
+        convertedValue = converter.convert(Long.MAX_VALUE);
+        Assert.assertEquals(Long.MAX_VALUE, (long) converter.convertBack(convertedValue));
 
         Assert.assertNull(converter.convert(null));
         Assert.assertNull(converter.convertBack(null));

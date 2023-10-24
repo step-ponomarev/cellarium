@@ -5,7 +5,7 @@ import cellarium.db.converter.types.IntegerConverterMemorySegmentConverter;
 import cellarium.db.converter.types.LongMemorySegmentConverter;
 import cellarium.db.converter.types.StringMemorySegmentConverter;
 import cellarium.db.database.types.DataType;
-import jdk.incubator.foreign.MemorySegment;
+import java.lang.foreign.MemorySegment;
 
 import java.util.EnumMap;
 import java.util.Map;

@@ -2,7 +2,7 @@ package cellarium.db;
 
 import org.junit.Assert;
 import org.junit.Test;
-import jdk.incubator.foreign.MemorySegment;
+import java.lang.foreign.MemorySegment;
 
 public final class MemorySegmentUtilsTest {
 

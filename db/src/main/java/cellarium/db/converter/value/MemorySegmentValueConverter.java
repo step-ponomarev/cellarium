@@ -9,7 +9,7 @@ import cellarium.db.database.types.IntegerValue;
 import cellarium.db.database.types.LongValue;
 import cellarium.db.database.types.MemorySegmentValue;
 import cellarium.db.database.types.StringValue;
-import jdk.incubator.foreign.MemorySegment;
+import java.lang.foreign.MemorySegment;
 
 public final class MemorySegmentValueConverter implements Converter<AValue<?>, MemorySegmentValue> {
     public static final MemorySegmentValueConverter INSTANCE = new MemorySegmentValueConverter();

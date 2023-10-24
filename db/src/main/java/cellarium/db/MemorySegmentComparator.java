@@ -1,8 +1,7 @@
 package cellarium.db;
 
-import jdk.incubator.foreign.MemoryAccess;
-import jdk.incubator.foreign.MemorySegment;
-
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.util.Comparator;
 
 public final class MemorySegmentComparator implements Comparator<MemorySegment> {
@@ -27,9 +26,10 @@ public final class MemorySegmentComparator implements Comparator<MemorySegment> 
             return 1;
         }
 
+
         return Byte.compare(
-                MemoryAccess.getByteAtOffset(o1, missMatch),
-                MemoryAccess.getByteAtOffset(o2, missMatch)
+                o1.get(ValueLayout.JAVA_BYTE, missMatch),
+                o2.get(ValueLayout.JAVA_BYTE, missMatch)
         );
     }
 }

@@ -1,7 +1,6 @@
 package cellarium.db.converter.types;
 
-import jdk.incubator.foreign.MemorySegment;
-
+import java.lang.foreign.MemorySegment;
 import java.nio.charset.StandardCharsets;
 
 public final class StringMemorySegmentConverter implements MemorySegmentConverter<String> {
@@ -13,7 +12,7 @@ public final class StringMemorySegmentConverter implements MemorySegmentConverte
             return null;
         }
 
-        return MemorySegment.ofByteBuffer(
+        return MemorySegment.ofBuffer(
                 StandardCharsets.UTF_8.encode(value)
         );
     }

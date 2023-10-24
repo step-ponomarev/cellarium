@@ -1,7 +1,7 @@
 package cellarium.db.database.types;
 
 import cellarium.db.MemorySegmentComparator;
-import jdk.incubator.foreign.MemorySegment;
+import java.lang.foreign.MemorySegment;
 
 public final class MemorySegmentValue extends AValue<MemorySegment> {
     public MemorySegmentValue(MemorySegment value, DataType dataType, long sizeBytes) {

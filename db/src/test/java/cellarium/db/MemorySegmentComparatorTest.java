@@ -1,6 +1,6 @@
 package cellarium.db;
 
-import jdk.incubator.foreign.MemorySegment;
+import java.lang.foreign.MemorySegment;
 import org.junit.Assert;
 import org.junit.Test;
 
