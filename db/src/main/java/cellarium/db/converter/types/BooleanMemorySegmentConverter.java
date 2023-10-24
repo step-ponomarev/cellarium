@@ -1,5 +1,7 @@
 package cellarium.db.converter.types;
 
+import cellarium.db.MemorySegmentUtils;
+
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
@@ -14,7 +16,7 @@ public final class BooleanMemorySegmentConverter implements MemorySegmentConvert
             return null;
         }
 
-        return ARENA_OF_AUTO.allocate(ValueLayout.JAVA_BYTE, (byte) (value ? 1 : 0));
+        return MemorySegmentUtils.ARENA_OF_AUTO.allocate(ValueLayout.JAVA_BYTE, (byte) (value ? 1 : 0));
     }
 
     @Override

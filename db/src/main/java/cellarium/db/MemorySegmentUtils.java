@@ -1,9 +1,11 @@
 package cellarium.db;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.nio.charset.StandardCharsets;
 
 public class MemorySegmentUtils {
+    public static final Arena ARENA_OF_AUTO = Arena.ofAuto();
+
     private MemorySegmentUtils() {}
 
     public static String memorySegmentToString(MemorySegment data) {
@@ -11,7 +13,7 @@ public class MemorySegmentUtils {
             return null;
         }
 
-        return StandardCharsets.UTF_8.decode(data.asByteBuffer()).toString();
+        return data.getUtf8String(0);
     }
 
     public static MemorySegment stringToMemorySegment(String data) {
@@ -19,6 +21,6 @@ public class MemorySegmentUtils {
             return null;
         }
 
-        return MemorySegment.ofBuffer(StandardCharsets.UTF_8.encode(data));
+        return ARENA_OF_AUTO.allocateUtf8String(data);
     }
 }

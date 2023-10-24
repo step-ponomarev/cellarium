@@ -1,7 +1,8 @@
 package cellarium.db.converter.types;
 
+import cellarium.db.MemorySegmentUtils;
+
 import java.lang.foreign.MemorySegment;
-import java.nio.charset.StandardCharsets;
 
 public final class StringMemorySegmentConverter implements MemorySegmentConverter<String> {
     public static final StringMemorySegmentConverter INSTANCE = new StringMemorySegmentConverter();
@@ -12,9 +13,7 @@ public final class StringMemorySegmentConverter implements MemorySegmentConverte
             return null;
         }
 
-        return MemorySegment.ofBuffer(
-                StandardCharsets.UTF_8.encode(value)
-        );
+        return MemorySegmentUtils.ARENA_OF_AUTO.allocateUtf8String(value);
     }
 
     @Override
@@ -23,6 +22,6 @@ public final class StringMemorySegmentConverter implements MemorySegmentConverte
             return null;
         }
 
-        return StandardCharsets.UTF_8.decode(value.asByteBuffer()).toString();
+        return value.getUtf8String(0);
     }
 }

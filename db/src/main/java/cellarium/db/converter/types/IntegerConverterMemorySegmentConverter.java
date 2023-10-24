@@ -1,5 +1,7 @@
 package cellarium.db.converter.types;
 
+import cellarium.db.MemorySegmentUtils;
+
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
@@ -14,7 +16,7 @@ public final class IntegerConverterMemorySegmentConverter implements MemorySegme
             return null;
         }
 
-        return ARENA_OF_AUTO.allocate(ValueLayout.JAVA_INT, value);
+        return MemorySegmentUtils.ARENA_OF_AUTO.allocate(ValueLayout.JAVA_INT, value);
     }
 
     @Override
