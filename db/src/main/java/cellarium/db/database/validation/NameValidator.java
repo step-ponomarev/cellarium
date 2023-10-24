@@ -3,8 +3,11 @@ package cellarium.db.database.validation;
 import java.util.regex.Pattern;
 
 public final class NameValidator {
-    private static final Pattern TABLE_NAME_PATTERN = Regex.createNamePattern(3, 128);
-    private static final Pattern COLUMN_NAME_PATTERN = Regex.createNamePattern(2, 30);
+    public static final int MAX_NAME_LEN = 128;
+    public static final int MAX_COLUMN_LEN = 30;
+
+    private static final Pattern TABLE_NAME_PATTERN = Regex.createNamePattern(3, MAX_NAME_LEN);
+    private static final Pattern COLUMN_NAME_PATTERN = Regex.createNamePattern(2, MAX_COLUMN_LEN);
 
     private NameValidator() {}
 
