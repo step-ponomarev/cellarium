@@ -1,5 +1,6 @@
 package cellarium.db.converter.value;
 
+import cellarium.db.MemorySegmentUtils;
 import cellarium.db.converter.Converter;
 import cellarium.db.converter.ConverterFactory;
 import cellarium.db.database.types.AValue;
@@ -9,6 +10,7 @@ import cellarium.db.database.types.IntegerValue;
 import cellarium.db.database.types.LongValue;
 import cellarium.db.database.types.MemorySegmentValue;
 import cellarium.db.database.types.StringValue;
+
 import java.lang.foreign.MemorySegment;
 
 public final class MemorySegmentValueConverter implements Converter<AValue<?>, MemorySegmentValue> {
@@ -20,22 +22,19 @@ public final class MemorySegmentValueConverter implements Converter<AValue<?>, M
             return null;
         }
 
+        final Converter<Object, MemorySegment> converter = ConverterFactory.getConverter(value.getDataType());
         return new MemorySegmentValue(
-                ConverterFactory.getConverter(value.getDataType()).convert(value.getValue()), value.getDataType(),
-                value.getSizeBytes());
+                converter.convert(value.getValue()),
+                value.getDataType(),
+                value.getSizeBytes()
+        );
     }
 
     @Override
     public AValue<?> convertBack(MemorySegmentValue value) {
-        final DataType dataType = value.getDataType();
-        final Converter<Object, MemorySegment> converter = ConverterFactory.getConverter(dataType);
-
-        return switch (dataType) {
-            case INTEGER -> IntegerValue.of((Integer) converter.convertBack(value.getValue()));
-            case LONG -> LongValue.of((Long) converter.convertBack(value.getValue()));
-            case BOOLEAN -> BooleanValue.of((Boolean) converter.convertBack(value.getValue()));
-            case STRING -> StringValue.of((String) converter.convertBack(value.getValue()));
-            default -> throw new IllegalStateException("Unsupported data type");
-        };
+        return MemorySegmentUtils.toValue(
+                value.getDataType(),
+                value.getValue()
+        );
     }
 }

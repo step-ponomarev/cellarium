@@ -8,7 +8,8 @@ import java.lang.foreign.ValueLayout;
 public final class IntegerConverterMemorySegmentConverter implements MemorySegmentConverter<Integer> {
     public static final IntegerConverterMemorySegmentConverter INSTANCE = new IntegerConverterMemorySegmentConverter();
 
-    private IntegerConverterMemorySegmentConverter() {}
+    private IntegerConverterMemorySegmentConverter() {
+    }
 
     @Override
     public MemorySegment convert(Integer value) {
@@ -16,7 +17,7 @@ public final class IntegerConverterMemorySegmentConverter implements MemorySegme
             return null;
         }
 
-        return MemorySegmentUtils.ARENA_OF_AUTO.allocate(ValueLayout.JAVA_INT, value);
+        return MemorySegmentUtils.ARENA_OF_AUTO.allocate(ValueLayout.JAVA_INT_UNALIGNED, value);
     }
 
     @Override
@@ -25,6 +26,6 @@ public final class IntegerConverterMemorySegmentConverter implements MemorySegme
             return null;
         }
 
-        return value.get(ValueLayout.JAVA_INT, 0);
+        return value.get(ValueLayout.JAVA_INT_UNALIGNED, 0);
     }
 }

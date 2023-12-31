@@ -8,7 +8,8 @@ import java.lang.foreign.ValueLayout;
 public final class BooleanMemorySegmentConverter implements MemorySegmentConverter<Boolean> {
     public static final BooleanMemorySegmentConverter INSTANCE = new BooleanMemorySegmentConverter();
 
-    private BooleanMemorySegmentConverter() {}
+    private BooleanMemorySegmentConverter() {
+    }
 
     @Override
     public MemorySegment convert(Boolean value) {

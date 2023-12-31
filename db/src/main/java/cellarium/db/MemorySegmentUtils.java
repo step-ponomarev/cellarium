@@ -5,6 +5,15 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
+import cellarium.db.converter.Converter;
+import cellarium.db.converter.ConverterFactory;
+import cellarium.db.database.types.AValue;
+import cellarium.db.database.types.BooleanValue;
+import cellarium.db.database.types.DataType;
+import cellarium.db.database.types.IntegerValue;
+import cellarium.db.database.types.LongValue;
+import cellarium.db.database.types.StringValue;
+
 public class MemorySegmentUtils {
     public static final Arena ARENA_OF_AUTO = Arena.ofAuto();
 
@@ -30,14 +39,15 @@ public class MemorySegmentUtils {
     /**
      * @param indexSegment
      * @param key
-     * @return index of offset for index memory segment if found, otherwise -1
+     * @return index of offset for index memory segment if found, otherwise negative index
      */
-    public static int findIndexOfKey(MemorySegment indexSegment, int[] indexOffsets, MemorySegment key) {
+    public static int findIndexOfKey(MemorySegment indexSegment, long[] indexOffsets, MemorySegment key) {
         int left = 0;
         int right = indexOffsets.length - 1;
-        while (left <= right) {
-            final int i = left + (right - left) / 2;
 
+        int i = left + (right - left) / 2;
+        while (left <= right) {
+            i = left + (right - left) / 2;
             final MemorySegment current = readValue(indexSegment, indexOffsets[i]);
             final int compare = MemorySegmentComparator.INSTANCE.compare(key, current);
             if (compare < 0) {
@@ -53,16 +63,36 @@ public class MemorySegmentUtils {
             return i;
         }
 
-        return -1;
+        return -i;
+    }
+
+    public static AValue<?> toValue(DataType dataType, MemorySegment value) {
+        final Converter<Object, MemorySegment> converter = ConverterFactory.getConverter(dataType);
+
+        return switch (dataType) {
+            case INTEGER -> IntegerValue.of((Integer) converter.convertBack(value));
+            case LONG -> LongValue.of((Long) converter.convertBack(value));
+            case BOOLEAN -> BooleanValue.of((Boolean) converter.convertBack(value));
+            case STRING -> StringValue.of((String) converter.convertBack(value));
+            default -> throw new IllegalStateException("Unsupported data type");
+        };
     }
 
     public static MemorySegment readValue(MemorySegment segment, long offset) {
-        final long valueSize = segment.get(ValueLayout.JAVA_LONG, offset);
+        final long valueSize = segment.get(ValueLayout.JAVA_LONG_UNALIGNED, offset);
         return segment.asSlice(offset + Long.BYTES, valueSize);
     }
 
-    public static void writeValue(MemorySegment target, long offset, MemorySegment value) {
-        target.set(ValueLayout.JAVA_LONG, offset, value.byteSize());
+    /**
+     * @param target
+     * @param offset
+     * @param value
+     * @return offset
+     */
+    public static long writeValue(MemorySegment target, long offset, MemorySegment value) {
+        target.set(ValueLayout.JAVA_LONG_UNALIGNED, offset, value.byteSize());
         target.asSlice(offset + Long.BYTES, value.byteSize()).copyFrom(value);
+
+        return offset + value.byteSize();
     }
 }

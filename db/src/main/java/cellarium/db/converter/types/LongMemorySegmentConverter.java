@@ -8,7 +8,8 @@ import java.lang.foreign.ValueLayout;
 public final class LongMemorySegmentConverter implements MemorySegmentConverter<Long> {
     public static final LongMemorySegmentConverter INSTANCE = new LongMemorySegmentConverter();
 
-    private LongMemorySegmentConverter() {}
+    private LongMemorySegmentConverter() {
+    }
 
     @Override
     public MemorySegment convert(Long value) {
@@ -16,7 +17,7 @@ public final class LongMemorySegmentConverter implements MemorySegmentConverter<
             return null;
         }
 
-        return MemorySegmentUtils.ARENA_OF_AUTO.allocate(ValueLayout.JAVA_LONG, value);
+        return MemorySegmentUtils.ARENA_OF_AUTO.allocate(ValueLayout.JAVA_LONG_UNALIGNED, value);
     }
 
     @Override
@@ -25,6 +26,6 @@ public final class LongMemorySegmentConverter implements MemorySegmentConverter<
             return null;
         }
 
-        return value.get(ValueLayout.JAVA_LONG, 0);
+        return value.get(ValueLayout.JAVA_LONG_UNALIGNED, 0);
     }
 }

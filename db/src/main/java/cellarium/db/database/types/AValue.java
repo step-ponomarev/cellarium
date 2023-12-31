@@ -3,6 +3,8 @@ package cellarium.db.database.types;
 import cellarium.db.entry.Sizeable;
 
 public abstract class AValue<V> implements Sizeable, Comparable<AValue<V>> {
+    public final static int UNDEFINED_SIZE_BYTES = Integer.MIN_VALUE;
+
     protected final V value;
     protected final DataType dataType;
     protected final long sizeBytes;
