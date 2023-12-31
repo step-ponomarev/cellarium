@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 
+import cellarium.db.MemorySegmentComparator;
 import cellarium.db.MemorySegmentUtils;
 
 public final class SSTable implements Closeable {
@@ -12,7 +13,6 @@ public final class SSTable implements Closeable {
     // есть индекс
 
     private final MemorySegment indexSegment; // key, entity offset
-
     private final long[] indexOffsets;
 
     private final MemorySegment dataSegment;
@@ -31,40 +31,51 @@ public final class SSTable implements Closeable {
             return dataSegment;
         }
 
-        //TODO: Это совершенно не будет работать, ибо если мы не находим точного ключа, то нам нужно взять следующий.
         if (from == null) {
-            final int i = MemorySegmentUtils.findIndexOfKey(indexSegment, indexOffsets, to);
-            return dataSegment.asSlice(0, indexOffsets[i]);
+            final int i = findIndexOfKey(indexSegment, indexOffsets, to, false);
+            //TODO: out of bound
+            return dataSegment.asSlice(0, indexOffsets[i + 1]);
         }
 
         if (to == null) {
-            final int i = MemorySegmentUtils.findIndexOfKey(indexSegment, indexOffsets, from);
+            final int i = findIndexOfKey(indexSegment, indexOffsets, from, true);
             return dataSegment.asSlice(indexOffsets[i]);
         }
 
-        //todo: fix it, incorrect
-        int iFrom = MemorySegmentUtils.findIndexOfKey(indexSegment, indexOffsets, from);
-        if (iFrom < 0) {
-            iFrom = correctFromIndex(iFrom);
-        }
+        int iFrom = findIndexOfKey(indexSegment, indexOffsets, from, true);
+        int iTo = findIndexOfKey(indexSegment, indexOffsets, to, false);
 
-        int iTo = MemorySegmentUtils.findIndexOfKey(indexSegment, indexOffsets, to);
-        if (iTo < 0) {
-            iTo = correctFromIndex(iTo);
-        }
-
-        return dataSegment.asSlice(indexOffsets[iFrom], indexOffsets[iTo]);
+        //TODO: out of bound
+        return dataSegment.asSlice(indexOffsets[iFrom], indexOffsets[iTo + 1]);
     }
 
-    private int correctFromIndex(int i) {
-        int index = -i;
+    /**
+     * @param indexSegment
+     * @param key
+     * @return index of offset for index memory segment if found, otherwise negative index
+     */
+    static int findIndexOfKey(MemorySegment indexSegment, long[] indexOffsets, MemorySegment key, boolean from) {
+        int left = 0;
+        int right = indexOffsets.length - 1;
 
-        long indexOffset = indexOffsets[index];
-        
-    }
+        while (left <= right) {
+            final int i = (left + right) >>> 1;
+            final MemorySegment current = MemorySegmentUtils.readValue(indexSegment, indexOffsets[i]);
+            final int compare = MemorySegmentComparator.INSTANCE.compare(current, key);
+            if (compare > 0) {
+                right = i - 1;
+                continue;
+            }
 
-    private int correctToIndex(int i) {
+            if (compare < 0) {
+                left = i + 1;
+                continue;
+            }
 
+            return i;
+        }
+
+        return left;
     }
 
     @Override

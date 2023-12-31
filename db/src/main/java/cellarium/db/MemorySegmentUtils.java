@@ -36,36 +36,6 @@ public class MemorySegmentUtils {
         return ARENA_OF_AUTO.allocateUtf8String(data);
     }
 
-    /**
-     * @param indexSegment
-     * @param key
-     * @return index of offset for index memory segment if found, otherwise negative index
-     */
-    public static int findIndexOfKey(MemorySegment indexSegment, long[] indexOffsets, MemorySegment key) {
-        int left = 0;
-        int right = indexOffsets.length - 1;
-
-        int i = left + (right - left) / 2;
-        while (left <= right) {
-            i = left + (right - left) / 2;
-            final MemorySegment current = readValue(indexSegment, indexOffsets[i]);
-            final int compare = MemorySegmentComparator.INSTANCE.compare(key, current);
-            if (compare < 0) {
-                right = i - 1;
-                continue;
-            }
-
-            if (compare > 0) {
-                left = i + 1;
-                continue;
-            }
-
-            return i;
-        }
-
-        return -i;
-    }
-
     public static AValue<?> toValue(DataType dataType, MemorySegment value) {
         final Converter<Object, MemorySegment> converter = ConverterFactory.getConverter(dataType);
 
@@ -87,12 +57,12 @@ public class MemorySegmentUtils {
      * @param target
      * @param offset
      * @param value
-     * @return offset
+     * @return offset after last entry
      */
     public static long writeValue(MemorySegment target, long offset, MemorySegment value) {
         target.set(ValueLayout.JAVA_LONG_UNALIGNED, offset, value.byteSize());
         target.asSlice(offset + Long.BYTES, value.byteSize()).copyFrom(value);
 
-        return offset + value.byteSize();
+        return offset + Long.BYTES + value.byteSize();
     }
 }
