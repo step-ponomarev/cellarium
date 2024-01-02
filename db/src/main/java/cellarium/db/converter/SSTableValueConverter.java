@@ -10,8 +10,6 @@ import cellarium.db.database.types.DataType;
 public final class SSTableValueConverter implements Converter<AValue<?>, MemorySegment> {
     public static final SSTableValueConverter INSTANCE = new SSTableValueConverter();
 
-    private static final byte BYTE_SIZE = 1;
-
     @Override
     public MemorySegment convert(AValue<?> value) {
         final DataType dataType = value.getDataType();
@@ -20,12 +18,12 @@ public final class SSTableValueConverter implements Converter<AValue<?>, MemoryS
         // if string for example will write size
         final MemorySegment segment = MemorySegmentUtils.ARENA_OF_AUTO.allocate(
                 // to understand string typing see java.lang.foreign.SegmentAllocator.allocateUtf8String
-                BYTE_SIZE + value.getSizeBytes() + (undefiledValueSize ? Integer.BYTES : 0) + (dataType == DataType.STRING ? 1 : 0)
+                MemorySegmentUtils.BYTE_SIZE + value.getSizeBytes() + (undefiledValueSize ? Integer.BYTES : 0) + (dataType == DataType.STRING ? 1 : 0)
         );
 
         int offset = 0;
-        segment.asSlice(offset, BYTE_SIZE).set(ValueLayout.JAVA_BYTE, 0, dataType.getId());
-        offset += BYTE_SIZE;
+        segment.asSlice(offset, MemorySegmentUtils.BYTE_SIZE).set(ValueLayout.JAVA_BYTE, 0, dataType.getId());
+        offset += MemorySegmentUtils.BYTE_SIZE;
 
         final Converter<Object, MemorySegment> converter = ConverterFactory.getConverter(dataType);
         final MemorySegment memorySegment = converter.convert(value.getValue());
@@ -48,14 +46,14 @@ public final class SSTableValueConverter implements Converter<AValue<?>, MemoryS
         if (sizeBytes != AValue.UNDEFINED_SIZE_BYTES) {
             return MemorySegmentUtils.toValue(
                     dataType,
-                    value.asSlice(BYTE_SIZE, sizeBytes)
+                    value.asSlice(MemorySegmentUtils.BYTE_SIZE, sizeBytes)
             );
         }
-        sizeBytes = value.get(ValueLayout.JAVA_INT_UNALIGNED, BYTE_SIZE);
+        sizeBytes = value.get(ValueLayout.JAVA_INT_UNALIGNED, MemorySegmentUtils.BYTE_SIZE);
 
         return MemorySegmentUtils.toValue(
                 dataType,
-                value.asSlice(BYTE_SIZE + Integer.BYTES, sizeBytes)
+                value.asSlice(MemorySegmentUtils.BYTE_SIZE + Integer.BYTES, sizeBytes)
         );
     }
 }

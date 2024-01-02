@@ -4,7 +4,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 
-import cellarium.db.MemorySegmentComparator;
 import cellarium.db.MemorySegmentUtils;
 
 public final class SSTable implements Closeable {
@@ -32,50 +31,24 @@ public final class SSTable implements Closeable {
         }
 
         if (from == null) {
-            final int i = findIndexOfKey(indexSegment, indexOffsets, to, false);
-            //TODO: out of bound
+            int i = MemorySegmentUtils.findIndexOfKey(indexSegment, indexOffsets, to);
+            if (i < 0) {
+                i = Math.abs(i) - 1;
+            }
+
             return dataSegment.asSlice(0, indexOffsets[i + 1]);
         }
 
         if (to == null) {
-            final int i = findIndexOfKey(indexSegment, indexOffsets, from, true);
+            final int i = MemorySegmentUtils.findIndexOfKey(indexSegment, indexOffsets, from);
             return dataSegment.asSlice(indexOffsets[i]);
         }
 
-        int iFrom = findIndexOfKey(indexSegment, indexOffsets, from, true);
-        int iTo = findIndexOfKey(indexSegment, indexOffsets, to, false);
+        int iFrom = MemorySegmentUtils.findIndexOfKey(indexSegment, indexOffsets, from);
+        int iTo = MemorySegmentUtils.findIndexOfKey(indexSegment, indexOffsets, to);
 
         //TODO: out of bound
         return dataSegment.asSlice(indexOffsets[iFrom], indexOffsets[iTo + 1]);
-    }
-
-    /**
-     * @param indexSegment
-     * @param key
-     * @return index of offset for index memory segment if found, otherwise negative index
-     */
-    static int findIndexOfKey(MemorySegment indexSegment, long[] indexOffsets, MemorySegment key, boolean from) {
-        int left = 0;
-        int right = indexOffsets.length - 1;
-
-        while (left <= right) {
-            final int i = (left + right) >>> 1;
-            final MemorySegment current = MemorySegmentUtils.readValue(indexSegment, indexOffsets[i]);
-            final int compare = MemorySegmentComparator.INSTANCE.compare(current, key);
-            if (compare > 0) {
-                right = i - 1;
-                continue;
-            }
-
-            if (compare < 0) {
-                left = i + 1;
-                continue;
-            }
-
-            return i;
-        }
-
-        return left;
     }
 
     @Override

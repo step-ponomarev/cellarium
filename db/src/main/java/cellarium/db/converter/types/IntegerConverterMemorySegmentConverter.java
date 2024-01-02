@@ -8,8 +8,7 @@ import java.lang.foreign.ValueLayout;
 public final class IntegerConverterMemorySegmentConverter implements MemorySegmentConverter<Integer> {
     public static final IntegerConverterMemorySegmentConverter INSTANCE = new IntegerConverterMemorySegmentConverter();
 
-    private IntegerConverterMemorySegmentConverter() {
-    }
+    private IntegerConverterMemorySegmentConverter() {}
 
     @Override
     public MemorySegment convert(Integer value) {
