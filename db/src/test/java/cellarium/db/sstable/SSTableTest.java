@@ -1,87 +1,127 @@
 package cellarium.db.sstable;
 
 import java.lang.foreign.MemorySegment;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Assert;
 import org.junit.Test;
 
+import cellarium.db.comparator.AMemorySegmentComparator;
 import cellarium.db.MemorySegmentUtils;
+import cellarium.db.comparator.ComparatorFactory;
 import cellarium.db.converter.SSTableValueConverter;
+import cellarium.db.database.types.AValue;
+import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.IntegerValue;
+import utils.SSTableTestUtils;
+import utils.TestData;
 
 public class SSTableTest {
-    private SSTable ssTable;
-    private List<Integer> keys;
 
-    @Before
-    public void before() {
-        final int amount = 3;
-        final List<MemorySegment> keySet = new ArrayList<>(amount);
-        final Map<Integer, MemorySegment> values = new HashMap<>(amount, 1);
-
-        keys = new ArrayList<>();
-        for (int i = 0; i < amount; i++) {
-            keySet.add(
-                    SSTableValueConverter.INSTANCE.convert(
-                            IntegerValue.of(i)
-                    )
-            );
-            values.put(i, SSTableValueConverter.INSTANCE.convert(
-                    IntegerValue.of(i)
-            ));
-            keys.add(i);
-        }
-
-        final MemorySegment data = MemorySegmentUtils.ARENA_OF_AUTO.allocate(
-                MemorySegmentUtils.calculateMemorySegmentsSizeBytes(keySet) + MemorySegmentUtils.calculateMemorySegmentsSizeBytes(values.values())
+    @Test
+    public void testSingleValue() {
+        final SSTable ssTable = createSStable(1);
+        MemorySegment dataRange = ssTable.getDataRange(
+                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(0)),
+                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(0))
         );
 
-        final MemorySegment index = MemorySegmentUtils.ARENA_OF_AUTO.allocate(
-                MemorySegmentUtils.calculateMemorySegmentsSizeBytes(keySet)
-        );
-
-        final long[] offsets = new long[amount];
-        long dataOffset = 0;
-        long indexOffset = 0;
-        for (int i = 0; i < amount; i++) {
-            final MemorySegment key = keySet.get(i);
-
-            data.asSlice(dataOffset, key.byteSize()).copyFrom(key);
-            dataOffset += key.byteSize();
-
-            final MemorySegment value = values.get(i);
-            data.asSlice(dataOffset, value.byteSize()).copyFrom(value);
-            dataOffset += value.byteSize();
-
-            offsets[i] = indexOffset;
-            index.asSlice(indexOffset, key.byteSize()).copyFrom(key);
-            indexOffset += key.byteSize();
-        }
-
-        ssTable = new SSTable(
-                index,
-                offsets,
-                data
-        );
-    }
-
-    @After
-    public void after() {
-        System.out.println("HERE");
+        final MemorySegment memorySegment = MemorySegmentUtils.sliceFirstDbValue(dataRange);
+        AValue<?> aValue = SSTableValueConverter.INSTANCE.convertBack(memorySegment);
+        Assert.assertEquals(IntegerValue.of(0).getValue(), aValue.getValue());
     }
 
     @Test
-    public void test() {
-        MemorySegment dataRange = ssTable.getDataRange(
-                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(1)),
-                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(1))
+    public void testFullRange() {
+        final TestData testData = SSTableTestUtils.mockIntListData(300);
+        final SSTable ssTable = new SSTable(testData.data, testData.index);
+
+        final AMemorySegmentComparator comparator = ComparatorFactory.getComparator(DataType.INTEGER);
+
+        final int compare = comparator.compare(
+                testData.data.getMemorySegment(),
+                ssTable.getDataRange(null, null)
         );
+
+        Assert.assertEquals(0, compare);
     }
 
+    @Test
+    public void testFromStartToMiddle() {
+        final int amount = 300;
+        final TestData testData = SSTableTestUtils.mockIntListData(amount);
+        final SSTable ssTable = new SSTable(testData.data, testData.index);
 
+        final int valueAmount = amount / 2;
+        final MemorySegment toValue = SSTableValueConverter.INSTANCE.convert(
+                IntegerValue.of(valueAmount)
+        );
+
+        final MemorySegment dataRange = ssTable.getDataRange(null, toValue);
+
+        long offset = 0;
+        MemorySegment currentSlice;
+        for (int i = 0; i < valueAmount; i++) {
+            currentSlice = dataRange.asSlice(offset);
+            MemorySegment memorySegment = MemorySegmentUtils.sliceFirstDbValue(currentSlice);
+            offset += memorySegment.byteSize();
+
+            final AValue<?> aValue = SSTableValueConverter.INSTANCE.convertBack(memorySegment);
+            Assert.assertEquals(i, aValue.getValue());
+        }
+
+        Assert.assertEquals(dataRange.byteSize(), offset);
+    }
+
+    @Test
+    public void testFromMiddleToEnd() {
+        final int amount = 300;
+        final TestData testData = SSTableTestUtils.mockIntListData(amount);
+        final SSTable ssTable = new SSTable(testData.data, testData.index);
+
+        final int valueAmount = amount / 2;
+        final MemorySegment from = SSTableValueConverter.INSTANCE.convert(IntegerValue.of(valueAmount));
+        final MemorySegment dataRange = ssTable.getDataRange(from, null);
+
+        long offset = 0;
+        MemorySegment currentSlice;
+        for (int i = valueAmount; i < amount; i++) {
+            currentSlice = dataRange.asSlice(offset);
+            MemorySegment memorySegment = MemorySegmentUtils.sliceFirstDbValue(currentSlice);
+            offset += memorySegment.byteSize();
+
+            final AValue<?> aValue = SSTableValueConverter.INSTANCE.convertBack(memorySegment);
+            Assert.assertEquals(i, aValue.getValue());
+        }
+
+        Assert.assertEquals(dataRange.byteSize(), offset);
+    }
+
+    @Test
+    public void testSingleAllSingleValue() {
+        final int amount = 300;
+        final TestData testData = SSTableTestUtils.mockIntListData(amount);
+        final SSTable ssTable = new SSTable(testData.data, testData.index);
+
+        int totalOffset = 0;
+        for (int i = 0; i < amount; i++) {
+            final MemorySegment key = SSTableValueConverter.INSTANCE.convert(IntegerValue.of(i));
+            final MemorySegment value = ssTable.getDataRange(key, key);
+            totalOffset += value.byteSize();
+
+            final AValue<?> aValue = SSTableValueConverter.INSTANCE.convertBack(value);
+            Assert.assertEquals(i, aValue.getValue());
+        }
+
+        final MemorySegment allValues = ssTable.getDataRange(null, null);
+        Assert.assertEquals(allValues.byteSize(), totalOffset);
+    }
+
+    private static SSTable createSStable(int amount) {
+        final TestData data = SSTableTestUtils.mockIntListData(amount);
+
+        return new SSTable(
+                data.data,
+                data.index
+        );
+    }
 }

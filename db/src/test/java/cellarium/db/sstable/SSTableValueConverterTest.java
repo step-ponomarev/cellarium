@@ -5,11 +5,13 @@ import java.lang.foreign.MemorySegment;
 import org.junit.Assert;
 import org.junit.Test;
 
-import cellarium.db.MemorySegmentComparator;
+import cellarium.db.comparator.AMemorySegmentComparator;
 import cellarium.db.MemorySegmentUtils;
+import cellarium.db.comparator.ComparatorFactory;
 import cellarium.db.converter.SSTableValueConverter;
 import cellarium.db.database.types.AValue;
 import cellarium.db.database.types.BooleanValue;
+import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.IntegerValue;
 import cellarium.db.database.types.LongValue;
 import cellarium.db.database.types.StringValue;
@@ -65,7 +67,7 @@ public class SSTableValueConverterTest {
         final MemorySegment converted = SSTableValueConverter.INSTANCE.convert(source);
         MemorySegment memorySegment = MemorySegmentUtils.sliceFirstDbValue(converted);
 
-        int compare = MemorySegmentComparator.INSTANCE.compare(converted, memorySegment);
-        Assert.assertEquals(0, compare);
+        final AMemorySegmentComparator comparator = ComparatorFactory.getComparator(DataType.INTEGER);
+        Assert.assertEquals(0, comparator.compare(converted, memorySegment));
     }
 }

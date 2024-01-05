@@ -5,10 +5,10 @@ import cellarium.db.MemorySegmentUtils;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
-public final class IntegerConverterMemorySegmentConverter implements MemorySegmentConverter<Integer> {
-    public static final IntegerConverterMemorySegmentConverter INSTANCE = new IntegerConverterMemorySegmentConverter();
+public final class IntegerMemorySegmentConverter implements MemorySegmentConverter<Integer> {
+    public static final IntegerMemorySegmentConverter INSTANCE = new IntegerMemorySegmentConverter();
 
-    private IntegerConverterMemorySegmentConverter() {}
+    private IntegerMemorySegmentConverter() {}
 
     @Override
     public MemorySegment convert(Integer value) {

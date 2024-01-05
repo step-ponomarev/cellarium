@@ -1,6 +1,8 @@
 package cellarium.db.converter.value;
 
 import cellarium.db.MemorySegmentUtils;
+import cellarium.db.comparator.AMemorySegmentComparator;
+import cellarium.db.comparator.ComparatorFactory;
 import cellarium.db.converter.Converter;
 import cellarium.db.converter.ConverterFactory;
 import cellarium.db.database.types.AValue;
@@ -22,11 +24,14 @@ public final class MemorySegmentValueConverter implements Converter<AValue<?>, M
             return null;
         }
 
-        final Converter<Object, MemorySegment> converter = ConverterFactory.getConverter(value.getDataType());
+        final DataType dataType = value.getDataType();
+        final Converter<Object, MemorySegment> converter = ConverterFactory.getConverter(dataType);
+
         return new MemorySegmentValue(
                 converter.convert(value.getValue()),
-                value.getDataType(),
-                value.getSizeBytes()
+                dataType,
+                value.getSizeBytes(),
+                ComparatorFactory.getComparator(dataType)
         );
     }
 

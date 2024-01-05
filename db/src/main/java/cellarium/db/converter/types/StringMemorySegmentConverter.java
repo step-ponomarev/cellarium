@@ -13,7 +13,7 @@ public final class StringMemorySegmentConverter implements MemorySegmentConverte
             return null;
         }
 
-        return MemorySegmentUtils.stringToMemorySegment(value);
+        return MemorySegmentUtils.ARENA_OF_AUTO.allocateUtf8String(value);
     }
 
     @Override
@@ -22,6 +22,6 @@ public final class StringMemorySegmentConverter implements MemorySegmentConverte
             return null;
         }
 
-        return MemorySegmentUtils.memorySegmentToString(value);
+        return value.getUtf8String(0);
     }
 }
