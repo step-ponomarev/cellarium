@@ -9,3 +9,5 @@
 
 rootProject.name = 'cellarium'
 include 'db'
+include 'parser'
+
