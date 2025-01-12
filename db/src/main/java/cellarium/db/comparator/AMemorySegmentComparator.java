@@ -7,6 +7,8 @@ import java.util.Comparator;
 public abstract class AMemorySegmentComparator implements Comparator<MemorySegment> {
     //TODO: На каждый тип данных нужен свой компаратор, например Read byte не подходит для интов, лонгов и т.д..
 
+    protected AMemorySegmentComparator() {}
+
     @Override
     public final int compare(MemorySegment o1, MemorySegment o2) {
         if (o1 == null || o2 == null) {

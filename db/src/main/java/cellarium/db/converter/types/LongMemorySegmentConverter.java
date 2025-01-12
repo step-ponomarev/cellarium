@@ -8,8 +8,7 @@ import java.lang.foreign.ValueLayout;
 public final class LongMemorySegmentConverter implements MemorySegmentConverter<Long> {
     public static final LongMemorySegmentConverter INSTANCE = new LongMemorySegmentConverter();
 
-    private LongMemorySegmentConverter() {
-    }
+    private LongMemorySegmentConverter() {}
 
     @Override
     public MemorySegment convert(Long value) {

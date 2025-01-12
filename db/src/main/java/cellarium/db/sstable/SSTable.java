@@ -1,10 +1,12 @@
 package cellarium.db.sstable;
 
-import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
 import cellarium.db.MemorySegmentUtils;
+import cellarium.db.comparator.AMemorySegmentComparator;
+import cellarium.db.comparator.ComparatorFactory;
+import cellarium.db.converter.sstable.SSTableKey;
 
 public final class SSTable {
     // четко знает свой размер в байтах
@@ -19,17 +21,18 @@ public final class SSTable {
         this.dataSegmentValue = dataSegment;
     }
 
-    // Должна уметь искать по ключу.
-    // Ключ - есть тип и значение
-    public MemorySegment getDataRange(MemorySegment from, MemorySegment to) {
+    public MemorySegment getDataRange(SSTableKey from, SSTableKey to) {
         final MemorySegment dataSegment = dataSegmentValue.getMemorySegment();
         if (from == null && to == null) {
             return dataSegment;
         }
 
+        final AMemorySegmentComparator comparator = from == null
+                ? ComparatorFactory.getComparator(to.type)
+                : ComparatorFactory.getComparator(from.type);
         final MemorySegment indexMemorySegment = indexSegmentValue.getMemorySegment();
         if (from == null) {
-            int i = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, to);
+            int i = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, to.getMemorySegment(), comparator);
             if (i < 0) {
                 i = Math.abs(i) - 1;
             }
@@ -40,15 +43,15 @@ public final class SSTable {
         }
 
         if (to == null) {
-            final int i = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, from);
+            final int i = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, from.getMemorySegment(), comparator);
             final long offset = indexMemorySegment.get(ValueLayout.JAVA_LONG_UNALIGNED, (long) i * Long.BYTES);
 
             return dataSegment.asSlice(offset);
         }
 
         //TODO: если ключи равны - вернуть одно значение
-        final int iFrom = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, from);
-        final int iTo = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, to);
+        final int iFrom = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, from.getMemorySegment(), comparator);
+        final int iTo = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, to.getMemorySegment(), comparator);
 
         final long fromOffset = MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iTo);
         if (iTo == indexSegmentValue.maxOffsetIndex) {

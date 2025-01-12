@@ -9,6 +9,7 @@ import cellarium.db.comparator.AMemorySegmentComparator;
 import cellarium.db.MemorySegmentUtils;
 import cellarium.db.comparator.ComparatorFactory;
 import cellarium.db.converter.SSTableValueConverter;
+import cellarium.db.converter.sstable.SSTableKey;
 import cellarium.db.database.types.AValue;
 import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.IntegerValue;
@@ -21,8 +22,14 @@ public class SSTableTest {
     public void testSingleValue() {
         final SSTable ssTable = createSStable(1);
         MemorySegment dataRange = ssTable.getDataRange(
-                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(0)),
-                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(0))
+                new SSTableKey(
+                        SSTableValueConverter.INSTANCE.convert(IntegerValue.of(0)),
+                        DataType.INTEGER
+                ),
+                new SSTableKey(
+                        SSTableValueConverter.INSTANCE.convert(IntegerValue.of(0)),
+                        DataType.INTEGER
+                )
         );
 
         final MemorySegment memorySegment = MemorySegmentUtils.sliceFirstDbValue(dataRange);
@@ -56,7 +63,7 @@ public class SSTableTest {
                 IntegerValue.of(valueAmount)
         );
 
-        final MemorySegment dataRange = ssTable.getDataRange(null, toValue);
+        final MemorySegment dataRange = ssTable.getDataRange(null, new SSTableKey(toValue, DataType.INTEGER));
 
         long offset = 0;
         MemorySegment currentSlice;
@@ -80,7 +87,9 @@ public class SSTableTest {
 
         final int valueAmount = amount / 2;
         final MemorySegment from = SSTableValueConverter.INSTANCE.convert(IntegerValue.of(valueAmount));
-        final MemorySegment dataRange = ssTable.getDataRange(from, null);
+        final MemorySegment dataRange = ssTable.getDataRange(
+                new SSTableKey(from, DataType.INTEGER), null
+        );
 
         long offset = 0;
         MemorySegment currentSlice;
@@ -105,7 +114,8 @@ public class SSTableTest {
         int totalOffset = 0;
         for (int i = 0; i < amount; i++) {
             final MemorySegment key = SSTableValueConverter.INSTANCE.convert(IntegerValue.of(i));
-            final MemorySegment value = ssTable.getDataRange(key, key);
+            final SSTableKey ssTableKey = new SSTableKey(key, DataType.INTEGER);
+            final MemorySegment value = ssTable.getDataRange(ssTableKey, ssTableKey);
             totalOffset += value.byteSize();
 
             final AValue<?> aValue = SSTableValueConverter.INSTANCE.convertBack(value);

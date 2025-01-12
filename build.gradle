@@ -35,7 +35,3 @@ allprojects {
         jvmArgs += commonCompilerArgs
     }
 }
-
-application {
-    mainClass = 'cellarium.Main'
-}

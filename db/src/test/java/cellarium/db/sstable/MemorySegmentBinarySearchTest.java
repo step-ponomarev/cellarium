@@ -1,17 +1,22 @@
 package cellarium.db.sstable;
 
+import java.lang.foreign.MemorySegment;
+import java.util.Comparator;
 import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
 
 import cellarium.db.MemorySegmentUtils;
+import cellarium.db.comparator.ComparatorFactory;
 import cellarium.db.converter.SSTableValueConverter;
+import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.IntegerValue;
 import utils.SSTableTestUtils;
 import utils.TestData;
 
 public class MemorySegmentBinarySearchTest {
+    private final Comparator<MemorySegment> INT_MEMORY_SEGMENT_COMPARATOR = ComparatorFactory.getComparator(DataType.INTEGER);
 
     @Test
     public void testSingleKey() {
@@ -20,7 +25,8 @@ public class MemorySegmentBinarySearchTest {
         final int foundIndex = MemorySegmentUtils.findIndexOfKey(
                 index.data,
                 index.index,
-                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(0))
+                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(0)),
+                INT_MEMORY_SEGMENT_COMPARATOR
         );
 
         Assert.assertEquals(0, foundIndex);
@@ -33,7 +39,8 @@ public class MemorySegmentBinarySearchTest {
         final int foundIndex = MemorySegmentUtils.findIndexOfKey(
                 index.data,
                 index.index,
-                index.keys.get(2)
+                index.keys.get(2),
+                INT_MEMORY_SEGMENT_COMPARATOR
         );
 
         Assert.assertEquals(2, foundIndex);
@@ -47,7 +54,8 @@ public class MemorySegmentBinarySearchTest {
         final int foundIndex = MemorySegmentUtils.findIndexOfKey(
                 data.data,
                 data.index,
-                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(1))
+                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(1)),
+                INT_MEMORY_SEGMENT_COMPARATOR
         );
 
         Assert.assertEquals(-1, foundIndex);
@@ -60,7 +68,8 @@ public class MemorySegmentBinarySearchTest {
         final int foundIndex = MemorySegmentUtils.findIndexOfKey(
                 data.data,
                 data.index,
-                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(4))
+                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(4)),
+                INT_MEMORY_SEGMENT_COMPARATOR
         );
 
         Assert.assertEquals(-3, foundIndex);
@@ -72,7 +81,8 @@ public class MemorySegmentBinarySearchTest {
         final int foundIndex = MemorySegmentUtils.findIndexOfKey(
                 data.data,
                 data.index,
-                data.keys.get(5)
+                data.keys.get(5),
+                INT_MEMORY_SEGMENT_COMPARATOR
         );
 
         Assert.assertEquals(5, foundIndex);
@@ -85,7 +95,8 @@ public class MemorySegmentBinarySearchTest {
         final int foundIndex = MemorySegmentUtils.findIndexOfKey(
                 data.data,
                 data.index,
-                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(300))
+                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(300)),
+                INT_MEMORY_SEGMENT_COMPARATOR
         );
 
         Assert.assertEquals(-300, foundIndex);
@@ -98,7 +109,8 @@ public class MemorySegmentBinarySearchTest {
         final int foundIndex = MemorySegmentUtils.findIndexOfKey(
                 data.data,
                 data.index,
-                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(2))
+                SSTableValueConverter.INSTANCE.convert(IntegerValue.of(2)),
+                INT_MEMORY_SEGMENT_COMPARATOR
         );
 
         Assert.assertEquals(0, foundIndex);

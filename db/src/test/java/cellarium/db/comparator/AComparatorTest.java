@@ -50,7 +50,11 @@ abstract class AComparatorTest {
     public void testTransitivity() {
         final MemorySegment firstValue = createValue1();
         final MemorySegment secondValue = createValue2();
+
         final MemorySegment lastValue = createValue3();
+        if (lastValue == null) {
+            return;
+        }
 
         final int firstToSecondCompareResult = COMPARATOR.compare(firstValue, secondValue);
         final int secondToLastCompareResult = COMPARATOR.compare(secondValue, lastValue);

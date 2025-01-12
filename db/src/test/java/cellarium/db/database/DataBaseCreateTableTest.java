@@ -1,6 +1,7 @@
 package cellarium.db.database;
 
 import cellarium.db.database.table.ColumnScheme;
+import cellarium.db.database.table.TableDescription;
 import cellarium.db.database.table.TableScheme;
 import cellarium.db.database.types.DataType;
 import cellarium.db.database.validation.NameValidator;
@@ -23,9 +24,9 @@ public final class DataBaseCreateTableTest extends ADataBaseTest {
     public void testTableSuccessCreated() {
         dataBase.createTable(VALID_TABLE_NAME, new ColumnScheme("id", DataType.LONG), Map.of("column1", DataType.BOOLEAN));
 
-        final TableScheme tableScheme = dataBase.describeTable(VALID_TABLE_NAME);
+        final TableDescription tableScheme = dataBase.describeTable(VALID_TABLE_NAME);
         Assert.assertNotNull(tableScheme);
-        Assert.assertEquals(VALID_TABLE_NAME, tableScheme.getTableName());
+        Assert.assertEquals(VALID_TABLE_NAME, tableScheme.tableName);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -65,17 +66,17 @@ public final class DataBaseCreateTableTest extends ADataBaseTest {
 
         dataBase.createTable(VALID_TABLE_NAME, pk, scheme);
 
-        final TableScheme tableScheme = dataBase.describeTable(VALID_TABLE_NAME);
-        Assert.assertNotNull(tableScheme);
+        final TableDescription tableDescription = dataBase.describeTable(VALID_TABLE_NAME);
+        Assert.assertNotNull(tableDescription);
 
-        final ColumnScheme pkFromDB = tableScheme.getPrimaryKey();
+        final ColumnScheme pkFromDB = tableDescription.tableScheme.getPrimaryKey();
         Assert.assertEquals(pk.getName(), pkFromDB.getName());
         Assert.assertEquals(pk.getType(), pkFromDB.getType());
 
         for (Map.Entry<String, DataType> e : scheme.entrySet()) {
             Assert.assertEquals(
                     e.getValue(),
-                    tableScheme.getScheme().get(e.getKey())
+                    tableDescription.tableScheme.getScheme().get(e.getKey())
             );
         }
     }

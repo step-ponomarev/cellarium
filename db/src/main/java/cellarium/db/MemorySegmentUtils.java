@@ -7,8 +7,6 @@ import java.lang.foreign.ValueLayout;
 import java.util.Collection;
 import java.util.Comparator;
 
-import cellarium.db.comparator.AMemorySegmentComparator;
-import cellarium.db.comparator.ComparatorFactory;
 import cellarium.db.converter.Converter;
 import cellarium.db.converter.ConverterFactory;
 import cellarium.db.database.types.AValue;
@@ -20,7 +18,7 @@ import cellarium.db.database.types.StringValue;
 import cellarium.db.sstable.DataMemorySegmentValue;
 import cellarium.db.sstable.IndexMemorySegmentValue;
 
-public class MemorySegmentUtils {
+public final class MemorySegmentUtils {
     public static final Arena ARENA_OF_AUTO = Arena.ofAuto();
     public static final byte BYTE_SIZE = 1;
 
@@ -38,6 +36,8 @@ public class MemorySegmentUtils {
         };
     }
 
+    //TODO: На момент обращения мы можем выяснить тип данных и читать сразу его,
+    // а не анализировать каждую запись
     public static MemorySegment sliceFirstDbValue(MemorySegment value) {
         final byte typeId = value.get(ValueLayout.JAVA_BYTE, 0);
         final DataType dataType = DataType.getById(typeId);
@@ -51,7 +51,8 @@ public class MemorySegmentUtils {
 
     public static int findIndexOfKey(DataMemorySegmentValue dataMemorySegmentValue,
                                      IndexMemorySegmentValue indexSegmentValue,
-                                     MemorySegment key) {
+                                     MemorySegment key,
+                                     Comparator<MemorySegment> keyComparator) {
         final MemorySegment dataSegment = dataMemorySegmentValue.getMemorySegment();
 
         int left = 0;
@@ -62,9 +63,7 @@ public class MemorySegmentUtils {
             final long offset = getOffsetByIndex(indexSegmentValue, i);
             final MemorySegment current = MemorySegmentUtils.sliceFirstDbValue(dataSegment.asSlice(offset));
 
-            final DataType keyType = DataType.getById(current.get(ValueLayout.JAVA_BYTE, 0));
-            final Comparator<MemorySegment> comparator = ComparatorFactory.getComparator(keyType);
-            final int compare = comparator.compare(current, key);
+            final int compare = keyComparator.compare(current, key);
             if (compare > 0) {
                 right = i - 1;
                 continue;
@@ -83,15 +82,6 @@ public class MemorySegmentUtils {
 
     public static long getOffsetByIndex(IndexMemorySegmentValue indexMemorySegmentValue, int i) {
         return indexMemorySegmentValue.getMemorySegment().get(ValueLayout.JAVA_LONG_UNALIGNED, (long) i * Long.BYTES);
-    }
-
-    public static long calculateMemorySegmentsSizeBytes(MemorySegment... segments) {
-        long size = 0;
-        for (MemorySegment s : segments) {
-            size += s.byteSize();
-        }
-
-        return size;
     }
 
     public static long calculateMemorySegmentsSizeBytes(Collection<MemorySegment> segments) {
