@@ -1,7 +1,8 @@
 package cellarium.db.database;
 
 import cellarium.db.MemTable;
-import cellarium.db.database.table.RowWrapperIterator;
+import cellarium.db.database.iterators.ColumnFilterIterator;
+import cellarium.db.database.iterators.MemotySegmentRowConverterIterator;
 import cellarium.db.database.table.Table;
 import cellarium.db.converter.value.MemorySegmentValueConverter;
 import cellarium.db.database.table.ColumnScheme;
@@ -14,17 +15,16 @@ import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.MemorySegmentValue;
 import cellarium.db.database.validation.NameValidator;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public final class CellariumDB implements DataBase {
     private final Map<String, Table> tables = new ConcurrentHashMap<>();
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public CellariumDB() {
         // TODO: init existed tables
@@ -57,19 +57,7 @@ public final class CellariumDB implements DataBase {
             memorySegmentValues.put(columnName, insertedColumn);
         }
 
-        table.memTable.put(
-                new MemorySegmentRow(
-                        MemorySegmentValueConverter.INSTANCE.convert(pk), memorySegmentValues, sizeBytes)
-        );
-    }
-
-    @Override
-    public Row<AValue<?>, AValue<?>> getByPk(String tableName, AValue<?> pk) {
-        final Table table = getTableWithChecks(tableName);
-        final MemorySegmentValue key = MemorySegmentValueConverter.INSTANCE.convert(pk);
-        final MemorySegmentRow memorySegmentRow = table.memTable.get(key);
-
-        return new Row<>(pk, memorySegmentRow.getValue());
+        table.memTable.put(new MemorySegmentRow(MemorySegmentValueConverter.INSTANCE.convert(pk), memorySegmentValues, sizeBytes));
     }
 
     @Override
@@ -81,19 +69,50 @@ public final class CellariumDB implements DataBase {
     }
 
     @Override
-    public Iterator<Row<AValue<?>, AValue<?>>> getRange(String tableName, AValue<?> from, AValue<?> to) {
-        Table tableWithChecks = getTableWithChecks(tableName);
-        ColumnScheme primaryKey = tableWithChecks.tableScheme.getPrimaryKey();
+    public Row<AValue<?>, AValue<?>> getByPk(String tableName, AValue<?> pk, Set<String> columns) {
+        final Iterator<Row<AValue<?>, AValue<?>>> range = getRange(tableName, pk, pk, columns);
+        if (!range.hasNext()) {
+            return null;
+        }
+        return range.next();
+    }
 
-        checkTypesEquals(primaryKey.getType(), from.getDataType());
-        checkTypesEquals(primaryKey.getType(), to.getDataType());
+    @Override
+    public Iterator<Row<AValue<?>, AValue<?>>> getRange(String tableName, AValue<?> from, AValue<?> to, Set<String> columns) {
+        Table table = getTableWithChecks(tableName);
+        checkColumnsInScheme(table, columns);
+        ColumnScheme primaryKey = table.tableScheme.getPrimaryKey();
 
-        Iterator<MemorySegmentRow> memorySegmentRowIterator = tableWithChecks.memTable.get(
-                MemorySegmentValueConverter.INSTANCE.convert(from),
-                MemorySegmentValueConverter.INSTANCE.convert(to)
-        );
+        if (from != null) {
+            checkTypesEquals(primaryKey.getType(), from.getDataType());
+        }
 
-        return new RowWrapperIterator(memorySegmentRowIterator);
+        if (to != null) {
+            checkTypesEquals(primaryKey.getType(), to.getDataType());
+        }
+
+
+        final MemorySegmentValue fromMemorySegment = MemorySegmentValueConverter.INSTANCE.convert(from);
+        final MemorySegmentValue toMemorySegment = MemorySegmentValueConverter.INSTANCE.convert(to);
+
+        final Iterator<MemorySegmentRow> memorySegmentRowIterator;
+        if (fromMemorySegment != null && toMemorySegment != null && fromMemorySegment.compareTo(toMemorySegment) == 0) {
+            MemorySegmentRow memorySegmentRow = table.memTable.get(fromMemorySegment);
+            if (memorySegmentRow == null) {
+                return Collections.emptyIterator();
+            }
+
+            memorySegmentRowIterator = List.of(memorySegmentRow).iterator();
+        } else {
+            memorySegmentRowIterator = table.memTable.get(
+                    fromMemorySegment,
+                    toMemorySegment
+            );
+        }
+
+        final MemotySegmentRowConverterIterator memotySegmentRowConverterIterator = new MemotySegmentRowConverterIterator(memorySegmentRowIterator, primaryKey.getName());
+
+        return new ColumnFilterIterator<>(memotySegmentRowConverterIterator, columns);
     }
 
     @Override
@@ -105,10 +124,7 @@ public final class CellariumDB implements DataBase {
 
     @Override
     public List<TableDescription> describeTables() {
-        return tables.values()
-                .stream()
-                .map(t -> new TableDescription(t.tableName, new TableScheme(t.tableScheme.getPrimaryKey(), new HashMap<>(t.tableScheme.getScheme()))))
-                .toList();
+        return tables.values().stream().map(t -> new TableDescription(t.tableName, new TableScheme(t.tableScheme.getPrimaryKey(), new HashMap<>(t.tableScheme.getScheme())))).toList();
     }
 
     @Override
@@ -132,6 +148,18 @@ public final class CellariumDB implements DataBase {
             final Table removed = tables.remove(tableName);
             if (removed == null) {
                 throw new IllegalStateException(STR."Table \"\{tableName}\" does not exist.");
+            }
+        }
+    }
+
+    private static void checkColumnsInScheme(Table table, Set<String> columns) {
+        if (columns == null) {
+            return;
+        }
+
+        for (String column : columns) {
+            if (!table.tableScheme.getScheme().containsKey(column)) {
+                throw new IllegalStateException("Table: " + table.tableName + " does not have column: " + column);
             }
         }
     }

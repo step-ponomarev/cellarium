@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
-public final class DataBaseSelectTableTest extends ADataBaseTest {
+public final class DataBaseSelectTest extends ADataBaseTest {
     @Test
     public void testSelectById() {
         final String tableName = "test";

@@ -19,7 +19,7 @@ public final class MemTable<K extends Comparable<?>, E extends WithKeyAndSize<K>
         this(null);
     }
 
-    public MemTable(Comparator<K> comparator) {
+    private MemTable(Comparator<K> comparator) {
         this.entries = new ConcurrentSkipListMap<>(comparator);
         this.sizeBytes = new AtomicLong(0);
     }
