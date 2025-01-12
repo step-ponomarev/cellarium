@@ -3,6 +3,7 @@ package cellarium.db.database.iterators;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 import org.junit.Assert;
@@ -17,59 +18,52 @@ public final class ColumnFilterIteratorTest {
 
     @Test
     public void simpleColumnFilterIterator() {
-        int maxValue = 2000;
-        final Iterator<Row<IntegerValue, IntegerValue>> generatedValues = generateValues(maxValue);
+        int maxCount = 2000;
+        final Iterator<Row<IntegerValue, IntegerValue>> generatedValues = generateValues(maxCount);
         final ColumnFilterIterator<Row<IntegerValue, IntegerValue>> filterIterator = new ColumnFilterIterator<>(
                 generatedValues,
                 Collections.singleton(COLUMN_ID)
         );
 
-        int count = 0;
-        while (count < maxValue) {
-            final Row<IntegerValue, IntegerValue> next = filterIterator.next();
-            Assert.assertFalse(
-                    next.getValue().containsKey(COLUMN_FILTERED)
-            );
-            count++;
-        }
-        Assert.assertFalse(filterIterator.hasNext());
-        Assert.assertEquals(maxValue, count);
+        testByPredicate(filterIterator, maxCount, (Row<IntegerValue, IntegerValue> r) -> !r.getValue().containsKey(COLUMN_FILTERED));
     }
 
     @Test
     public void nullColumnsFilterIterator() {
-        int maxValue = 2000;
-        final Iterator<Row<IntegerValue, IntegerValue>> generatedValues = generateValues(maxValue);
-        final ColumnFilterIterator<Row<IntegerValue, IntegerValue>> filterIterator = new ColumnFilterIterator<>(generatedValues, null);
+        int maxCount = 2000;
+        final Iterator<Row<IntegerValue, IntegerValue>> generatedValues = generateValues(maxCount);
+        final ColumnFilterIterator<Row<IntegerValue, IntegerValue>> filterIterator = new ColumnFilterIterator<>(
+                generatedValues,
+                null
+        );
 
-        int count = 0;
-        while (count < maxValue) {
-            final Row<IntegerValue, IntegerValue> next = filterIterator.next();
-            Assert.assertTrue(
-                    next.getValue().containsKey(COLUMN_FILTERED)
-            );
-            count++;
-        }
-        Assert.assertFalse(filterIterator.hasNext());
-        Assert.assertEquals(maxValue, count);
+        testByPredicate(filterIterator, maxCount, (Row<IntegerValue, IntegerValue> r) -> r.getValue().containsKey(COLUMN_FILTERED));
     }
 
     @Test
     public void emptyColumnsFilterIterator() {
-        int maxValue = 2000;
-        final Iterator<Row<IntegerValue, IntegerValue>> generatedValues = generateValues(maxValue);
-        final ColumnFilterIterator<Row<IntegerValue, IntegerValue>> filterIterator = new ColumnFilterIterator<>(generatedValues, Collections.emptySet());
+        int maxCount = 2000;
+        final Iterator<Row<IntegerValue, IntegerValue>> generatedValues = generateValues(maxCount);
+        final ColumnFilterIterator<Row<IntegerValue, IntegerValue>> filterIterator = new ColumnFilterIterator<>(
+                generatedValues,
+                Collections.emptySet()
+        );
 
+        testByPredicate(filterIterator, maxCount, (Row<IntegerValue, IntegerValue> r) -> r.getValue().containsKey(COLUMN_FILTERED));
+    }
+
+    public static <T> void testByPredicate(Iterator<T> values, int maxCount, Predicate<T> predicate) {
         int count = 0;
-        while (count < maxValue) {
-            final Row<IntegerValue, IntegerValue> next = filterIterator.next();
+        while (count < maxCount) {
+            final T next = values.next();
             Assert.assertTrue(
-                    next.getValue().containsKey(COLUMN_FILTERED)
+                    predicate.test(next)
             );
+
             count++;
         }
-        Assert.assertFalse(filterIterator.hasNext());
-        Assert.assertEquals(maxValue, count);
+        Assert.assertFalse(values.hasNext());
+        Assert.assertEquals(maxCount, count);
     }
 
     private static Iterator<Row<IntegerValue, IntegerValue>> generateValues(int count) {
