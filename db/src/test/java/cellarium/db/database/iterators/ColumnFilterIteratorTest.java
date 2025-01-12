@@ -13,12 +13,12 @@ import cellarium.db.database.table.Row;
 import cellarium.db.database.types.IntegerValue;
 
 public final class ColumnFilterIteratorTest {
+    private static final int maxCount = 2000;
     private static final String COLUMN_ID = "id";
     private static final String COLUMN_FILTERED = "toFilter";
 
     @Test
     public void simpleColumnFilterIterator() {
-        int maxCount = 2000;
         final Iterator<Row<IntegerValue, IntegerValue>> generatedValues = generateValues(maxCount);
         final ColumnFilterIterator<Row<IntegerValue, IntegerValue>> filterIterator = new ColumnFilterIterator<>(
                 generatedValues,
@@ -30,7 +30,6 @@ public final class ColumnFilterIteratorTest {
 
     @Test
     public void nullColumnsFilterIterator() {
-        int maxCount = 2000;
         final Iterator<Row<IntegerValue, IntegerValue>> generatedValues = generateValues(maxCount);
         final ColumnFilterIterator<Row<IntegerValue, IntegerValue>> filterIterator = new ColumnFilterIterator<>(
                 generatedValues,
@@ -42,7 +41,6 @@ public final class ColumnFilterIteratorTest {
 
     @Test
     public void emptyColumnsFilterIterator() {
-        int maxCount = 2000;
         final Iterator<Row<IntegerValue, IntegerValue>> generatedValues = generateValues(maxCount);
         final ColumnFilterIterator<Row<IntegerValue, IntegerValue>> filterIterator = new ColumnFilterIterator<>(
                 generatedValues,
