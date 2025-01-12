@@ -1,81 +1,67 @@
 package cellarium.db.sstable;
 
-import java.io.Closeable;
-import java.nio.ByteOrder;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import cellarium.db.sstable.read.LockedEntryIterator;
-import cellarium.db.sstable.read.MappedEntryIterator;
-import cellarium.db.entry.MemorySegmentEntry;
-import jdk.incubator.foreign.MemorySegment;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 
-public final class SSTable implements Closeable {
-    static final long TOMBSTONE_TAG = -1;
-    static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
+import cellarium.db.MemorySegmentUtils;
+import cellarium.db.comparator.AMemorySegmentComparator;
+import cellarium.db.comparator.ComparatorFactory;
+import cellarium.db.converter.sstable.SSTableKey;
 
-    private final Index index;
-    private final MemorySegment tableMemorySegment;
+public final class SSTable {
+    // четко знает свой размер в байтах
+    // есть метаданные
+    // есть индекс
 
-    /**
-     * Guarantees state when read: alive / closed
-     */
-    private final ReadWriteLock readCloseLock = new ReentrantReadWriteLock();
+    private final DataMemorySegmentValue dataSegmentValue;
+    private final IndexMemorySegmentValue indexSegmentValue; // key, entity offset
 
-    SSTable(MemorySegment indexMemorySegment, MemorySegment tableMemorySegment) {
-        if (!indexMemorySegment.isReadOnly() || !tableMemorySegment.isReadOnly()) {
-            throw new IllegalArgumentException("Mapped segments must be read only!");
-        }
-
-        this.index = new Index(indexMemorySegment, BYTE_ORDER);
-        this.tableMemorySegment = tableMemorySegment;
+    SSTable(DataMemorySegmentValue dataSegment, IndexMemorySegmentValue indexSegment) {
+        this.indexSegmentValue = indexSegment;
+        this.dataSegmentValue = dataSegment;
     }
 
-    @Override
-    public void close() {
-        readCloseLock.writeLock().lock();
-
-        try {
-            index.close();
-            tableMemorySegment.scope().close();
-        } finally {
-            readCloseLock.writeLock().unlock();
-        }
-    }
-
-    public Iterator<MemorySegmentEntry> get(MemorySegment from, MemorySegment to) {
+    public MemorySegment getDataRange(SSTableKey from, SSTableKey to) {
+        final MemorySegment dataSegment = dataSegmentValue.getMemorySegment();
         if (from == null && to == null) {
-            return new LockedEntryIterator(
-                    new MappedEntryIterator(
-                            tableMemorySegment,
-                            TOMBSTONE_TAG,
-                            BYTE_ORDER
-                    ),
-                    readCloseLock.readLock()
-            );
+            return dataSegment;
         }
 
-        final int maxIndex = index.getMaxIndex();
-        final int fromIndex = Math.abs(from == null ? 0 : index.findIndexOfKey(from, tableMemorySegment));
+        final AMemorySegmentComparator comparator = from == null
+                ? ComparatorFactory.getComparator(to.type)
+                : ComparatorFactory.getComparator(from.type);
+        final MemorySegment indexMemorySegment = indexSegmentValue.getMemorySegment();
+        if (from == null) {
+            int i = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, to.getMemorySegment(), comparator);
+            if (i < 0) {
+                i = Math.abs(i) - 1;
+            }
 
-        if (fromIndex > maxIndex) {
-            return Collections.emptyIterator();
+            final long offset = indexMemorySegment.get(ValueLayout.JAVA_LONG_UNALIGNED, (long) i * Long.BYTES);
+            //todo: не хранить офсеты в массиве!
+            return dataSegment.asSlice(0, offset);
         }
 
-        final int toIndex = Math.abs(to == null ? index.getMaxIndex() + 1 : index.findIndexOfKey(to, tableMemorySegment));
-        final long fromPosition = index.getEntryOffsetByIndex(fromIndex);
-        final long toPosition = toIndex > maxIndex
-                ? tableMemorySegment.byteSize()
-                : index.getEntryOffsetByIndex(toIndex);
+        if (to == null) {
+            final int i = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, from.getMemorySegment(), comparator);
+            final long offset = indexMemorySegment.get(ValueLayout.JAVA_LONG_UNALIGNED, (long) i * Long.BYTES);
 
-        return new LockedEntryIterator(
-                new MappedEntryIterator(
-                        tableMemorySegment.asSlice(fromPosition, toPosition - fromPosition),
-                        TOMBSTONE_TAG,
-                        BYTE_ORDER
-                ),
-                readCloseLock.readLock()
-        );
+            return dataSegment.asSlice(offset);
+        }
+
+        //TODO: если ключи равны - вернуть одно значение
+        final int iFrom = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, from.getMemorySegment(), comparator);
+        final int iTo = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, to.getMemorySegment(), comparator);
+
+        final long fromOffset = MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iTo);
+        if (iTo == indexSegmentValue.maxOffsetIndex) {
+            return dataSegment.asSlice(fromOffset);
+        }
+
+        final long size = iFrom == iTo
+                ? MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iFrom + 1) - MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iFrom)
+                : MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iTo) - fromOffset;
+
+        return dataSegment.asSlice(fromOffset, size);
     }
 }

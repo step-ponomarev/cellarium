@@ -1,4 +1,4 @@
-FROM openjdk:17-jdk
+FROM openjdk:21-jdk
 
 WORKDIR /app
 
@@ -7,4 +7,4 @@ COPY log4j.properties log4j.properties
 
 RUN mkdir conf
 
-CMD ["java", "--add-modules", "jdk.incubator.foreign", "-jar", "cellarium.jar"]
+CMD ["java", "-jar", "cellarium.jar"]
