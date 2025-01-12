@@ -1,40 +1,58 @@
 package cellarium.db.database;
 
-import cellarium.db.database.table.ColumnScheme;
 import cellarium.db.database.table.Row;
 import cellarium.db.database.types.AValue;
-import cellarium.db.database.types.DataType;
-import cellarium.db.database.types.IntegerValue;
+import cellarium.db.database.types.StringValue;
+
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class DataBaseSelectTest extends ADataBaseTest {
     @Test
     public void testSelectById() {
-        final String tableName = "test";
-        final String nameColumnName = "nameColumnName";
-        final String ageColumnName = "age";
-        final String idColumnName = "id";
+        createTable();
 
-        final Map<String, DataType> scheme = Map.of(nameColumnName, DataType.STRING, ageColumnName, DataType.INTEGER);
-        dataBase.createTable(tableName, new ColumnScheme(idColumnName, DataType.INTEGER), scheme);
+        final int id = 1;
+        final Map<String, AValue<?>> addedValues = addRow(id, "Stepan", 21, true, System.currentTimeMillis());
 
-        final int idValue = 1;
-        final int ageValue = 14;
-        final IntegerValue id = IntegerValue.of(idValue);
-        final IntegerValue age = IntegerValue.of(ageValue);
-
-        final Map<String, AValue<?>> addedValues = Map.of(idColumnName, id, ageColumnName, age);
-        dataBase.insert(tableName, addedValues);
-
-        final Row<AValue<?>, AValue<?>> row = dataBase.getByPk(tableName, id);
-        final Map<String, AValue<?>> columns = row.getValue();
+        Iterator<Row<AValue<?>, AValue<?>>> row = select(id, id, null);
+        final Map<String, AValue<?>> columns = row.next().getValue();
         for (Map.Entry<String, AValue<?>> v : addedValues.entrySet()) {
             final AValue<?> value = columns.get(v.getKey());
             Assert.assertNotNull(value);
             Assert.assertEquals(v.getValue().getValue(), value.getValue());
         }
     }
+
+    @Test
+    public void testSelectByIdWithColumnFilter() {
+        createTable();
+
+        final List<Map<String, AValue<?>>> addedRows = new ArrayList<>();
+        addedRows.add(addRow(1, "Stepan", 21, true, System.currentTimeMillis()));
+        addedRows.add(addRow(2, "Ilya", 21, true, System.currentTimeMillis()));
+        addedRows.add(addRow(3, "Egor", 21, true, System.currentTimeMillis()));
+
+        final Set<String> filter = Set.of(COLUMN_AGE, COLUMN_NAME);
+        for (Map<String, AValue<?>> addedValues : addedRows) {
+            final int id = Integer.parseInt(((StringValue) addedValues.get(COLUMN_ID)).getValue());
+            final Row<AValue<?>, AValue<?>> row = select(id, id, filter).next();
+            final Map<String, AValue<?>> columns = row.getValue();
+
+            Assert.assertEquals(filter.size(), columns.size());
+            for (Map.Entry<String, AValue<?>> v : columns.entrySet()) {
+                final AValue<?> value = addedValues.get(v.getKey());
+                Assert.assertNotNull(value);
+
+            }
+        }
+    }
+
+
 }

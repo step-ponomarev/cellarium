@@ -23,4 +23,9 @@ public final class StringValue extends AValue<String> {
     private static long getSizeBytes(String str) {
         return str.getBytes(StandardCharsets.UTF_8).length;
     }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
 }

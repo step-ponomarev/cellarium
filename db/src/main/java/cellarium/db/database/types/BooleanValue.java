@@ -13,4 +13,9 @@ public final class BooleanValue extends AValue<Boolean> {
     public int compareTo(AValue<Boolean> o) {
         return Boolean.compare(this.value, o.value);
     }
+
+    @Override
+    public int hashCode() {
+        return Boolean.hashCode(value);
+    }
 }

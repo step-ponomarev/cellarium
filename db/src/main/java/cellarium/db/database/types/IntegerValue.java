@@ -13,4 +13,9 @@ public final class IntegerValue extends AValue<Integer> {
     public int compareTo(AValue<Integer> o) {
         return Integer.compare(this.value, o.value);
     }
+
+    @Override
+    public int hashCode() {
+        return value;
+    }
 }

@@ -27,7 +27,7 @@ public final class CellariumDB implements DataBase {
     private final Map<String, Table> tables = new ConcurrentHashMap<>();
 
     public CellariumDB() {
-        // TODO: init existed tables
+        // TODO: config
     }
 
     @Override

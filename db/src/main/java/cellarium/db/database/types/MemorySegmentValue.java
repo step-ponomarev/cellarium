@@ -16,4 +16,9 @@ public final class MemorySegmentValue extends AValue<MemorySegment> {
     public int compareTo(AValue<MemorySegment> o) {
         return this.comarator.compare(this.value, o.value);
     }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
 }

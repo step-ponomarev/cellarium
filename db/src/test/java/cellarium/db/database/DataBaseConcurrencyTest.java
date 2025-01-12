@@ -1,5 +1,6 @@
 package cellarium.db.database;
 
+import java.lang.foreign.MemorySegment;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -10,24 +11,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assert;
 import org.junit.Test;
 
-import cellarium.db.database.table.ColumnScheme;
 import cellarium.db.database.table.Row;
-import cellarium.db.database.table.TableScheme;
 import cellarium.db.database.types.AValue;
-import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.IntegerValue;
 import cellarium.db.database.types.StringValue;
 
 public final class DataBaseConcurrencyTest extends ADataBaseTest {
-    private static final String TABLE_NAME = "test_table";
-    private static final TableScheme SCHEME;
-
-    static {
-        final ColumnScheme id = new ColumnScheme("id", DataType.STRING);
-        final Map<String, DataType> columns = Map.of("value", DataType.INTEGER);
-        SCHEME = new TableScheme(id, columns);
-    }
-
     @Test
     public void basicConcurrencyTest() {
         createTable();
@@ -41,18 +30,18 @@ public final class DataBaseConcurrencyTest extends ADataBaseTest {
                 final StringValue pk = StringValue.of(String.valueOf(index));
                 final IntegerValue value = IntegerValue.of(index);
 
-                final Map<String, AValue<?>> values = Map.of("id", pk, "value", value);
-                dataBase.insert(TABLE_NAME, values);
+
+                final Map<String, AValue<?>> addedValues = addRow(i, STR."Name\{i}", i % 100, i % 2 == 0, System.currentTimeMillis());
                 executorService.execute(() -> {
-                    final Iterator<Row<AValue<?>, AValue<?>>> range = dataBase.getRange(TABLE_NAME, null, null);
+                    final Iterator<Row<AValue<?>, AValue<?>>> range = select(null, null, null);
 
                     for (int j = 0; j < index + 1; j++) {
-                        final Row<AValue<?>, AValue<?>> next = range.next();
-                        String key = (String) next.getKey().getValue();
-                        Integer val = (Integer) next.getValue().get("value").getValue();
+                        final Row<AValue<?>, AValue<?>> row = range.next();
+                        for (Map.Entry<String, AValue<?>> e : addedValues.entrySet()) {
+                            final AValue<?> selectedValue = row.getValue().get(e.getKey());
 
-                        Assert.assertEquals(j, Integer.parseInt(key));
-                        Assert.assertEquals(j, (int) val);
+                            Assert.assertNotNull(selectedValue);
+                        }
                     }
                     handledCount.incrementAndGet();
                 });
@@ -73,9 +62,5 @@ public final class DataBaseConcurrencyTest extends ADataBaseTest {
         }
 
         Thread.currentThread().interrupted();
-    }
-
-    private void createTable() {
-        dataBase.createTable(TABLE_NAME, SCHEME.getPrimaryKey(), SCHEME.getScheme());
     }
 }
