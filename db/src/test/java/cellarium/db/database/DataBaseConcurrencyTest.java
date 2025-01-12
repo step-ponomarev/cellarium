@@ -1,6 +1,5 @@
 package cellarium.db.database;
 
-import java.lang.foreign.MemorySegment;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -13,8 +12,6 @@ import org.junit.Test;
 
 import cellarium.db.database.table.Row;
 import cellarium.db.database.types.AValue;
-import cellarium.db.database.types.IntegerValue;
-import cellarium.db.database.types.StringValue;
 
 public final class DataBaseConcurrencyTest extends ADataBaseTest {
     @Test
@@ -26,11 +23,6 @@ public final class DataBaseConcurrencyTest extends ADataBaseTest {
         try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
             for (int i = 0; i < iterationCount; i++) {
                 final int index = i;
-
-                final StringValue pk = StringValue.of(String.valueOf(index));
-                final IntegerValue value = IntegerValue.of(index);
-
-
                 final Map<String, AValue<?>> addedValues = addRow(i, STR."Name\{i}", i % 100, i % 2 == 0, System.currentTimeMillis());
                 executorService.execute(() -> {
                     final Iterator<Row<AValue<?>, AValue<?>>> range = select(null, null, null);
@@ -46,6 +38,7 @@ public final class DataBaseConcurrencyTest extends ADataBaseTest {
                     handledCount.incrementAndGet();
                 });
             }
+
             executorService.shutdown();
 
             Assert.assertTrue(executorService.awaitTermination(5, TimeUnit.SECONDS));
