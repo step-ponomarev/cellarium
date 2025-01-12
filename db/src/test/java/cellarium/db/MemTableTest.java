@@ -2,20 +2,28 @@ package cellarium.db;
 
 import cellarium.db.entry.Entry;
 import cellarium.db.entry.WithKeyAndSize;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class MemTableTest {
     private MemTable<String, EntryWithSize<String, String>> memTable;
 
-    private interface EntryWithSize<K, V> extends Entry<K, V>, WithKeyAndSize<K> {}
+    private interface EntryWithSize<K, V> extends Entry<K, V>, WithKeyAndSize<K> {
+    }
 
     @Before
     public void initMemTable() {
@@ -60,6 +68,55 @@ public final class MemTableTest {
     }
 
     @Test
+    public void testConcurrencySizeBytes() {
+        final int amount = 1000;
+        final AtomicLong totalOffset = new AtomicLong(0);
+
+        int planned = 0;
+        final List<CompletableFuture<Void>> futures = new ArrayList<>();
+        final AtomicInteger completed = new AtomicInteger(0);
+        try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int i = 0; i < amount; i++) {
+                final int index = i;
+
+                final EntryWithSize<String, String> entry = createEntry(String.valueOf(index), "value " + index);
+                final CompletableFuture<Void> voidCompletableFuture = CompletableFuture.runAsync(() -> {
+                    memTable.put(entry);
+                    totalOffset.addAndGet(entry.getSizeBytes());
+                    completed.incrementAndGet();
+                }, executorService);
+                planned++;
+                futures.add(voidCompletableFuture);
+
+                // удаляем каждый десятый
+                if (index % 10 == 0) {
+                    voidCompletableFuture.thenRunAsync(() -> {
+                        final EntryWithSize<String, String> remove = createEntry(String.valueOf(index), null);
+                        totalOffset.addAndGet(remove.getSizeBytes() - entry.getSizeBytes());
+                        memTable.put(remove);
+                        completed.incrementAndGet();
+                    }, executorService);
+                    planned++;
+                }
+            }
+
+            final CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+            allFutures.orTimeout(5, TimeUnit.SECONDS).join();
+
+            executorService.shutdown();
+            Assert.assertTrue(executorService.awaitTermination(5, TimeUnit.SECONDS));
+            Assert.assertEquals(planned, completed.get());
+            Assert.assertEquals(totalOffset.get(), memTable.getSizeBytes());
+        } catch (InterruptedException e) {
+            if (Thread.currentThread().isInterrupted()) {
+                Thread.currentThread().isInterrupted();
+            }
+
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
     public void testConcurrentPut() throws InterruptedException {
         final int threadCount = 100;
         final int entryCount = 1000;
@@ -70,8 +127,7 @@ public final class MemTableTest {
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
                 for (int j = 0; j < entryCount; j++) {
-                    memTable.put(
-                            createEntry(j + "_" + Thread.currentThread().hashCode(), "value " + j));
+                    memTable.put(createEntry(j + "_" + Thread.currentThread().hashCode(), "value " + j));
                 }
                 latch.countDown();
             });
@@ -84,8 +140,7 @@ public final class MemTableTest {
     }
 
     private static boolean assertEquals(Entry<?, ?> e1, Entry<?, ?> e2) {
-        return e1.getKey().equals(e2.getKey())
-                && Objects.equals(e1.getValue(), e2.getValue());
+        return e1.getKey().equals(e2.getKey()) && Objects.equals(e1.getColumns(), e2.getColumns());
     }
 
     private static EntryWithSize<String, String> createEntry(String key, String value) {
@@ -96,14 +151,13 @@ public final class MemTableTest {
             }
 
             @Override
-            public String getValue() {
+            public String getColumns() {
                 return value;
             }
 
             @Override
             public long getSizeBytes() {
-                return StandardCharsets.UTF_8.encode(key).array().length
-                        + (value == null ? 0 : StandardCharsets.UTF_8.encode(value).array().length);
+                return StandardCharsets.UTF_8.encode(key).array().length + (value == null ? 0 : StandardCharsets.UTF_8.encode(value).array().length);
             }
         };
     }

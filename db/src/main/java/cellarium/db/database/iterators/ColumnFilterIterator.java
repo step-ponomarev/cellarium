@@ -29,7 +29,7 @@ public final class ColumnFilterIterator<T extends Row<?, ?>> implements Iterator
             return row;
         }
 
-        final Map<String, AValue<?>> newValues = row.getValue()
+        final Map<String, AValue<?>> newValues = row.getColumns()
                 .entrySet()
                 .stream()
                 .filter(e -> columns.contains(e.getKey()))

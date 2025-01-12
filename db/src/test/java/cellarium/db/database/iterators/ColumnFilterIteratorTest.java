@@ -25,7 +25,7 @@ public final class ColumnFilterIteratorTest {
                 Collections.singleton(COLUMN_ID)
         );
 
-        testByPredicate(filterIterator, maxCount, (Row<IntegerValue, IntegerValue> r) -> !r.getValue().containsKey(COLUMN_FILTERED));
+        testByPredicate(filterIterator, maxCount, (Row<IntegerValue, IntegerValue> r) -> !r.getColumns().containsKey(COLUMN_FILTERED));
     }
 
     @Test
@@ -36,7 +36,7 @@ public final class ColumnFilterIteratorTest {
                 null
         );
 
-        testByPredicate(filterIterator, maxCount, (Row<IntegerValue, IntegerValue> r) -> r.getValue().containsKey(COLUMN_FILTERED));
+        testByPredicate(filterIterator, maxCount, (Row<IntegerValue, IntegerValue> r) -> r.getColumns().containsKey(COLUMN_FILTERED));
     }
 
     @Test
@@ -47,7 +47,7 @@ public final class ColumnFilterIteratorTest {
                 Collections.emptySet()
         );
 
-        testByPredicate(filterIterator, maxCount, (Row<IntegerValue, IntegerValue> r) -> r.getValue().containsKey(COLUMN_FILTERED));
+        testByPredicate(filterIterator, maxCount, (Row<IntegerValue, IntegerValue> r) -> r.getColumns().containsKey(COLUMN_FILTERED));
     }
 
     public static <T> void testByPredicate(Iterator<T> values, int maxCount, Predicate<T> predicate) {

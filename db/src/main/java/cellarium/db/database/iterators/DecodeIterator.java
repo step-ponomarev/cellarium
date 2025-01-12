@@ -25,7 +25,7 @@ public final class DecodeIterator implements Iterator<Row<AValue<?>, AValue<?>>>
         final Row<MemorySegmentValue, AValue<?>> next = this.iterator.next();
         return new Row<>(
                 MemorySegmentValueConverter.INSTANCE.convertBack(next.getKey()),
-                next.getValue()
+                next.getColumns()
         );
     }
 }

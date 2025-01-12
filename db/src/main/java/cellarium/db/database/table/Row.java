@@ -15,7 +15,7 @@ public class Row<PK extends AValue<?>, V extends AValue<?>> implements Entry<PK,
     }
 
     @Override
-    public Map<String, V> getValue() {
+    public Map<String, V> getColumns() {
         return columns;
     }
 

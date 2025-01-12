@@ -60,7 +60,7 @@ abstract class ADataBaseTest {
         dataBase.deleteByPk(TABLE_NAME, StringValue.of(String.valueOf(id)));
     }
 
-    protected Map<String, AValue<?>> addRow(int id, String name, int age, boolean gender, long birthDay) {
+    protected Map<String, AValue<?>> insertRow(int id, String name, int age, boolean gender, long birthDay) {
         final Map<String, AValue<?>> addedValues = Map.of(
                 COLUMN_ID,
                 StringValue.of(String.valueOf(id)),

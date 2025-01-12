@@ -31,7 +31,7 @@ public final class TombstoneFilterIterator<T extends TableRow<?>> implements Ite
     private void prepareNextValue() {
         while (this.iterator.hasNext()) {
             nextValue = this.iterator.next();
-            if (nextValue.getValue() != null) {
+            if (nextValue.getColumns() != null) {
                 return;
             }
         }

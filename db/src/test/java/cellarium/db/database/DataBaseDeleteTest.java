@@ -14,7 +14,7 @@ public final class DataBaseDeleteTest extends ADataBaseTest {
         createTable();
 
         final int id = 1;
-        addRow(id, "Stepan", 21, true, System.currentTimeMillis());
+        insertRow(id, "Stepan", 21, true, System.currentTimeMillis());
 
         Iterator<Row<AValue<?>, AValue<?>>> select = select(id, id, null);
         Assert.assertTrue(select.hasNext());
