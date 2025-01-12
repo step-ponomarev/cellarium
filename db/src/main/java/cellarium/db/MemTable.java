@@ -37,7 +37,7 @@ public final class MemTable<K extends Comparable<?>, E extends WithKeyAndSize<K>
     @Override
     public void put(E entry) {
         final long[] sizeDelta = new long[1];
-        entries.compute(entry.getKey(), (k, oldValue) -> {
+        entries.compute(entry.getKey(), (_, oldValue) -> {
             if (oldValue == null) {
                 sizeDelta[0] = entry.getSizeBytes();
             } else {

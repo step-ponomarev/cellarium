@@ -3,6 +3,7 @@ package cellarium.db.database;
 import cellarium.db.MemTable;
 import cellarium.db.database.iterators.ColumnFilterIterator;
 import cellarium.db.database.iterators.DecodeIterator;
+import cellarium.db.database.iterators.TombstoneFilterIterator;
 import cellarium.db.database.table.Table;
 import cellarium.db.converter.value.MemorySegmentValueConverter;
 import cellarium.db.database.table.ColumnScheme;
@@ -63,6 +64,7 @@ public final class CellariumDB implements DataBase {
     @Override
     public void deleteByPk(String tableName, AValue<?> pk) {
         Table table = getTableWithChecks(tableName);
+        checkTypesEquals(table.tableScheme.getPrimaryKey().getType(), pk.getDataType());
         final MemorySegmentValue key = MemorySegmentValueConverter.INSTANCE.convert(pk);
 
         table.memTable.put(new MemorySegmentRow(key, null, 0));
@@ -91,7 +93,6 @@ public final class CellariumDB implements DataBase {
             checkTypesEquals(primaryKey.getType(), to.getDataType());
         }
 
-
         final MemorySegmentValue fromMemorySegment = MemorySegmentValueConverter.INSTANCE.convert(from);
         final MemorySegmentValue toMemorySegment = MemorySegmentValueConverter.INSTANCE.convert(to);
 
@@ -110,7 +111,8 @@ public final class CellariumDB implements DataBase {
             );
         }
 
-        final DecodeIterator memotySegmentRowConverterIterator = new DecodeIterator(memorySegmentRowIterator);
+        final TombstoneFilterIterator<MemorySegmentRow> tombstoneFilterIterator = new TombstoneFilterIterator<>(memorySegmentRowIterator);
+        final DecodeIterator memotySegmentRowConverterIterator = new DecodeIterator(tombstoneFilterIterator);
 
         return new ColumnFilterIterator<>(memotySegmentRowConverterIterator, columns);
     }

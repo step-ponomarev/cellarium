@@ -57,7 +57,7 @@ abstract class ADataBaseTest {
     }
 
     protected void delete(int id) {
-        dataBase.deleteByPk(TABLE_NAME, IntegerValue.of(id));
+        dataBase.deleteByPk(TABLE_NAME, StringValue.of(String.valueOf(id)));
     }
 
     protected Map<String, AValue<?>> addRow(int id, String name, int age, boolean gender, long birthDay) {
