@@ -3,10 +3,10 @@ package cellarium.db.database.iterators;
 import cellarium.db.database.table.Row;
 import cellarium.db.database.types.AValue;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class ColumnFilterIterator<T extends Row<?, ?>> implements Iterator<T> {
     private final Iterator<T> iter;
@@ -14,7 +14,7 @@ public final class ColumnFilterIterator<T extends Row<?, ?>> implements Iterator
 
     public ColumnFilterIterator(Iterator<T> iter, Set<String> columns) {
         this.iter = iter;
-        this.columns = columns;
+        this.columns = columns == null || columns.isEmpty() ? null : columns;
     }
 
     @Override
@@ -29,11 +29,13 @@ public final class ColumnFilterIterator<T extends Row<?, ?>> implements Iterator
             return row;
         }
 
-        final Map<String, AValue<?>> newValues = new HashMap<>(columns.size());
-        final Map<String, ? extends AValue<?>> currentRowColumns = row.getValue();
-        for (String column : columns) {
-            newValues.put(column, currentRowColumns.get(column));
-        }
+        final Map<String, AValue<?>> newValues = row.getValue()
+                .entrySet()
+                .stream()
+                .filter(e -> columns.contains(e.getKey()))
+                .collect(
+                        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)
+                );
 
         return (T) new Row<>(
                 row.getKey(),

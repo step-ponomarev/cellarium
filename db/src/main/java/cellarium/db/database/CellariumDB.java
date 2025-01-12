@@ -2,7 +2,7 @@ package cellarium.db.database;
 
 import cellarium.db.MemTable;
 import cellarium.db.database.iterators.ColumnFilterIterator;
-import cellarium.db.database.iterators.MemotySegmentRowConverterIterator;
+import cellarium.db.database.iterators.DecodeIterator;
 import cellarium.db.database.table.Table;
 import cellarium.db.converter.value.MemorySegmentValueConverter;
 import cellarium.db.database.table.ColumnScheme;
@@ -110,7 +110,7 @@ public final class CellariumDB implements DataBase {
             );
         }
 
-        final MemotySegmentRowConverterIterator memotySegmentRowConverterIterator = new MemotySegmentRowConverterIterator(memorySegmentRowIterator, primaryKey.getName());
+        final DecodeIterator memotySegmentRowConverterIterator = new DecodeIterator(memorySegmentRowIterator);
 
         return new ColumnFilterIterator<>(memotySegmentRowConverterIterator, columns);
     }

@@ -8,10 +8,10 @@ import cellarium.db.database.types.MemorySegmentValue;
 
 import java.util.Iterator;
 
-public final class DecodeIterator<I extends Iterator<MemorySegmentRow>> implements Iterator<Row<AValue<?>, AValue<?>>> {
-    private final I iterator;
+public final class DecodeIterator implements Iterator<Row<AValue<?>, AValue<?>>> {
+    private final Iterator<MemorySegmentRow> iterator;
 
-    public DecodeIterator(I iterator) {
+    public DecodeIterator(Iterator<MemorySegmentRow> iterator) {
         this.iterator = iterator;
     }
 

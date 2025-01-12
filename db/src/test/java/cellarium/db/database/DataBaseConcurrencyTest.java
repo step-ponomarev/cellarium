@@ -67,10 +67,6 @@ public final class DataBaseConcurrencyTest extends ADataBaseTest {
         }
     }
 
-//    private CompletableFuture<?> execute(ExecutorService executorService, CompletableFuture<?> c) {
-//        return c.thenAcceptAsync()
-//    }
-
     private void resetInterruptFlag() {
         if (!Thread.currentThread().isInterrupted()) {
             return;
