@@ -4,15 +4,16 @@ import cellarium.db.database.table.ColumnScheme;
 import cellarium.db.database.table.Row;
 import cellarium.db.database.table.TableDescription;
 import cellarium.db.database.types.AValue;
-import cellarium.db.database.types.DataType;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public interface DataBase {
-    void createTable(String tableName, ColumnScheme pk, Map<String, DataType> columns);
+public interface DataBase extends Closeable {
+    void createTable(String tableName, ColumnScheme pk, List<ColumnScheme> scheme);
 
     void insert(String tableName, Map<String, AValue<?>> values);
 
@@ -35,4 +36,8 @@ public interface DataBase {
     TableDescription describeTable(String tableName);
 
     List<TableDescription> describeTables();
+
+    void flush() throws IOException;
+
+    void close() throws IOException;
 }

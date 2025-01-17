@@ -9,10 +9,6 @@ import cellarium.db.comparator.ComparatorFactory;
 import cellarium.db.converter.sstable.SSTableKey;
 
 public final class SSTable {
-    // четко знает свой размер в байтах
-    // есть метаданные
-    // есть индекс
-
     private final DataMemorySegmentValue dataSegmentValue;
     private final IndexMemorySegmentValue indexSegmentValue; // key, entity offset
 
