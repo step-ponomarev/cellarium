@@ -6,7 +6,7 @@ import cellarium.db.database.types.MemorySegmentValue;
 public final class Table {
     public final String tableName;
     public final TableScheme tableScheme;
-    private AtomicStorage atomicStorage;
+    private volatile AtomicStorage atomicStorage;
 
     private static final class AtomicStorage {
         private final MemTable<MemorySegmentValue, MemorySegmentRow> memTable;
@@ -41,6 +41,6 @@ public final class Table {
     }
 
     public boolean hasFlushData() {
-        return getFlushTable() != null;
+        return getFlushTable() == null;
     }
 }

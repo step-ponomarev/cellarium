@@ -6,6 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -20,10 +21,14 @@ public final class DataBaseConcurrencyTest extends ADataBaseTest {
 
         final int iterationCount = 2000;
         final AtomicInteger handledCount = new AtomicInteger(0);
+        final AtomicLong sizeBytes = new AtomicLong(0);
         try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
             for (int i = 0; i < iterationCount; i++) {
                 final int index = i;
                 final Map<String, AValue<?>> addedValues = insertRow(i, STR."Name\{i}", i % 100, i % 2 == 0, System.currentTimeMillis());
+
+                sizeBytes.addAndGet(addedValues.values().stream().mapToLong(AValue::getSizeBytes).sum());
+
                 executorService.execute(() -> {
                     final Iterator<Row<AValue<?>, AValue<?>>> range = select(null, null, null);
 

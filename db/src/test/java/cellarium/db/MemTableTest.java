@@ -69,7 +69,7 @@ public final class MemTableTest {
 
     @Test
     public void testConcurrencySizeBytes() {
-        final int amount = 1000;
+        final int amount = 10000;
         final AtomicLong totalOffset = new AtomicLong(0);
 
         int planned = 0;
