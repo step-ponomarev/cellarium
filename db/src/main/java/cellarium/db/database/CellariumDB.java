@@ -77,6 +77,9 @@ public final class CellariumDB implements DataBase {
             memorySegmentValues.put(columnName, insertedColumn);
         }
 
+        //TODO: Вместо синхронизации использовать AtomicLong
+        // в цикле и флашиться если чо
+        while (table.getMemTable().getSizeBytesAtomic().get())
         synchronized (table) {
             //TODO: понять бы насколько эффективно
             if (table.getMemTable().getSizeBytes() + sizeBytes > flushSizeBytes) {

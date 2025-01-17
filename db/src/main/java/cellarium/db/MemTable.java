@@ -56,6 +56,10 @@ public final class MemTable<K extends Comparable<?>, E extends WithKeyAndSize<K>
         return entries.size();
     }
 
+    public AtomicLong getSizeBytesAtomic() {
+        return sizeBytes;
+    }
+
     public long getSizeBytes() {
         return sizeBytes.get();
     }
