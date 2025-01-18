@@ -7,8 +7,6 @@ import java.util.Map;
 
 public class Row<PK extends AValue<?>, V extends AValue<?>> implements Entry<PK, Map<String, V>> {
     private final PK pk;
-
-    // Схемма должна быть зафиксирована по очередности колонок на диске.
     private final Map<String, V> columns;
 
     public Row(PK pk, Map<String, V> columns) {

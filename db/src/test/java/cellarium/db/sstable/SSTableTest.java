@@ -20,7 +20,7 @@ public class SSTableTest {
 
     @Test
     public void testSingleValue() {
-        final SSTable ssTable = createSStable(1);
+        final SSTable ssTable = flushSStable(1);
         MemorySegment dataRange = ssTable.getDataRange(
                 new SSTableKey(
                         SSTableValueConverter.INSTANCE.convert(IntegerValue.of(0)),
@@ -126,7 +126,7 @@ public class SSTableTest {
         Assert.assertEquals(allValues.byteSize(), totalOffset);
     }
 
-    private static SSTable createSStable(int amount) {
+    private static SSTable flushSStable(int amount) {
         final TestData data = SSTableTestUtils.mockIntListData(amount);
 
         return new SSTable(

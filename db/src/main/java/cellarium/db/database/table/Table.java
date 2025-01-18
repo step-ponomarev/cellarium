@@ -1,12 +1,16 @@
 package cellarium.db.database.table;
 
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import cellarium.db.MemTable;
 import cellarium.db.database.types.MemorySegmentValue;
+import cellarium.db.sstable.SSTable;
 
 public final class Table {
     public final String tableName;
     public final TableScheme tableScheme;
     private volatile AtomicStorage atomicStorage;
+    private final CopyOnWriteArrayList<SSTable> ssTables;
 
     private static final class AtomicStorage {
         private final MemTable<MemorySegmentValue, MemorySegmentRow> memTable;
@@ -18,10 +22,15 @@ public final class Table {
         }
     }
 
-    public Table(String tableName, TableScheme tableScheme, MemTable<MemorySegmentValue, MemorySegmentRow> memTable) {
+    public Table(String tableName,
+                 TableScheme tableScheme,
+                 MemTable<MemorySegmentValue, MemorySegmentRow> memTable,
+                 CopyOnWriteArrayList<SSTable> ssTables
+    ) {
         this.tableName = tableName;
         this.tableScheme = tableScheme;
         this.atomicStorage = new AtomicStorage(memTable, null);
+        this.ssTables = ssTables;
     }
 
     public void flush() {
@@ -40,7 +49,11 @@ public final class Table {
         return this.atomicStorage.flushTable;
     }
 
+    public CopyOnWriteArrayList<SSTable> getSsTables() {
+        return ssTables;
+    }
+
     public boolean hasFlushData() {
-        return getFlushTable() == null;
+        return this.atomicStorage.flushTable != null;
     }
 }

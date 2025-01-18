@@ -19,6 +19,7 @@ import cellarium.db.database.validation.NameValidator;
 import cellarium.db.exception.InvokeException;
 import cellarium.db.exception.TimeoutException;
 import cellarium.db.files.DiskComponent;
+import cellarium.db.sstable.SSTable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -171,8 +173,9 @@ public final class CellariumDB implements DataBase {
                 final HashMap<String, DataType> tableScheme = new HashMap<>(columns);
                 tableScheme.put(pk.getName(), pk.getType());
 
-                diskComponent.createTable(tableName);
-                tables.put(tableName, new Table(tableName, new TableScheme(pk, tableScheme, new ArrayList<>(scheme)), new MemTable<>()));
+                final Table table = new Table(tableName, new TableScheme(pk, tableScheme, new ArrayList<>(scheme)), new MemTable<>(), new CopyOnWriteArrayList<>());
+                diskComponent.createTable(tableName, table.tableScheme);
+                tables.put(tableName, table);
             }
         } catch (IOException e) {
             throw new InvokeException("Table creation is failed", e);
@@ -220,13 +223,16 @@ public final class CellariumDB implements DataBase {
         }
 
         executorService.execute(() -> {
-            final MemTable<MemorySegmentValue, MemorySegmentRow> flushTable = table.getFlushTable();
-            if (flushTable == null) {
-                // TODO: Сделать что-нибудь серьезное
+            if (!table.hasFlushData()) {
+                throw new IllegalStateException("Scheduled flash without data");
             }
 
-            System.out.println("flush");
-//            diskComponent.flush(tableName, flushTable.get(null, null), flushTable.getSizeBytes());
+            final MemTable<MemorySegmentValue, MemorySegmentRow> flushTable = table.getFlushTable();
+            try {
+                table.getSsTables().add(diskComponent.flush(tableName, table.tableScheme, flushTable.get(null, null)));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             table.clearFlushData();
         });
     }
@@ -241,7 +247,7 @@ public final class CellariumDB implements DataBase {
         executorService.shutdown();
 
         try {
-            final boolean terminated = executorService.awaitTermination(5, TimeUnit.SECONDS);
+            final boolean terminated = executorService.awaitTermination(5, TimeUnit.MINUTES);
             if (!terminated) {
                 executorService.shutdownNow();
                 throw new TimeoutException("Await termination timeout, waited " + 5 + " minutes");

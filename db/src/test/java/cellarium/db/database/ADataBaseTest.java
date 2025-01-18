@@ -60,14 +60,14 @@ abstract class ADataBaseTest {
     }
 
     protected long getMaxBytes() {
-        return Long.MAX_VALUE;
+        return 50;
     }
 
     @After
     public void close() throws IOException {
         if (this.dataBase != null) {
             this.dataBase.close();
-            DiskUtils.removeFile(RESOURCES_PATH.resolve("cellarium_db"));
+//            DiskUtils.removeFile(RESOURCES_PATH.resolve("cellarium_db"));
         }
     }
 
