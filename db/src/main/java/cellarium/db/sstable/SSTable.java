@@ -63,9 +63,7 @@ public final class SSTable {
 
     //TODO: Рефакторинг
     public static SSTable flush(final Path path, List<ColumnScheme> columnSchemes, Iterator<MemorySegmentRow> data) throws IOException {
-        if (Files.notExists(path)) {
-            Files.createDirectory(path);
-        }
+        Files.createDirectory(path);
 
         final List<SSTableRowData> rows = new ArrayList<>();
         long totalSize = 0;
@@ -120,7 +118,7 @@ public final class SSTable {
             return dataSegment;
         }
 
-        final AMemorySegmentComparator comparator = from == null ? ComparatorFactory.getComparator(to.type) : ComparatorFactory.getComparator(from.type);
+        final AMemorySegmentComparator comparator = from == null ? ComparatorFactory.getComparator(to.types.get(0)) : ComparatorFactory.getComparator(from.types.get(0));
         final MemorySegment indexMemorySegment = indexSegmentValue.getMemorySegment();
         if (from == null) {
             int i = MemorySegmentUtils.findIndexOfKey(dataSegmentValue, indexSegmentValue, to.getMemorySegment(), comparator);

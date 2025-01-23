@@ -16,7 +16,7 @@ import cellarium.db.database.types.IntegerValue;
 import cellarium.db.database.types.LongValue;
 import cellarium.db.database.types.StringValue;
 
-public class SSTableValueConverterTest {
+public class ValueWithSizeConverterTest {
     @Test
     public void testStringConverting() {
         final StringValue source = StringValue.of("Test string value");
@@ -24,7 +24,7 @@ public class SSTableValueConverterTest {
 
         final AValue<?> aValue = SSTableValueConverter.INSTANCE.convertBack(value);
         Assert.assertEquals(source.getValue(), aValue.getValue());
-        Assert.assertEquals(source.getSizeBytes(), aValue.getSizeBytes());
+        Assert.assertEquals(source.getSizeBytesOnDisk(), aValue.getSizeBytesOnDisk());
         Assert.assertEquals(source.getDataType(), aValue.getDataType());
     }
 
@@ -35,7 +35,7 @@ public class SSTableValueConverterTest {
 
         final AValue<?> aValue = SSTableValueConverter.INSTANCE.convertBack(converted);
         Assert.assertEquals(source.getValue(), aValue.getValue());
-        Assert.assertEquals(source.getSizeBytes(), aValue.getSizeBytes());
+        Assert.assertEquals(source.getSizeBytesOnDisk(), aValue.getSizeBytesOnDisk());
         Assert.assertEquals(source.getDataType(), aValue.getDataType());
     }
 
@@ -46,7 +46,7 @@ public class SSTableValueConverterTest {
 
         final AValue<?> aValue = SSTableValueConverter.INSTANCE.convertBack(converted);
         Assert.assertEquals(source.getValue(), aValue.getValue());
-        Assert.assertEquals(source.getSizeBytes(), aValue.getSizeBytes());
+        Assert.assertEquals(source.getSizeBytesOnDisk(), aValue.getSizeBytesOnDisk());
         Assert.assertEquals(source.getDataType(), aValue.getDataType());
     }
 
@@ -57,7 +57,7 @@ public class SSTableValueConverterTest {
 
         final AValue<?> aValue = SSTableValueConverter.INSTANCE.convertBack(converted);
         Assert.assertEquals(source.getValue(), aValue.getValue());
-        Assert.assertEquals(source.getSizeBytes(), aValue.getSizeBytes());
+        Assert.assertEquals(source.getSizeBytesOnDisk(), aValue.getSizeBytesOnDisk());
         Assert.assertEquals(source.getDataType(), aValue.getDataType());
     }
 

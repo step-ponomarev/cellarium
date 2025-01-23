@@ -64,7 +64,7 @@ public final class MemTableTest {
         memTable.put(entry1);
         memTable.put(entry2);
 
-        Assert.assertEquals(entry1.getSizeBytes() + entry2.getSizeBytes(), memTable.getSizeBytes());
+        Assert.assertEquals(entry1.getSizeBytesOnDisk() + entry2.getSizeBytesOnDisk(), memTable.getSizeBytesOnDisk());
     }
 
     @Test
@@ -82,7 +82,7 @@ public final class MemTableTest {
                 final EntryWithSize<String, String> entry = createEntry(String.valueOf(index), "value " + index);
                 final CompletableFuture<Void> voidCompletableFuture = CompletableFuture.runAsync(() -> {
                     memTable.put(entry);
-                    totalOffset.addAndGet(entry.getSizeBytes());
+                    totalOffset.addAndGet(entry.getSizeBytesOnDisk());
                     completed.incrementAndGet();
                 }, executorService);
                 planned++;
@@ -92,7 +92,7 @@ public final class MemTableTest {
                 if (index % 10 == 0) {
                     voidCompletableFuture.thenRunAsync(() -> {
                         final EntryWithSize<String, String> remove = createEntry(String.valueOf(index), null);
-                        totalOffset.addAndGet(remove.getSizeBytes() - entry.getSizeBytes());
+                        totalOffset.addAndGet(remove.getSizeBytesOnDisk() - entry.getSizeBytesOnDisk());
                         memTable.put(remove);
                         completed.incrementAndGet();
                     }, executorService);
@@ -106,7 +106,7 @@ public final class MemTableTest {
             executorService.shutdown();
             Assert.assertTrue(executorService.awaitTermination(5, TimeUnit.SECONDS));
             Assert.assertEquals(planned, completed.get());
-            Assert.assertEquals(totalOffset.get(), memTable.getSizeBytes());
+            Assert.assertEquals(totalOffset.get(), memTable.getSizeBytesOnDisk());
         } catch (InterruptedException e) {
             if (Thread.currentThread().isInterrupted()) {
                 Thread.currentThread().isInterrupted();
@@ -156,7 +156,7 @@ public final class MemTableTest {
             }
 
             @Override
-            public long getSizeBytes() {
+            public long getSizeBytesOnDisk() {
                 return StandardCharsets.UTF_8.encode(key).array().length + (value == null ? 0 : StandardCharsets.UTF_8.encode(value).array().length);
             }
         };

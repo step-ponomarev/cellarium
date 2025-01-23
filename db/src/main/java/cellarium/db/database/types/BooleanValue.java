@@ -2,7 +2,7 @@ package cellarium.db.database.types;
 
 public final class BooleanValue extends AValue<Boolean> {
     private BooleanValue(boolean value) {
-        super(value, DataType.BOOLEAN, 1);
+        super(value, DataType.BOOLEAN);
     }
 
     public static BooleanValue of(boolean value) {

@@ -38,9 +38,9 @@ public final class MemTable<K extends Comparable<?>, E extends WithKeyAndSize<K>
     public void put(E entry) {
         entries.compute(entry.getKey(), (_, oldValue) -> {
             if (oldValue == null) {
-                sizeBytes.addAndGet(entry.getSizeBytes());
+                sizeBytes.addAndGet(entry.getSizeBytesOnDisk());
             } else {
-                sizeBytes.addAndGet(entry.getSizeBytes() - oldValue.getSizeBytes());
+                sizeBytes.addAndGet(entry.getSizeBytesOnDisk() - oldValue.getSizeBytesOnDisk());
             }
 
             return entry;
@@ -55,7 +55,7 @@ public final class MemTable<K extends Comparable<?>, E extends WithKeyAndSize<K>
         return sizeBytes;
     }
 
-    public long getSizeBytes() {
+    public long getSizeBytesOnDisk() {
         return sizeBytes.get();
     }
 

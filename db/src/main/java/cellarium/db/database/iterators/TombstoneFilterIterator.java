@@ -44,5 +44,4 @@ public final class TombstoneFilterIterator<T extends TableRow<?>> implements Ite
 
         return this.nextValue;
     }
-
 }

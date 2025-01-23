@@ -19,11 +19,9 @@ import cellarium.db.database.validation.NameValidator;
 import cellarium.db.exception.InvokeException;
 import cellarium.db.exception.TimeoutException;
 import cellarium.db.files.DiskComponent;
-import cellarium.db.sstable.SSTable;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -75,7 +73,7 @@ public final class CellariumDB implements DataBase {
             final AValue<?> insertedColumn = column.getValue();
             checkTypesEquals(tableColumnType, insertedColumn.getDataType());
 
-            sizeBytes += insertedColumn.getSizeBytes();
+            sizeBytes += insertedColumn.getSizeBytesOnDisk();
             memorySegmentValues.put(columnName, insertedColumn);
         }
 
@@ -83,7 +81,7 @@ public final class CellariumDB implements DataBase {
             scheduleFlush(tableName);
         }
 
-        table.getMemTable().put(new MemorySegmentRow(MemorySegmentValueConverter.INSTANCE.convert(pk), memorySegmentValues, sizeBytes));
+        table.getMemTable().put(new MemorySegmentRow(MemorySegmentValueConverter.INSTANCE.convert(pk), memorySegmentValues, System.currentTimeMillis(), sizeBytes));
     }
 
     @Override
@@ -92,7 +90,7 @@ public final class CellariumDB implements DataBase {
         checkTypesEquals(table.tableScheme.getPrimaryKey().getType(), pk.getDataType());
         final MemorySegmentValue key = MemorySegmentValueConverter.INSTANCE.convert(pk);
 
-        table.getMemTable().put(new MemorySegmentRow(key, null, 0));
+        table.getMemTable().put(new MemorySegmentRow(key, null, System.currentTimeMillis(), 0));
     }
 
     @Override
@@ -121,18 +119,7 @@ public final class CellariumDB implements DataBase {
         final MemorySegmentValue fromMemorySegment = MemorySegmentValueConverter.INSTANCE.convert(from);
         final MemorySegmentValue toMemorySegment = MemorySegmentValueConverter.INSTANCE.convert(to);
 
-        final Iterator<MemorySegmentRow> memorySegmentRowIterator;
-        if (fromMemorySegment != null && toMemorySegment != null && fromMemorySegment.compareTo(toMemorySegment) == 0) {
-            MemorySegmentRow memorySegmentRow = table.getMemTable().get(fromMemorySegment);
-            if (memorySegmentRow == null) {
-                return Collections.emptyIterator();
-            }
-
-            memorySegmentRowIterator = List.of(memorySegmentRow).iterator();
-        } else {
-            memorySegmentRowIterator = table.getMemTable().get(fromMemorySegment, toMemorySegment);
-        }
-
+        final Iterator<Row<AValue<?>, AValue<?>>> memorySegmentRowIterator = table.getRange(fromMemorySegment, toMemorySegment);
         final TombstoneFilterIterator<MemorySegmentRow> tombstoneFilterIterator = new TombstoneFilterIterator<>(memorySegmentRowIterator);
         final DecodeIterator memotySegmentRowConverterIterator = new DecodeIterator(tombstoneFilterIterator);
 
@@ -229,7 +216,7 @@ public final class CellariumDB implements DataBase {
 
             final MemTable<MemorySegmentValue, MemorySegmentRow> flushTable = table.getFlushTable();
             try {
-                table.getSsTables().add(diskComponent.flush(tableName, table.tableScheme, flushTable.get(null, null)));
+                table.addSSTable(diskComponent.flush(tableName, table.tableScheme, flushTable.get(null, null)));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

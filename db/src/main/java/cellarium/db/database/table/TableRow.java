@@ -14,7 +14,7 @@ public class TableRow<K extends AValue<?>> extends Row<K, AValue<?>> implements 
     }
 
     @Override
-    public long getSizeBytes() {
+    public long getSizeBytesOnDisk() {
         return sizeBytes;
     }
 }
