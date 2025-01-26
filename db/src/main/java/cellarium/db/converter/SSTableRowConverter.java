@@ -4,10 +4,12 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import cellarium.db.MemorySegmentUtils;
+import cellarium.db.converter.value.MemorySegmentValueConverter;
 import cellarium.db.database.table.MemorySegmentRow;
 import cellarium.db.database.types.AValue;
 
@@ -22,8 +24,8 @@ public class SSTableRowConverter implements Converter<MemorySegmentRow, MemorySe
     public MemorySegment convert(MemorySegmentRow value) {
         final Map<String, AValue<?>> columns = value.getColumns();
 
-        // timestamp on end
-        long sizeBytes = Long.BYTES;
+        // version + timestamp
+        long sizeBytes = Integer.BYTES + Long.BYTES;
         final List<MemorySegment> convertedColumns = new ArrayList<>(columnOrder.size());
         for (String col : columnOrder) {
             // IF NULL, write nullable value
@@ -37,9 +39,17 @@ public class SSTableRowConverter implements Converter<MemorySegmentRow, MemorySe
         long currOffset = 0;
         final MemorySegment row = MemorySegmentUtils.ARENA_OF_AUTO.allocate(sizeBytes);
 
-        for (MemorySegment seg : convertedColumns) {
-            MemorySegment.copy(seg, 0, row, currOffset, seg.byteSize());
-            currOffset += seg.byteSize();
+        final MemorySegment pk = convertedColumns.get(0);
+        MemorySegment.copy(pk, 0, row, currOffset, pk.byteSize());
+        currOffset += pk.byteSize();
+
+        row.set(ValueLayout.JAVA_INT_UNALIGNED, currOffset, value.getVersion());
+        currOffset += Integer.BYTES;
+
+        for (int i = 1; i < columnOrder.size(); i++) {
+            final MemorySegment col = convertedColumns.get(i);
+            MemorySegment.copy(col, 0, row, currOffset, col.byteSize());
+            currOffset += col.byteSize();
         }
 
         row.set(ValueLayout.JAVA_LONG_UNALIGNED, currOffset, value.getTimestamp());
@@ -49,6 +59,26 @@ public class SSTableRowConverter implements Converter<MemorySegmentRow, MemorySe
 
     @Override
     public MemorySegmentRow convertBack(MemorySegment value) {
+        long currOffset = 0;
 
+        final Map<String, AValue<?>> columns = new HashMap<>(columnOrder.size());
+        final AValue<?> pk = SSTableValueConverter.INSTANCE.convertBack(value);
+        currOffset += pk.getSizeBytesOnDisk();
+
+        columns.put(columnOrder.get(0), pk);
+
+        final int version = value.get(ValueLayout.JAVA_INT_UNALIGNED, currOffset);
+        currOffset += Integer.BYTES;
+
+        for (int i = 1; i < columnOrder.size(); i++) {
+            final AValue<?> col = SSTableValueConverter.INSTANCE.convertBack(value.asSlice(currOffset));
+            currOffset += col.getSizeBytesOnDisk();
+
+            columns.put(columnOrder.get(i), col);
+        }
+
+        long timestamp = value.get(ValueLayout.JAVA_LONG_UNALIGNED, currOffset);
+
+        return new MemorySegmentRow(MemorySegmentValueConverter.INSTANCE.convert(pk), columns, value.byteSize(), version, timestamp);
     }
 }

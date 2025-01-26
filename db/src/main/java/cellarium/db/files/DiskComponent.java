@@ -68,6 +68,7 @@ public final class DiskComponent {
 //        }
 //    }
 
+    //TODO Сериализация меты таблиц!
     public void createTable(String tableName, TableScheme tableScheme) throws IOException {
         final Path tablePath = this.tables.resolve(tableName);
         if (Files.exists(tablePath)) {

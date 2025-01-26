@@ -31,7 +31,7 @@ public final class SSTableValueConverter implements Converter<AValue<?>, MemoryS
 
     public static long getSizeOnDisk(DataType type, Object value) {
         if (type.getSizeBytes() != AValue.UNDEFINED_SIZE_BYTES) {
-            return Byte.BYTES +  type.getSizeBytes();
+            return Byte.BYTES + type.getSizeBytes();
         }
 
         if (type != DataType.STRING) {
@@ -53,42 +53,40 @@ public final class SSTableValueConverter implements Converter<AValue<?>, MemoryS
         );
 
         int offset = 0;
-        segment.asSlice(offset, MemorySegmentUtils.BYTE_SIZE).set(ValueLayout.JAVA_BYTE, 0, dataType.getId());
+        segment.set(ValueLayout.JAVA_BYTE, offset, dataType.getId());
         offset += MemorySegmentUtils.BYTE_SIZE;
 
         final Converter<Object, MemorySegment> converter = ConverterFactory.getConverter(dataType);
         final MemorySegment memorySegment = converter.convert(value.getValue());
 
         if (dataType == DataType.STRING) {
-            segment.asSlice(offset, Integer.BYTES).set(ValueLayout.JAVA_INT_UNALIGNED, 0, (int) memorySegment.byteSize());
+            segment.set(ValueLayout.JAVA_INT_UNALIGNED, offset, (int) memorySegment.byteSize());
             offset += Integer.BYTES;
         }
 
-        segment.asSlice(offset, memorySegment.byteSize()).copyFrom(memorySegment);
+        MemorySegment.copy(memorySegment, 0, segment, offset, memorySegment.byteSize());
 
         return segment;
     }
 
-    public ValueWithSize convertWithSize(MemorySegment value) {
+    @Override
+    public AValue<?> convertBack(MemorySegment value) {
         final byte typeId = value.get(ValueLayout.JAVA_BYTE, 0);
         final DataType dataType = DataType.getById(typeId);
         int sizeBytes = dataType.getSizeBytes();
+
         if (sizeBytes != AValue.UNDEFINED_SIZE_BYTES) {
-            return new ValueWithSize(MemorySegmentUtils.toValue(
+            return MemorySegmentUtils.toValue(
                     dataType,
                     value.asSlice(MemorySegmentUtils.BYTE_SIZE, sizeBytes)
-            ), MemorySegmentUtils.BYTE_SIZE + sizeBytes);
+            );
         }
 
         sizeBytes = value.get(ValueLayout.JAVA_INT_UNALIGNED, MemorySegmentUtils.BYTE_SIZE);
-        return new ValueWithSize(MemorySegmentUtils.toValue(
+
+        return MemorySegmentUtils.toValue(
                 dataType,
                 value.asSlice(MemorySegmentUtils.BYTE_SIZE + Integer.BYTES, sizeBytes)
-        ), MemorySegmentUtils.BYTE_SIZE + Integer.BYTES + sizeBytes);
-    }
-
-    @Override
-    public AValue<?> convertBack(MemorySegment value) {
-        return convertWithSize(value).value;
+        );
     }
 }

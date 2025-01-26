@@ -7,8 +7,8 @@ import java.lang.foreign.MemorySegment;
 public final class MemorySegmentValue extends AValue<MemorySegment> {
     private final AMemorySegmentComparator comparator;
 
-    public MemorySegmentValue(MemorySegment value, DataType dataType, long sizeBytes, AMemorySegmentComparator comparator) {
-        super(value, dataType, sizeBytes);
+    public MemorySegmentValue(MemorySegment value, DataType dataType,AMemorySegmentComparator comparator) {
+        super(value, dataType, value.byteSize());
         this.comparator = comparator;
     }
 

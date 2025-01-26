@@ -6,14 +6,16 @@ import java.util.List;
 import java.util.Map;
 
 public final class TableScheme {
+    private final int version;
     private final ColumnScheme primaryKey;
     private final Map<String, DataType> columnTypes;
     private final List<ColumnScheme> scheme;
 
-    public TableScheme(ColumnScheme primaryKey, Map<String, DataType> columnTypes, List<ColumnScheme> scheme) {
+    public TableScheme(ColumnScheme primaryKey, Map<String, DataType> columnTypes, List<ColumnScheme> scheme, int version) {
         this.primaryKey = primaryKey;
         this.columnTypes = columnTypes;
         this.scheme = scheme;
+        this.version = version;
     }
 
     public ColumnScheme getPrimaryKey() {
@@ -31,5 +33,9 @@ public final class TableScheme {
 
     public Map<String, DataType> getColumnTypes() {
         return columnTypes;
+    }
+
+    public int getVersion() {
+        return version;
     }
 }

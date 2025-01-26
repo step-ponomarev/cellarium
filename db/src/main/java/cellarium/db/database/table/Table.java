@@ -2,11 +2,14 @@ package cellarium.db.database.table;
 
 import java.lang.foreign.MemorySegment;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import cellarium.db.MemTable;
+import cellarium.db.converter.SSTableRowConverter;
 import cellarium.db.converter.sstable.SSTableKey;
 import cellarium.db.database.iterators.DecodeIterator;
 import cellarium.db.database.iterators.RowDecoderIterator;
@@ -67,6 +70,11 @@ public final class Table {
         return this.atomicStorage.flushTable.getEntryCount() != 0;
     }
 
+    public void put(MemorySegmentRow memorySegmentRow) {
+        this.atomicStorage.memTable.put(memorySegmentRow);
+    }
+
+
     public Iterator<Row<AValue<?>, AValue<?>>> getRange(MemorySegmentValue from, MemorySegmentValue to) {
         final Iterator<Row<AValue<?>, AValue<?>>> sstableValues = loadFromSSTables(from, to);
         final Iterator<Row<AValue<?>, AValue<?>>> flusDataIterator = new DecodeIterator(this.atomicStorage.flushTable.get(from, to));
@@ -74,7 +82,20 @@ public final class Table {
 
         return MergeIterator.of(
                 List.of(sstableValues, flusDataIterator, memDataIterator),
-                Comparator.comparing(Row::getKey)
+                (l, r) -> ((Comparable) l.getKey()).compareTo(r.getKey()),
+                (Row<AValue<?>, AValue<?>> source, Row<AValue<?>, AValue<?>> target) -> {
+                    // tombstone merge not needed
+                    if (target.getColumns() == null || source.getColumns() == null) {
+                        return target;
+                    }
+
+                    final Row<AValue<?>, AValue<?>> merged = new Row<>(source.getKey(), new HashMap<>(source.getColumns()));
+                    for (Map.Entry<String, AValue<?>> val : target.getColumns().entrySet()) {
+                        merged.getColumns().put(val.getKey(), val.getValue());
+                    }
+
+                    return merged;
+                }
         );
     }
 
@@ -91,8 +112,9 @@ public final class Table {
 
         final Iterator<Row<AValue<?>, AValue<?>>> sstableValues = new RowDecoderIterator(
                 sstableData,
-                tableScheme
+                new SSTableRowConverter(tableScheme.getScheme().stream().map(ColumnScheme::getName).toList())
         );
+
         return sstableValues;
     }
 }

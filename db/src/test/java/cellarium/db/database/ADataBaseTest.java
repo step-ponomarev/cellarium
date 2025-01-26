@@ -22,7 +22,6 @@ import cellarium.db.database.types.LongValue;
 import cellarium.db.database.types.StringValue;
 import cellarium.db.files.DiskUtils;
 
-
 abstract class ADataBaseTest {
     private static final Path RESOURCES_PATH = Path.of("src/test/resources");
     private static final String TABLE_NAME = "user";
@@ -45,7 +44,7 @@ abstract class ADataBaseTest {
         final List<ColumnScheme> scheme = columns.entrySet()
                 .stream()
                 .map(e -> new ColumnScheme(e.getKey(), e.getValue())).toList();
-        SCHEME = new TableScheme(id, columns, scheme);
+        SCHEME = new TableScheme(id, columns, scheme, 0);
     }
 
     protected DataBase dataBase;
@@ -60,14 +59,18 @@ abstract class ADataBaseTest {
     }
 
     protected long getMaxBytes() {
-        return 50;
+        return Integer.MAX_VALUE;
     }
 
     @After
+    public void after() throws Exception {
+        close();
+    }
+
     public void close() throws IOException {
         if (this.dataBase != null) {
             this.dataBase.close();
-//            DiskUtils.removeFile(RESOURCES_PATH.resolve("cellarium_db"));
+            DiskUtils.removeFile(RESOURCES_PATH.resolve("cellarium_db"));
         }
     }
 

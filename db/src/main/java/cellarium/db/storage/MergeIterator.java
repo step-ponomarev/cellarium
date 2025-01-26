@@ -14,17 +14,23 @@ public final class MergeIterator<E> implements Iterator<E> {
     private final Iterator<E> oldDataIterator;
     private final Iterator<E> newDataIterator;
     private final Comparator<E> comparator;
+    private final MergeFunction<E> mergeFunction;
+
+    private static <E> E defaultMerge(E from, E to) {
+        return to;
+    }
 
     private E oldValue;
     private E newValue;
 
-    private MergeIterator(final Iterator<E> left, final Iterator<E> right, Comparator<E> comparator) {
+    private MergeIterator(final Iterator<E> left, final Iterator<E> right, Comparator<E> comparator, MergeFunction<E> mergeFunction) {
         this.oldDataIterator = left;
         this.newDataIterator = right;
         this.comparator = comparator;
 
         this.oldValue = getNext(oldDataIterator);
         this.newValue = getNext(newDataIterator);
+        this.mergeFunction = mergeFunction;
     }
 
     /**
@@ -33,6 +39,16 @@ public final class MergeIterator<E> implements Iterator<E> {
      * @return iterator with sorted unique values
      */
     public static <E> Iterator<E> of(List<Iterator<E>> iterators, Comparator<E> comparator) {
+        return of(iterators, comparator, MergeIterator::defaultMerge);
+    }
+
+    /**
+     * @param iterators lists of iterators, values must be unique and sorted
+     * @param comparator
+     * @param mergeFunction
+     * @return iterator with sorted unique values
+     */
+    public static <E> Iterator<E> of(List<Iterator<E>> iterators, Comparator<E> comparator, MergeFunction<E> mergeFunction) {
         if (iterators.isEmpty()) {
             return Collections.emptyIterator();
         }
@@ -43,9 +59,11 @@ public final class MergeIterator<E> implements Iterator<E> {
         }
 
         return new MergeIterator<>(
-                of(iterators.subList(0, size / 2), comparator),
-                of(iterators.subList(size / 2, size), comparator),
-                comparator);
+                of(iterators.subList(0, size / 2), comparator, mergeFunction),
+                of(iterators.subList(size / 2, size), comparator, mergeFunction),
+                comparator,
+                mergeFunction
+        );
     }
 
     @Override
@@ -62,7 +80,7 @@ public final class MergeIterator<E> implements Iterator<E> {
         final int compareResult = compare(oldValue, newValue);
 
         if (compareResult == 0) {
-            final E next = newValue;
+            final E next = this.mergeFunction.merge(oldValue, newValue);
             oldValue = getNext(oldDataIterator);
             newValue = getNext(newDataIterator);
 

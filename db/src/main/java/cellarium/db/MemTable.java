@@ -16,16 +16,21 @@ public final class MemTable<K extends Comparable<?>, E extends WithKeyAndSize<K>
     private final AtomicLong sizeBytes;
 
     public MemTable() {
-        this(null);
-    }
-
-    private MemTable(Comparator<K> comparator) {
-        this.entries = new ConcurrentSkipListMap<>(comparator);
+        this.entries = new ConcurrentSkipListMap<>((Comparator<? super K>) null);
         this.sizeBytes = new AtomicLong(0);
     }
 
     @Override
     public Iterator<E> get(K from, K to) {
+        if (from != null && to != null && (((Comparable) to).compareTo(from) == 0)) {
+            E e = get(from);
+            if (e == null) {
+                return Collections.emptyIterator();
+            }
+
+            return Collections.singletonList(e).iterator();
+        }
+
         return slice(entries, from, to);
     }
 

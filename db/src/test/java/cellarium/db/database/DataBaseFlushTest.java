@@ -48,12 +48,24 @@ public final class DataBaseFlushTest extends ADataBaseTest {
         }
     }
 
+    @Override
+    protected long getMaxBytes() {
+        return 50;
+    }
+
     private void testWithFlush(Runnable flush) {
-        final int id = 1;
-        final Map<String, AValue<?>> addedValues = insertRow(id, "Stepan", 21, true, System.currentTimeMillis());
         createTable();
 
-        flush.run();
+        final int id = 1;
+        final Map<String, AValue<?>> addedValues = insertRow(id, "Stepan", 21, true, System.currentTimeMillis());
+
+        try {
+            dataBase.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        init();
 
         final Iterator<Row<AValue<?>, AValue<?>>> selectToDisk = select(id, id, Collections.EMPTY_SET);
         Assert.assertTrue(selectToDisk.hasNext());

@@ -22,19 +22,11 @@ public final class MemorySegmentValueConverter implements Converter<AValue<?>, M
         final DataType dataType = value.getDataType();
         final Converter<Object, MemorySegment> converter = ConverterFactory.getConverter(dataType);
 
-        return new MemorySegmentValue(
-                converter.convert(value.getValue()),
-                dataType,
-                value.getSizeBytesOnDisk(),
-                ComparatorFactory.getComparator(dataType)
-        );
+        return new MemorySegmentValue(converter.convert(value.getValue()), dataType, ComparatorFactory.getComparator(dataType));
     }
 
     @Override
     public AValue<?> convertBack(MemorySegmentValue value) {
-        return MemorySegmentUtils.toValue(
-                value.getDataType(),
-                value.getValue()
-        );
+        return MemorySegmentUtils.toValue(value.getDataType(), value.getValue());
     }
 }

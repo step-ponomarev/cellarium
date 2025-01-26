@@ -1,28 +1,24 @@
 package cellarium.db.database.iterators;
 
 import java.lang.foreign.MemorySegment;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
-import cellarium.db.converter.SSTableValueConverter;
-import cellarium.db.database.table.ColumnScheme;
+import cellarium.db.converter.SSTableRowConverter;
+import cellarium.db.database.table.MemorySegmentRow;
 import cellarium.db.database.table.Row;
-import cellarium.db.database.table.TableScheme;
 import cellarium.db.database.types.AValue;
 
+//TODO: В каждой строке в начале будет версия
 public final class RowDecoderIterator implements Iterator<Row<AValue<?>, AValue<?>>> {
     private final Iterator<MemorySegment> source;
+    private final SSTableRowConverter rowConverter;
     private MemorySegment curr = null;
     private long currOffset = 0;
 
-    private final TableScheme tableScheme;
-
-    public RowDecoderIterator(Iterator<MemorySegment> source, TableScheme tableScheme) {
+    public RowDecoderIterator(Iterator<MemorySegment> source, SSTableRowConverter rowConverter) {
         this.source = source;
-        this.tableScheme = tableScheme;
+        this.rowConverter = rowConverter;
     }
 
     @Override
@@ -45,32 +41,9 @@ public final class RowDecoderIterator implements Iterator<Row<AValue<?>, AValue<
             throw new NoSuchElementException("No more elements");
         }
 
-        curr = curr.asSlice(currOffset);
-        SSTableValueConverter.ValueWithSize val = SSTableValueConverter.INSTANCE.convertWithSize(curr);
-        currOffset += val.getValueSizeOnDisk();
+        final MemorySegmentRow memorySegmentRow = this.rowConverter.convertBack(curr);
+        currOffset += memorySegmentRow.getSizeBytesOnDisk();
 
-        //TODO: научиться работать с композитными PK
-        ColumnScheme primaryKey = tableScheme.getPrimaryKey();
-        //TODO: сделать один раз
-        final List<String> scheme = tableScheme.getScheme()
-                .stream()
-                .filter(s -> !s.getName().equals(primaryKey.getName()))
-                .map(ColumnScheme::getName)
-                .toList();
-
-        final Map<String, AValue<?>> readColumns = new HashMap<>(scheme.size());
-        final AValue<?> pk = val.getValue();
-        for (String column : scheme) {
-            curr = curr.asSlice(currOffset);
-            val = SSTableValueConverter.INSTANCE.convertWithSize(curr);
-            currOffset += val.getValueSizeOnDisk();
-
-            readColumns.put(
-                    column,
-                    val.getValue()
-            );
-        }
-
-        return new Row<>(pk, readColumns);
+        return new Row<>(memorySegmentRow.getKey(), memorySegmentRow.getColumns());
     }
 }

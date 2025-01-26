@@ -10,16 +10,14 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import cellarium.db.MemorySegmentUtils;
 import cellarium.db.comparator.AMemorySegmentComparator;
 import cellarium.db.comparator.ComparatorFactory;
-import cellarium.db.converter.SSTableValueConverter;
+import cellarium.db.converter.SSTableRowConverter;
 import cellarium.db.converter.sstable.SSTableKey;
 import cellarium.db.database.table.ColumnScheme;
 import cellarium.db.database.table.MemorySegmentRow;
-import cellarium.db.database.types.AValue;
 
 public final class SSTable {
     private final DataMemorySegmentValue dataSegmentValue;
@@ -66,31 +64,16 @@ public final class SSTable {
         Files.createDirectory(path);
 
         final List<SSTableRowData> rows = new ArrayList<>();
+        final SSTableRowConverter ssTableRowConverter = new SSTableRowConverter(
+                columnSchemes.stream().map(ColumnScheme::getName).toList()
+        );
+
         long totalSize = 0;
         while (data.hasNext()) {
-            final MemorySegmentRow row = data.next();
-
-            long rowSize = 0;
-            final Map<String, AValue<?>> columnsToFlush = row.getColumns();
-
-            final List<MemorySegment> columns = new ArrayList<>();
-            for (ColumnScheme columnScheme : columnSchemes) {
-                final AValue<?> aValue = columnsToFlush.get(columnScheme.getName());
-                MemorySegment value = SSTableValueConverter.INSTANCE.convert(aValue);
-
-                columns.add(value);
-                rowSize += value.byteSize();
-            }
-
-            long rowOffset = 0;
-            final MemorySegment rowMemorySegment = MemorySegmentUtils.ARENA_OF_AUTO.allocate(rowSize);
-            for (MemorySegment column : columns) {
-                MemorySegment.copy(column, 0, rowMemorySegment, rowOffset, column.byteSize());
-                rowOffset += column.byteSize();
-            }
+            final MemorySegment rowMemorySegment = ssTableRowConverter.convert(data.next());
 
             rows.add(new SSTableRowData(rowMemorySegment, totalSize));
-            totalSize += rowSize;
+            totalSize += rowMemorySegment.byteSize();
         }
 
         try (final FileChannel dataFileChannel = FileChannel.open(path.resolve("data"), StandardOpenOption.WRITE, StandardOpenOption.READ, StandardOpenOption.CREATE_NEW);
@@ -147,7 +130,9 @@ public final class SSTable {
             return dataSegment.asSlice(fromOffset);
         }
 
-        final long size = iFrom == iTo ? MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iFrom + 1) - MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iFrom) : MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iTo) - fromOffset;
+        final long size = iFrom == iTo
+                ? MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iFrom + 1) - MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iFrom)
+                : MemorySegmentUtils.getOffsetByIndex(indexSegmentValue, iTo) - fromOffset;
 
         return dataSegment.asSlice(fromOffset, size);
     }

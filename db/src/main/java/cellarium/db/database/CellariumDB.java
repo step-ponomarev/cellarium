@@ -3,7 +3,6 @@ package cellarium.db.database;
 import cellarium.db.MemTable;
 import cellarium.db.config.CellariumConfig;
 import cellarium.db.database.iterators.ColumnFilterIterator;
-import cellarium.db.database.iterators.DecodeIterator;
 import cellarium.db.database.iterators.TombstoneFilterIterator;
 import cellarium.db.database.table.Table;
 import cellarium.db.converter.value.MemorySegmentValueConverter;
@@ -77,11 +76,11 @@ public final class CellariumDB implements DataBase {
             memorySegmentValues.put(columnName, insertedColumn);
         }
 
-        if (sizeBytes + table.getMemTable().getSizeBytes() > flushSizeBytes) {
+        if (sizeBytes + table.getMemTableSizeBytes() > flushSizeBytes) {
             scheduleFlush(tableName);
         }
 
-        table.getMemTable().put(new MemorySegmentRow(MemorySegmentValueConverter.INSTANCE.convert(pk), memorySegmentValues, System.currentTimeMillis(), sizeBytes));
+        table.put(new MemorySegmentRow(MemorySegmentValueConverter.INSTANCE.convert(pk), memorySegmentValues, sizeBytes, 0, System.currentTimeMillis()));
     }
 
     @Override
@@ -90,7 +89,7 @@ public final class CellariumDB implements DataBase {
         checkTypesEquals(table.tableScheme.getPrimaryKey().getType(), pk.getDataType());
         final MemorySegmentValue key = MemorySegmentValueConverter.INSTANCE.convert(pk);
 
-        table.getMemTable().put(new MemorySegmentRow(key, null, System.currentTimeMillis(), 0));
+        table.put(new MemorySegmentRow(key, null, 0, 0, System.currentTimeMillis()));
     }
 
     @Override
@@ -120,22 +119,25 @@ public final class CellariumDB implements DataBase {
         final MemorySegmentValue toMemorySegment = MemorySegmentValueConverter.INSTANCE.convert(to);
 
         final Iterator<Row<AValue<?>, AValue<?>>> memorySegmentRowIterator = table.getRange(fromMemorySegment, toMemorySegment);
-        final TombstoneFilterIterator<MemorySegmentRow> tombstoneFilterIterator = new TombstoneFilterIterator<>(memorySegmentRowIterator);
-        final DecodeIterator memotySegmentRowConverterIterator = new DecodeIterator(tombstoneFilterIterator);
 
-        return new ColumnFilterIterator<>(memotySegmentRowConverterIterator, columns);
+        return new ColumnFilterIterator<>(
+                new TombstoneFilterIterator<>(memorySegmentRowIterator),
+                columns
+        );
     }
 
     @Override
     public TableDescription describeTable(String tableName) {
         final TableScheme tableScheme = getTableWithChecks(tableName).tableScheme;
 
-        return new TableDescription(tableName, new TableScheme(tableScheme.getPrimaryKey(), new HashMap<>(tableScheme.getColumnTypes()), new ArrayList<>(tableScheme.getScheme())));
+        return new TableDescription(tableName, new TableScheme(tableScheme.getPrimaryKey(), new HashMap<>(tableScheme.getColumnTypes()), new ArrayList<>(tableScheme.getScheme()), 0));
     }
 
+
+    //TODO: возвращать только последнюю, актуальную версию, когда добавлю
     @Override
     public List<TableDescription> describeTables() {
-        return tables.values().stream().map(t -> new TableDescription(t.tableName, new TableScheme(t.tableScheme.getPrimaryKey(), new HashMap<>(t.tableScheme.getColumnTypes()), new ArrayList<>(t.tableScheme.getScheme())))).toList();
+        return tables.values().stream().map(t -> new TableDescription(t.tableName, new TableScheme(t.tableScheme.getPrimaryKey(), new HashMap<>(t.tableScheme.getColumnTypes()), new ArrayList<>(t.tableScheme.getScheme()), 0))).toList();
     }
 
     @Override
@@ -160,7 +162,10 @@ public final class CellariumDB implements DataBase {
                 final HashMap<String, DataType> tableScheme = new HashMap<>(columns);
                 tableScheme.put(pk.getName(), pk.getType());
 
-                final Table table = new Table(tableName, new TableScheme(pk, tableScheme, new ArrayList<>(scheme)), new MemTable<>(), new CopyOnWriteArrayList<>());
+                final ArrayList<ColumnScheme> columnSchemes = new ArrayList<>(scheme);
+                columnSchemes.add(0, pk);
+
+                final Table table = new Table(tableName, new TableScheme(pk, tableScheme, columnSchemes, 0), new MemTable<>(), new CopyOnWriteArrayList<>());
                 diskComponent.createTable(tableName, table.tableScheme);
                 tables.put(tableName, table);
             }
@@ -182,6 +187,7 @@ public final class CellariumDB implements DataBase {
                 try {
                     diskComponent.removeTableFromDisk(tableName);
                 } catch (IOException e) {
+                    System.out.println("HERE");
                     // TODO: нужно фиксировать это дело
                 }
             });
