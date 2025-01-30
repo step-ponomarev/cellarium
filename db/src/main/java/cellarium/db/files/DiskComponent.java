@@ -1,13 +1,18 @@
 package cellarium.db.files;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import cellarium.db.database.table.MemorySegmentRow;
+import cellarium.db.database.table.Table;
 import cellarium.db.database.table.TableScheme;
+import cellarium.db.serialization.tabllescheme.TableSchemeSerializer;
 import cellarium.db.sstable.SSTable;
 
 //TODO:
@@ -17,9 +22,9 @@ import cellarium.db.sstable.SSTable;
 public final class DiskComponent {
     private static final Pattern SSTABLE_PATTERN = Pattern.compile("^sstable_(\\d+)$");
     private static final String TABLES_DIR = "tables";
+    private static final String TABLE_META_FILE = "table.scheme";
     private static final String META_FILE = "meta";
     private final Path tables;
-    private final Path metaFile;
     int index = 0;
 
     // - cellariumDb
@@ -39,46 +44,25 @@ public final class DiskComponent {
         }
 
         this.tables = root.resolve(TABLES_DIR);
-        if (Files.notExists(this.tables)) {
-            Files.createDirectories(this.tables);
-        }
-
-        this.metaFile = root.resolve(META_FILE);
     }
 
-//    public void writeMeta(Meta meta) {
-//        try (ObjectOutputStream ois = new ObjectOutputStream(new FileOutputStream(metaFile.toFile()))) {
-//            ois.writeObject(meta);
-//        } catch (FileNotFoundException e) {
-//            throw new RuntimeException(e);
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
-//
-//    public Meta readMeta() {
-//        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(metaFile.toFile()))) {
-//            return (Meta) ois.readObject();
-//        } catch (FileNotFoundException e) {
-//            throw new RuntimeException(e);
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        } catch (ClassNotFoundException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
+    public List<Table> getTables() throws IOException {
+        return Collections.emptyList();
+    }
 
-    //TODO Сериализация меты таблиц!
     public void createTable(String tableName, TableScheme tableScheme) throws IOException {
         final Path tablePath = this.tables.resolve(tableName);
         if (Files.exists(tablePath)) {
             throw new IllegalArgumentException(STR."Table is exists: \{tableName}");
         }
 
-        Files.createDirectory(tablePath);
+        Files.createDirectories(tablePath);
+
+        final Path metaFile = tablePath.resolve(TABLE_META_FILE);
+        TableSchemeSerializer.INSTANCE.write(tableScheme, new FileOutputStream(metaFile.toFile()));
     }
 
-    public void removeTableFromDisk(String tableName) throws IOException {
+    public void dropTable(String tableName) throws IOException {
         final Path tablePath = this.tables.resolve(tableName);
         if (!Files.exists(tablePath)) {
             throw new IllegalArgumentException(STR."Table is not exists: \{tableName}");

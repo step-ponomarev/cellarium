@@ -26,7 +26,6 @@ public final class TableScheme {
         return columnTypes.get(columnName);
     }
 
-
     public List<ColumnScheme> getScheme() {
         return scheme;
     }

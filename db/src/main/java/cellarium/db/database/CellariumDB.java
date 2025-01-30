@@ -185,7 +185,7 @@ public final class CellariumDB implements DataBase {
 
             executorService.execute(() -> {
                 try {
-                    diskComponent.removeTableFromDisk(tableName);
+                    diskComponent.dropTable(tableName);
                 } catch (IOException e) {
                     System.out.println("HERE");
                     // TODO: нужно фиксировать это дело
