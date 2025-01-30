@@ -2,13 +2,13 @@ package cellarium.db.database;
 
 import cellarium.db.database.table.ColumnScheme;
 import cellarium.db.database.table.TableDescription;
-import cellarium.db.database.table.TableScheme;
 import cellarium.db.database.types.DataType;
 import cellarium.db.database.validation.NameValidator;
+
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Map;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -22,7 +22,7 @@ public final class DataBaseCreateTableTest extends ADataBaseTest {
 
     @Test
     public void testTableSuccessCreated() {
-        dataBase.createTable(VALID_TABLE_NAME, new ColumnScheme("id", DataType.LONG), Map.of("column1", DataType.BOOLEAN));
+        dataBase.createTable(VALID_TABLE_NAME, new ColumnScheme("id", DataType.LONG), List.of(new ColumnScheme("column1", DataType.BOOLEAN)));
 
         final TableDescription tableScheme = dataBase.describeTable(VALID_TABLE_NAME);
         Assert.assertNotNull(tableScheme);
@@ -32,7 +32,7 @@ public final class DataBaseCreateTableTest extends ADataBaseTest {
     @Test(expected = IllegalArgumentException.class)
     public void testShortTableName() {
         final String tableName = "t";
-        dataBase.createTable(tableName, new ColumnScheme("id", DataType.LONG), Map.of("column1", DataType.BOOLEAN));
+        dataBase.createTable(tableName, new ColumnScheme("id", DataType.LONG), List.of(new ColumnScheme("column1", DataType.BOOLEAN)));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -41,28 +41,28 @@ public final class DataBaseCreateTableTest extends ADataBaseTest {
                 .mapToObj(i -> "s")
                 .collect(Collectors.joining());
 
-        dataBase.createTable(tableName, new ColumnScheme("id", DataType.LONG), Map.of("column1", DataType.BOOLEAN));
+        dataBase.createTable(tableName, new ColumnScheme("id", DataType.LONG), List.of(new ColumnScheme("column1", DataType.BOOLEAN)));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testTableNameStartsWithNumber() {
-        dataBase.createTable("1Name", new ColumnScheme("id", DataType.LONG), Map.of("column1", DataType.BOOLEAN));
+        dataBase.createTable("1Name", new ColumnScheme("id", DataType.LONG), List.of(new ColumnScheme("column1", DataType.BOOLEAN)));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testTableNameStartsWithUnderscore() {
-        dataBase.createTable("_start", new ColumnScheme("id", DataType.LONG), Map.of("column1", DataType.BOOLEAN));
+        dataBase.createTable("_start", new ColumnScheme("id", DataType.LONG), List.of(new ColumnScheme("column1", DataType.BOOLEAN)));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testTableNameEndsWithUnderscore() {
-        dataBase.createTable("end_", new ColumnScheme("id", DataType.LONG), Map.of("column1", DataType.BOOLEAN));
+        dataBase.createTable("end_", new ColumnScheme("id", DataType.LONG), List.of(new ColumnScheme("column1", DataType.BOOLEAN)));
     }
 
     @Test
     public void testCreatedTableScheme() {
         final ColumnScheme pk = new ColumnScheme("id", DataType.LONG);
-        final Map<String, DataType> scheme = Map.of("column1", DataType.BOOLEAN);
+        final List<ColumnScheme> scheme = List.of(new ColumnScheme("column1", DataType.BOOLEAN));
 
         dataBase.createTable(VALID_TABLE_NAME, pk, scheme);
 
@@ -73,10 +73,10 @@ public final class DataBaseCreateTableTest extends ADataBaseTest {
         Assert.assertEquals(pk.getName(), pkFromDB.getName());
         Assert.assertEquals(pk.getType(), pkFromDB.getType());
 
-        for (Map.Entry<String, DataType> e : scheme.entrySet()) {
+        for (ColumnScheme s : scheme) {
             Assert.assertEquals(
-                    e.getValue(),
-                    tableDescription.tableScheme.getScheme().get(e.getKey())
+                    s.getType(),
+                    tableDescription.tableScheme.getColumnType(s.getName())
             );
         }
     }

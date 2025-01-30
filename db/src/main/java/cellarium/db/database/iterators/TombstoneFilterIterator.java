@@ -3,9 +3,10 @@ package cellarium.db.database.iterators;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import cellarium.db.database.table.TableRow;
+import cellarium.db.database.table.Row;
+import cellarium.db.database.types.AValue;
 
-public final class TombstoneFilterIterator<T extends TableRow<?>> implements Iterator<T> {
+public final class TombstoneFilterIterator<T extends Row<? extends AValue<?>, ? extends AValue<?>>> implements Iterator<T> {
     private final Iterator<T> iterator;
     private T nextValue;
     private boolean hasNext;
@@ -44,5 +45,4 @@ public final class TombstoneFilterIterator<T extends TableRow<?>> implements Ite
 
         return this.nextValue;
     }
-
 }

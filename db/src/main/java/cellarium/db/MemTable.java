@@ -16,16 +16,21 @@ public final class MemTable<K extends Comparable<?>, E extends WithKeyAndSize<K>
     private final AtomicLong sizeBytes;
 
     public MemTable() {
-        this(null);
-    }
-
-    private MemTable(Comparator<K> comparator) {
-        this.entries = new ConcurrentSkipListMap<>(comparator);
+        this.entries = new ConcurrentSkipListMap<>((Comparator<? super K>) null);
         this.sizeBytes = new AtomicLong(0);
     }
 
     @Override
     public Iterator<E> get(K from, K to) {
+        if (from != null && to != null && (((Comparable) to).compareTo(from) == 0)) {
+            E e = get(from);
+            if (e == null) {
+                return Collections.emptyIterator();
+            }
+
+            return Collections.singletonList(e).iterator();
+        }
+
         return slice(entries, from, to);
     }
 
@@ -36,27 +41,26 @@ public final class MemTable<K extends Comparable<?>, E extends WithKeyAndSize<K>
 
     @Override
     public void put(E entry) {
-        final long[] sizeDelta = new long[1];
         entries.compute(entry.getKey(), (_, oldValue) -> {
             if (oldValue == null) {
-                sizeDelta[0] = entry.getSizeBytes();
+                sizeBytes.addAndGet(entry.getSizeBytesOnDisk());
             } else {
-                sizeDelta[0] = entry.getSizeBytes() - oldValue.getSizeBytes();
+                sizeBytes.addAndGet(entry.getSizeBytesOnDisk() - oldValue.getSizeBytesOnDisk());
             }
 
             return entry;
         });
-
-        if (sizeDelta[0] != 0) {
-            sizeBytes.addAndGet(sizeDelta[0]);
-        }
     }
 
     public int getEntryCount() {
         return entries.size();
     }
 
-    public long getSizeBytes() {
+    public AtomicLong getSizeBytesAtomic() {
+        return sizeBytes;
+    }
+
+    public long getSizeBytesOnDisk() {
         return sizeBytes.get();
     }
 

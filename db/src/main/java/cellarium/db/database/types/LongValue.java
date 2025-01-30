@@ -2,7 +2,7 @@ package cellarium.db.database.types;
 
 public final class LongValue extends AValue<Long> {
     private LongValue(long value) {
-        super(value, DataType.LONG, Long.BYTES);
+        super(value, DataType.LONG);
     }
 
     public static LongValue of(long value) {

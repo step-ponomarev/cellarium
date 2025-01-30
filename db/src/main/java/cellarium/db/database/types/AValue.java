@@ -1,5 +1,6 @@
 package cellarium.db.database.types;
 
+import cellarium.db.converter.SSTableValueConverter;
 import cellarium.db.entry.Sizeable;
 
 public abstract class AValue<V> implements Sizeable, Comparable<AValue<V>> {
@@ -8,6 +9,10 @@ public abstract class AValue<V> implements Sizeable, Comparable<AValue<V>> {
     protected final V value;
     protected final DataType dataType;
     protected final long sizeBytes;
+
+    protected AValue(V value, DataType dataType) {
+        this(value, dataType, SSTableValueConverter.getSizeOnDisk(dataType, value));
+    }
 
     protected AValue(V value, DataType dataType, long sizeBytes) {
         this.value = value;
@@ -24,7 +29,7 @@ public abstract class AValue<V> implements Sizeable, Comparable<AValue<V>> {
     }
 
     @Override
-    public long getSizeBytes() {
+    public long getSizeBytesOnDisk() {
         return sizeBytes;
     }
 

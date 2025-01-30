@@ -2,7 +2,7 @@ package cellarium.db.database.types;
 
 public final class IntegerValue extends AValue<Integer> {
     private IntegerValue(int value) {
-        super(value, DataType.INTEGER, Integer.BYTES);
+        super(value, DataType.INTEGER);
     }
 
     public static IntegerValue of(int value) {

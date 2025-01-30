@@ -2,8 +2,6 @@ package cellarium.db.comparator;
 
 import java.util.EnumMap;
 import java.util.Map;
-
-import cellarium.db.converter.Converter;
 import cellarium.db.database.types.DataType;
 
 public final class ComparatorFactory {

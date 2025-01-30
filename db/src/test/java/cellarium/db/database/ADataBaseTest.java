@@ -1,11 +1,16 @@
 package cellarium.db.database;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.After;
 import org.junit.Before;
 
+import cellarium.db.config.CellariumConfig;
 import cellarium.db.database.table.ColumnScheme;
 import cellarium.db.database.table.Row;
 import cellarium.db.database.table.TableScheme;
@@ -15,9 +20,10 @@ import cellarium.db.database.types.DataType;
 import cellarium.db.database.types.IntegerValue;
 import cellarium.db.database.types.LongValue;
 import cellarium.db.database.types.StringValue;
-
+import cellarium.db.files.DiskUtils;
 
 abstract class ADataBaseTest {
+    private static final Path RESOURCES_PATH = Path.of("src/test/resources");
     private static final String TABLE_NAME = "user";
     private static final TableScheme SCHEME;
 
@@ -35,14 +41,37 @@ abstract class ADataBaseTest {
                 COLUMN_GENDER, DataType.BOOLEAN,
                 COLUMN_BIRTHDAY, DataType.LONG
         );
-        SCHEME = new TableScheme(id, columns);
+        final List<ColumnScheme> scheme = columns.entrySet()
+                .stream()
+                .map(e -> new ColumnScheme(e.getKey(), e.getValue())).toList();
+        SCHEME = new TableScheme(id, columns, scheme, 0);
     }
 
     protected DataBase dataBase;
 
     @Before
     public void init() {
-        this.dataBase = new CellariumDB();
+        try {
+            this.dataBase = new CellariumDB(new CellariumConfig(getMaxBytes(), RESOURCES_PATH.resolve("cellarium_db")));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected long getMaxBytes() {
+        return Integer.MAX_VALUE;
+    }
+
+    @After
+    public void after() throws Exception {
+        close();
+    }
+
+    public void close() throws IOException {
+        if (this.dataBase != null) {
+            this.dataBase.close();
+            DiskUtils.removeFile(RESOURCES_PATH.resolve("cellarium_db"));
+        }
     }
 
     protected Iterator<Row<AValue<?>, AValue<?>>> select(Integer from, Integer to, Set<String> filterCounts) {
